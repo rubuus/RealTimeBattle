@@ -13,10 +13,13 @@ public class PlayerController : MonoBehaviour
         Jump,
         GroundDash,
         AirDash,
-        Punch
+        Punch,
+        Hurt
     }
 
     private PlayerState state = PlayerState.Idle;
+
+    public bool isLocalPlayer = true;
 
     private float moveSpeed = 6.0f;
     private float jumpForce = 15.0f;
@@ -40,13 +43,15 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rigid;
     private Animator anim;
-    public GameObject punchHitbox;
 
     public AudioSource audioSource;
 
     public AudioClip jumpSound;
     public AudioClip portalKeySound;
     public AudioClip Deathsound;
+
+    [SerializeField] private PunchHitBox punchHitbox;
+    private Vector2 originalHitboxPos;
 
     void Awake()
     {
@@ -61,11 +66,22 @@ public class PlayerController : MonoBehaviour
         Deathsound = Resources.Load<AudioClip>("GameSounds/Deathsound");
 
         rigid.gravityScale = 4.0f;
+        originalHitboxPos = punchHitbox.transform.localPosition;
     }
 
     void Update()
     {
+        if (!isLocalPlayer) return;
         HandleInput();
+
+        if (moveInput > 0) transform.localScale = new Vector2(1, 1);
+        else if (moveInput < 0) transform.localScale = new Vector2(-1, 1);
+
+        // 히트박스 좌표 갱신
+        punchHitbox.transform.localPosition = new Vector2(
+            originalHitboxPos.x * transform.localScale.x,
+            originalHitboxPos.y
+        );
     }
 
     void FixedUpdate()
@@ -126,6 +142,7 @@ public class PlayerController : MonoBehaviour
         // 점프 입력
         if (Input.GetKeyDown(KeyCode.C) && jumpCount > 0)
             jumpPressed = true;
+            
 
         if (Input.GetKeyDown(KeyCode.X) &&
             dashCooldownTimer <= 0f &&
@@ -148,12 +165,6 @@ public class PlayerController : MonoBehaviour
         {
             StartPunch();
         }
-
-        // 좌우 방향 전환
-        if (moveInput > 0) transform.localScale = new Vector2(1, 1);
-        else if (moveInput < 0) transform.localScale = new Vector2(-1, 1);
-
-        punchHitbox.transform.localScale = transform.localScale;
     }
 
     void ChangeState(PlayerState newState)
@@ -187,6 +198,10 @@ public class PlayerController : MonoBehaviour
 
             case PlayerState.Punch:
                 anim.Play("Punch");
+                break;
+
+            case PlayerState.Hurt:
+                anim.Play("Hurt");
                 break;
         }
     }
@@ -320,7 +335,7 @@ public class PlayerController : MonoBehaviour
         punchTimer = punchDuration;
         punchCooldownTimer = punchDuration + punchCooldown;
 
-        punchHitbox.SetActive(true);
+        punchHitbox.gameObject.SetActive(true);
 
         if (onGround)
             rigid.linearVelocity = Vector2.zero;
@@ -332,7 +347,7 @@ public class PlayerController : MonoBehaviour
 
         if (punchTimer <= 0f)
         {
-            punchHitbox.SetActive(false);
+            punchHitbox.gameObject.SetActive(false);
 
             // 펀치 종료 후 상태 복귀
             if (!onGround)
@@ -342,6 +357,11 @@ public class PlayerController : MonoBehaviour
             else
                 ChangeState(PlayerState.Idle);
         }
+    }
+
+    public void OnHurt()
+    {
+        ChangeState(PlayerState.Hurt);
     }
 
     /*private void Die()
