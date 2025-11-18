@@ -41,6 +41,8 @@ public class PlayerController : MonoBehaviour
     public float punchCooldown = 0.2f;   // 펀치 쿨타임
     float punchCooldownTimer = 0f;
 
+    public bool isLeftSide = true;
+
     private Rigidbody2D rigid;
     private Animator anim;
 
@@ -170,7 +172,8 @@ public class PlayerController : MonoBehaviour
     void ChangeState(PlayerState newState)
     {
         // 중복 전환 방지
-        if (state == newState) return;
+        if (state == newState && newState != PlayerState.Punch)
+            return;
 
         state = newState;
 

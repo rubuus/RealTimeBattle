@@ -2,12 +2,12 @@ using UnityEngine;
 
 public class Health : MonoBehaviour
 {
-    private PlayerController playerController;
-
     [SerializeField] private HPBar hpBar;
 
     public int maxHp = 100;
     public int currentHp;
+
+    private PlayerController playerController;
 
     private void Awake()
     {
@@ -15,7 +15,26 @@ public class Health : MonoBehaviour
 
         if (playerController == null)
             playerController = GetComponentInParent<PlayerController>();
+
+        currentHp = maxHp;
     }
+
+    private void Start()
+    {
+        AssignHPBar();
+        UpdateHPBar();
+    }
+
+    private void AssignHPBar()
+    {
+        if (hpBar != null) return;
+
+        if (playerController.isLeftSide)
+            hpBar = GameObject.Find("HP_Bar_Left").GetComponentInChildren<HPBar>();
+        else
+            hpBar = GameObject.Find("HP_Bar_Right").GetComponentInChildren<HPBar>();
+    }
+
 
     public void TakeDamage(int amount)
     {
@@ -34,6 +53,11 @@ public class Health : MonoBehaviour
 
     private void UpdateHPBar()
     {
+        if (hpBar == null)
+        {
+            Debug.LogError("HPBar가 null임! 연결 안 됨!");
+            return;
+        }
         float rate = (float)currentHp / maxHp;
         hpBar.SetValue(rate);
     }

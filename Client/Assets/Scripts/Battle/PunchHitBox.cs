@@ -21,6 +21,7 @@ public class PunchHitBox : MonoBehaviour
         if (hurtbox.GetComponentInParent<PlayerController>() == owner) return;
 
         // 데미지 적용
-        hurtbox.ApplyDamage(damage);
+        hurtbox.ApplyDamage(10);
+
     }
 }
