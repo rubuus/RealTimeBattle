@@ -15,9 +15,9 @@ GameObject:
   - component: {fileID: 6015396263757039999}
   - component: {fileID: 1781006095471258980}
   - component: {fileID: 5652555694951966404}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -83,8 +83,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -197740217
+  m_SortingLayer: 2
   m_SortingOrder: 0
   m_Sprite: {fileID: 8975721076584580134, guid: dcd7d1f5fb452e447b630a8f91df29c6, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -143,6 +143,7 @@ MonoBehaviour:
   dashCooldown: 0.5
   punchDuration: 0.2
   punchCooldown: 0.2
+  isLeftSide: 1
   audioSource: {fileID: 0}
   jumpSound: {fileID: 0}
   portalKeySound: {fileID: 0}

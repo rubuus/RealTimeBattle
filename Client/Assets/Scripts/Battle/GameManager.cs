@@ -1,32 +1,59 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public Transform leftSpawn;
-    public Transform rightSpawn;
+    [SerializeField] private Transform leftSpawn;
+    [SerializeField] private Transform rightSpawn;
+    [SerializeField] private GameObject playerPrefab;
 
-    public GameObject playerPrefab;
+    private float timer = 10f;
+    [SerializeField] private TMP_Text timerText;
 
     void Start()
     {
         SpawnPlayersRandom();
     }
 
+    void Update()
+    {
+        RunTimer();
+    }
+
+    void RunTimer()
+    {
+        timer -= Time.deltaTime;
+
+        if (timerText != null)
+            timerText.text = Mathf.Ceil(timer).ToString();
+
+        if (timer <= 0f)
+        {
+            SceneManager.LoadScene("Result");
+        }
+    }
+
     void SpawnPlayersRandom()
     {
-        bool flip = Random.value > 0.5f;
+        // 내 위치 결정
+        Transform mySpawn = (SocketClient.Instance.side == "LEFT") ? leftSpawn : rightSpawn;
 
-        Transform mySpawn = flip ? rightSpawn : leftSpawn;
-        Transform enemySpawn = flip ? leftSpawn : rightSpawn;
+        // 상대 위치는 반대
+        Transform enemySpawn = (SocketClient.Instance.side == "LEFT") ? rightSpawn : leftSpawn;
 
+        // 내 플레이어 스폰
         var myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
         myPlayer.GetComponent<PlayerController>().isLocalPlayer = true;
+        myPlayer.GetComponent<PlayerController>().isLeftSide = (SocketClient.Instance.side == "LEFT");
 
+        // 상대 플레이어 스폰
         var enemyPlayer = Instantiate(playerPrefab, enemySpawn.position, Quaternion.identity);
         enemyPlayer.GetComponent<PlayerController>().isLocalPlayer = false;
+        enemyPlayer.GetComponent<PlayerController>().isLeftSide = (SocketClient.Instance.side == "RIGHT");
 
-        myPlayer.GetComponent<PlayerController>().isLeftSide = (mySpawn == leftSpawn);
-        enemyPlayer.GetComponent<PlayerController>().isLeftSide = (enemySpawn == leftSpawn);
-
+        // HP 참고 용
+        var myHealth = myPlayer.GetComponent<Health>();
+        var enemyHealth = enemyPlayer.GetComponent<Health>();
     }
 }

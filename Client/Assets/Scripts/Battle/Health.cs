@@ -17,6 +17,7 @@ public class Health : MonoBehaviour
             playerController = GetComponentInParent<PlayerController>();
 
         currentHp = maxHp;
+        UpdateHUD();
     }
 
     private void Start()
@@ -60,6 +61,16 @@ public class Health : MonoBehaviour
         }
         float rate = (float)currentHp / maxHp;
         hpBar.SetValue(rate);
+    }
+
+    private void UpdateHUD()
+    {
+        if (PlayerHUD.Instance == null) return;
+
+        if (playerController.isLocalPlayer)
+            PlayerHUD.Instance.myHp = currentHp;
+        else
+            PlayerHUD.Instance.enemyHp = currentHp;
     }
 
     private void Die()

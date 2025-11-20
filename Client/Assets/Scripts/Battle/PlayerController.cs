@@ -43,6 +43,9 @@ public class PlayerController : MonoBehaviour
 
     public bool isLeftSide = true;
 
+    private Color enemyColor = new Color(0f, 1f, 1f);
+
+
     private Rigidbody2D rigid;
     private Animator anim;
 
@@ -84,6 +87,17 @@ public class PlayerController : MonoBehaviour
             originalHitboxPos.x * transform.localScale.x,
             originalHitboxPos.y
         );
+
+        /*PlayerMovePacket movePacket = new PlayerMovePacket()
+        {
+            type = "PLAYER_MOVE",
+            id = SocketClient.Instance.id,
+            x = transform.position.x,
+            y = transform.position.y
+        };
+
+        string json = JsonUtility.ToJson(movePacket);
+        SocketClient.Instance.Send(json);*/
     }
 
     void FixedUpdate()
@@ -131,6 +145,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        if (!isLocalPlayer)
+        {
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
+                sr.color = enemyColor;
+        }
+    }
+
     void HandleInput()
     {
         // 이동 입력
@@ -172,7 +195,7 @@ public class PlayerController : MonoBehaviour
     void ChangeState(PlayerState newState)
     {
         // 중복 전환 방지
-        if (state == newState && newState != PlayerState.Punch)
+        if (state == newState)
             return;
 
         state = newState;

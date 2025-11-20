@@ -152,6 +152,7 @@ public class AuthManager : MonoBehaviour
                     UserId = response.userId;
                     Nickname = response.nickname;
                     AccessToken = response.accessToken;
+
                     onResult?.Invoke(true); // 성공
                 }
                 else

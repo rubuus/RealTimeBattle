@@ -1,0 +1,10 @@
+using System;
+
+[Serializable]
+public class PlayerMovePacket
+{
+    public string type;
+    public int id;
+    public float x;
+    public float y;
+}

@@ -28,7 +28,7 @@ public class SceneLoader : MonoBehaviour
     {
         if (loginManager.loadScenePossible)
         {
-            StartCoroutine(LoadSceneCoroutine("Lobby", 1f));
+            StartCoroutine(LoadSceneCoroutine("Lobby", 0.5f));
         }
     }
 

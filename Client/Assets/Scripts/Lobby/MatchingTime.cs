@@ -50,11 +50,9 @@ public class MatchingTime : MonoBehaviour
 
             if (elapsedSeconds % 8 == 0)
                 guideText.text = "Finding Match";
+
             else if (elapsedSeconds % 2 == 0)
                 guideText.text += ".";
-
-            if (elapsedSeconds > 10)
-                SuccessMatching();
         }
     }
 
@@ -66,7 +64,6 @@ public class MatchingTime : MonoBehaviour
             timerCoroutine = null;
         }
 
-        // 유저 입력 차단
         if (uiCanvas != null)
         {
             uiCanvas.interactable = false;
@@ -80,6 +77,6 @@ public class MatchingTime : MonoBehaviour
     private IEnumerator WaitAndLoad()
     {
         yield return new WaitForSeconds(1f);
-        StartCoroutine(SceneLoader.Instance.LoadSceneCoroutine("Matching", 1f));
+        StartCoroutine(SceneLoader.Instance.LoadSceneCoroutine("Matching", 0.5f));
     }
 }

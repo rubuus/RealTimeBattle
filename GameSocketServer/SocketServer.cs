@@ -1,0 +1,98 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+
+public class SocketServer
+{
+    private TcpListener _listener;
+
+    private Dictionary<int, ClientSession> _clients = new();
+    private Queue<ClientSession> _matchQueue = new();
+    private Dictionary<int, Room> _rooms = new();
+    private int _roomIdCounter = 1;
+    private int _port;
+
+    public SocketServer(int port)
+    {
+        _port = port;
+    }
+
+    public async Task StartAsync()
+    {
+        _listener = new TcpListener(IPAddress.Any, _port);
+        _listener.Start();
+        Console.WriteLine("Server Started");
+
+        int clientId = 1;
+
+        while (true)
+        {
+            var tcpClient = await _listener.AcceptTcpClientAsync();
+            var session = new ClientSession(clientId, tcpClient, this);
+
+            _clients.Add(clientId, session);
+            Console.WriteLine($"[SERVER] Client {clientId} Connected");
+
+            _ = session.StartAsync();
+            clientId++;
+        }
+    }
+    
+
+    // -----------------------
+    // 매칭 큐
+    // -----------------------
+    public void AddToMatchQueue(ClientSession s)
+    {
+        _matchQueue.Enqueue(s);
+        Console.WriteLine($"[MATCH] User {s.UserId} Enqueued");
+
+        if (_matchQueue.Count >= 2)
+        {
+            var p1 = _matchQueue.Dequeue();
+            var p2 = _matchQueue.Dequeue();
+
+            CreateRoom(p1, p2);
+        }
+    }
+
+    public void RemoveFromMatchQueue(ClientSession s)
+    {
+        // 간단한 remove - 큐 다시 생성
+        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.SessionId != s.SessionId));
+        Console.WriteLine($"[MATCH] Player {s.UserId} removed from queue");
+    }
+
+    // -----------------------
+    // 룸 생성
+    // -----------------------
+    public void CreateRoom(ClientSession p1, ClientSession p2)
+    {
+        int roomId = _roomIdCounter++;
+        var room = new Room(roomId, p1, p2);
+        _rooms.Add(roomId, room);
+
+        Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.UserId}, {p2.UserId})");
+
+        p1.Send($"MATCH_FOUND|{roomId}|{p1.UserId}|{p2.UserId}|LEFT");
+        p2.Send($"MATCH_FOUND|{roomId}|{p2.UserId}|{p1.UserId}|RIGHT");
+    }
+
+    public void CloseRoom(int roomId)
+    {
+        if (_rooms.TryGetValue(roomId, out var room))
+        {
+            room.CloseRoom();
+            _rooms.Remove(roomId);
+            Console.WriteLine($"[ROOM] Room {roomId} Deleted");
+        }
+    }
+
+    public Room GetRoom(int roomId)
+    {
+        return _rooms.TryGetValue(roomId, out var r) ? r : null;
+    }
+}

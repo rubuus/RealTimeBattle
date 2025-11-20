@@ -7,7 +7,8 @@ public class FadeManager : MonoBehaviour
 {
     public static FadeManager Instance { get; private set; }
     private CanvasGroup fadeCanvasGroup;
-    [SerializeField] private float defaultFadeDuration = 1f;
+    [SerializeField] private Image backColor;
+    [SerializeField] private float defaultFadeDuration = 0.5f;
 
     private Coroutine currentCouroutine;
     public bool HasCanvasGroup => fadeCanvasGroup != null;
@@ -36,7 +37,16 @@ public class FadeManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        StartCoroutine(FindCanvasGroupDelayed());
+        if (scene.name == "Matching" || scene.name == "Battle" || scene.name == "Result")
+        {
+            backColor.gameObject.SetActive(false);
+        }
+        else
+        {
+            backColor.gameObject.SetActive(true);
+        }
+
+       StartCoroutine(FindCanvasGroupDelayed());
     }
 
     private IEnumerator FindCanvasGroupDelayed()

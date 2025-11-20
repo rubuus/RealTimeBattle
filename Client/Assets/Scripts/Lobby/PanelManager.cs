@@ -32,7 +32,6 @@ public class PanelManager : MonoBehaviour
 
     private Dictionary<PanelType, GameObject> panelDict = new();
 
-
     [SerializeField] private NicknameManager nicknameManager;
     [SerializeField] private Button deleteAccountButton;
 
@@ -103,6 +102,9 @@ public class PanelManager : MonoBehaviour
                 nicknameManager.guideMessage.gameObject.SetActive(true);
             }
 
+            if (type == PanelType.Match)
+                SocketClient.Instance.Send("");
+
             target.SetActive(true);
         }
         else
@@ -120,6 +122,9 @@ public class PanelManager : MonoBehaviour
                 nicknameManager.errorMessage.gameObject.SetActive(false);
                 nicknameManager.nicknameField.text = string.Empty;
             }
+
+            //if (type == PanelType.Match)
+                //NetworkManager.Instance.Disconnect();
 
             target.SetActive(false);
         }

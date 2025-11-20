@@ -369,11 +369,27 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 8800874370305622722, guid: ce9ab03c65478ed4abaf98160b4e31db, type: 3}
+      propertyPath: backColor
+      value: 
+      objectReference: {fileID: 893227183}
+    m_RemovedComponents:
+    - {fileID: 2111749589943015126, guid: ce9ab03c65478ed4abaf98160b4e31db, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ce9ab03c65478ed4abaf98160b4e31db, type: 3}
+--- !u!114 &893227183 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8284648862904536590, guid: ce9ab03c65478ed4abaf98160b4e31db, type: 3}
+  m_PrefabInstance: {fileID: 893227182}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!1 &1117482267
 GameObject:
   m_ObjectHideFlags: 0
