@@ -390,7 +390,7 @@ public class PlayerController : MonoBehaviour
         ChangeState(PlayerState.Hurt);
     }
 
-    public void NetworkUpdate(Vector2 pos)
+    public void EnemyStateUpdate(Vector2 pos)
     {
         if (isLocalPlayer) return;
 

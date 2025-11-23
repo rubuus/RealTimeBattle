@@ -36,7 +36,7 @@ public class SocketServer
             _clients.Add(clientId, session);
             Console.WriteLine($"[SERVER] Client {clientId} Connected");
 
-            _ = session.StartAsync();
+            _ = session.ReceiveLoop();
             clientId++;
         }
     }
