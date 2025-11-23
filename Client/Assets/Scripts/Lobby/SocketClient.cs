@@ -97,6 +97,7 @@ public class SocketClient : MonoBehaviour
         }
     }
 
+
     private void HandlePacket(string msg)
     {
         if (msg.StartsWith("MATCH_FOUND"))
@@ -110,10 +111,27 @@ public class SocketClient : MonoBehaviour
 
             Debug.Log($"매칭 성공! room={roomId}, myUserId={myUserId}, enemyUserId={enemyUserId}, side={side}");
 
-            // ★★★ UI에게 매칭 성공 알림 ★★★
+            MatchButton.Instance.isMatching = false;
+
+            // UI에게 매칭 성공 알림
             MatchingTime instance = FindAnyObjectByType<MatchingTime>();
+
             if (instance != null)
-                instance.SuccessMatching();   
+                instance.SuccessMatching();
+        }
+        else if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
+        {
+            PlayerMovePacket p = JsonUtility.FromJson<PlayerMovePacket>(msg);
+
+            if (p.id != myUserId)
+            {
+                var enemy = GameManager.Instance.enemyPlayer;
+                if (enemy != null)
+                {
+                    var pc = enemy.GetComponent<PlayerController>();
+                    pc.NetworkUpdate(new Vector2(p.x, p.y));
+                }
+            }
         }
         else if (msg == "ENEMY_EXIT")
         {
@@ -121,6 +139,7 @@ public class SocketClient : MonoBehaviour
             SceneManager.LoadScene("Result");
         }
     }
+
 
     public void Disconnect()
     {

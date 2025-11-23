@@ -47,6 +47,9 @@ public class SocketServer
     // -----------------------
     public void AddToMatchQueue(ClientSession s)
     {
+        if (_matchQueue.Contains(s))
+            return;
+
         _matchQueue.Enqueue(s);
         Console.WriteLine($"[MATCH] User {s.UserId} Enqueued");
 

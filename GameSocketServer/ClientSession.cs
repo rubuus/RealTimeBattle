@@ -37,41 +37,40 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     private void HandleMessage(string msg)
     {
+        string command = msg.Contains("|") ? msg.Split('|')[0] : msg;
 
-    string command = msg.Contains("|") ? msg.Split('|')[0] : msg;
+        switch (command)
+        {
+            case "LOGIN":
+                HandleLogin(msg);
+                break;
 
-    switch (command)
-    {
-        case "LOGIN":
-            HandleLogin(msg);
-            break;
+            case "MATCH_START":
+                _server.AddToMatchQueue(this);
+                break;
 
-        case "MATCH_START":
-            _server.AddToMatchQueue(this);
-            break;
+            case "PLAYER_MOVE":
+                Room?.BroadcastToOther(SessionId, msg);
+                break;
 
-        case "PLAYER_MOVE":
-            Room?.BroadcastToOther(SessionId, msg);
-            break;
+            case "GAME_END":
+                if (Room != null)
+                    _server.CloseRoom(Room.RoomId);
 
-        case "GAME_END":
-            if (Room != null)
-                _server.CloseRoom(Room.RoomId);
+                Disconnect();
+                break;
 
-            Disconnect();
-            break;
+            case "GAME_EXIT":
+                if (Room != null)
+                    _server.CloseRoom(Room.RoomId);
+                    
+                Disconnect();
+                break;
 
-        case "GAME_EXIT":
-            if (Room != null)
-                _server.CloseRoom(Room.RoomId);
-                
-            Disconnect();
-            break;
-
-        default:
-            Console.WriteLine($"[WARN] Unknown command: {msg}");
-            break;
-    }
+            default:
+                Console.WriteLine($"[WARN] Unknown command: {msg}");
+                break;
+        }
 }
 
     public void HandleLogin(string msg)
@@ -95,9 +94,25 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public void Disconnect()
     {
         Console.WriteLine($"[DISCONNECT] {SessionId}");
-        _stream.Close();
-        _client.Close();
-        
+
+        // 1) 방이 있으면 정리 + 상대에게 ENEMY_EXIT 전송
+        if (Room != null)
+        {
+            // 상대에게 알림
+            var other = Room.Player1 == this ? Room.Player2 : Room.Player1;
+
+            if (other != null)
+                other.Send("ENEMY_EXIT");
+
+            _server.CloseRoom(Room.RoomId);  // 반드시 Room 삭제!
+            Room = null;
+        }
+
+        // 2) 매칭 큐에서 제거
         _server.RemoveFromMatchQueue(this);
+
+        // 3) 소켓/세션 정리
+        try { _stream?.Close(); } catch { }
+        try { _client?.Close(); } catch { }
     }
 }

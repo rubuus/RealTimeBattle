@@ -2,10 +2,28 @@ using UnityEngine;
 
 public class MatchButton : MonoBehaviour
 {
-    public void OnMatchStart()
+    public static MatchButton Instance;
+    public bool isMatching = false;
+
+    private void Awake()
     {
+        Instance = this;
+    }
+
+    public async void OnMatchStart()
+    {
+        if (isMatching)
+        {
+            Debug.Log("Already matching, ignoring...");
+            return;
+        }
+
+        isMatching = true;
+
         if (!SocketClient.Instance.IsConnected)
-            _ = SocketClient.Instance.Connect();
+        {
+            await SocketClient.Instance.Connect(); // await로 바꿔서 순서 보장
+        }
 
         SocketClient.Instance.Send("MATCH_START");
         Debug.Log("MATCH_START sent");

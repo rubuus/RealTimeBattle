@@ -102,9 +102,6 @@ public class PanelManager : MonoBehaviour
                 nicknameManager.guideMessage.gameObject.SetActive(true);
             }
 
-            if (type == PanelType.Match)
-                SocketClient.Instance.Send("");
-
             target.SetActive(true);
         }
         else
@@ -123,9 +120,12 @@ public class PanelManager : MonoBehaviour
                 nicknameManager.nicknameField.text = string.Empty;
             }
 
-            //if (type == PanelType.Match)
-                //NetworkManager.Instance.Disconnect();
-
+            if (type == PanelType.Match)
+            {
+                SocketClient.Instance.Disconnect();
+                MatchButton.Instance.isMatching = false;
+            }
+                
             target.SetActive(false);
         }
         else

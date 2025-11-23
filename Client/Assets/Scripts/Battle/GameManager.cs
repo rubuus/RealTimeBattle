@@ -11,9 +11,19 @@ public class GameManager : MonoBehaviour
     private float timer = 10f;
     [SerializeField] private TMP_Text timerText;
 
+    public static GameManager Instance;
+
+    public GameObject myPlayer;
+    public GameObject enemyPlayer;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     void Start()
     {
-        SpawnPlayersRandom();
+        SpawnPlayers();
     }
 
     void Update()
@@ -34,7 +44,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void SpawnPlayersRandom()
+    void SpawnPlayers()
     {
         // 내 위치 결정
         Transform mySpawn = (SocketClient.Instance.side == "LEFT") ? leftSpawn : rightSpawn;
@@ -43,14 +53,16 @@ public class GameManager : MonoBehaviour
         Transform enemySpawn = (SocketClient.Instance.side == "LEFT") ? rightSpawn : leftSpawn;
 
         // 내 플레이어 스폰
-        var myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
-        myPlayer.GetComponent<PlayerController>().isLocalPlayer = true;
-        myPlayer.GetComponent<PlayerController>().isLeftSide = (SocketClient.Instance.side == "LEFT");
+        myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
+        var myPC = myPlayer.GetComponent<PlayerController>();
+        myPC.isLocalPlayer = true;
+        myPC.isLeftSide = (SocketClient.Instance.side == "LEFT");
 
         // 상대 플레이어 스폰
-        var enemyPlayer = Instantiate(playerPrefab, enemySpawn.position, Quaternion.identity);
-        enemyPlayer.GetComponent<PlayerController>().isLocalPlayer = false;
-        enemyPlayer.GetComponent<PlayerController>().isLeftSide = (SocketClient.Instance.side == "RIGHT");
+        enemyPlayer = Instantiate(playerPrefab, enemySpawn.position, Quaternion.identity);
+        var enemyPC = enemyPlayer.GetComponent<PlayerController>();
+        enemyPC.isLocalPlayer = false;
+        enemyPC.isLeftSide = (SocketClient.Instance.side == "RIGHT");
 
         // HP 참고 용
         var myHealth = myPlayer.GetComponent<Health>();

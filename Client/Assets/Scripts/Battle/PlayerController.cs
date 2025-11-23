@@ -88,16 +88,16 @@ public class PlayerController : MonoBehaviour
             originalHitboxPos.y
         );
 
-        /*PlayerMovePacket movePacket = new PlayerMovePacket()
+        PlayerMovePacket movePacket = new PlayerMovePacket()
         {
             type = "PLAYER_MOVE",
-            id = SocketClient.Instance.id,
+            id = SocketClient.Instance.myUserId,
             x = transform.position.x,
             y = transform.position.y
         };
 
         string json = JsonUtility.ToJson(movePacket);
-        SocketClient.Instance.Send(json);*/
+        SocketClient.Instance.Send(json);
     }
 
     void FixedUpdate()
@@ -388,6 +388,14 @@ public class PlayerController : MonoBehaviour
     public void OnHurt()
     {
         ChangeState(PlayerState.Hurt);
+    }
+
+    public void NetworkUpdate(Vector2 pos)
+    {
+        if (isLocalPlayer) return;
+
+        // 부드럽게 보간해서 이동 시키기
+        transform.position = Vector2.Lerp(transform.position, pos, 0.3f);
     }
 
     /*private void Die()
