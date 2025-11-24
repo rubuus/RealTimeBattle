@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -41,19 +42,14 @@ public class PlayerController : MonoBehaviour
     public float punchCooldown = 0.2f;   // 펀치 쿨타임
     float punchCooldownTimer = 0f;
 
-    public bool isLeftSide = true;
+    public bool isLeftSide;
+    private bool canReceiveNetwork = false;
 
     private Color enemyColor = new Color(0f, 1f, 1f);
 
 
     private Rigidbody2D rigid;
     private Animator anim;
-
-    public AudioSource audioSource;
-
-    public AudioClip jumpSound;
-    public AudioClip portalKeySound;
-    public AudioClip Deathsound;
 
     [SerializeField] private PunchHitBox punchHitbox;
     private Vector2 originalHitboxPos;
@@ -62,13 +58,6 @@ public class PlayerController : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
-
-        audioSource = gameObject.AddComponent<AudioSource>();
-        audioSource.playOnAwake = false;
-
-        jumpSound = Resources.Load<AudioClip>("GameSounds/Playerjump");
-        portalKeySound = Resources.Load<AudioClip>("GameSounds/Potalkey");
-        Deathsound = Resources.Load<AudioClip>("GameSounds/Deathsound");
 
         rigid.gravityScale = 4.0f;
         originalHitboxPos = punchHitbox.transform.localPosition;
@@ -93,7 +82,9 @@ public class PlayerController : MonoBehaviour
             type = "PLAYER_MOVE",
             id = SocketClient.Instance.myUserId,
             x = transform.position.x,
-            y = transform.position.y
+            y = transform.position.y,
+            state = state.ToString(),
+            dir = (int)Mathf.Sign(transform.localScale.x)
         };
 
         string json = JsonUtility.ToJson(movePacket);
@@ -390,66 +381,26 @@ public class PlayerController : MonoBehaviour
         ChangeState(PlayerState.Hurt);
     }
 
-    public void EnemyStateUpdate(Vector2 pos)
+    public void EnemyStateUpdate(Vector2 pos, string state)
     {
+        if (!canReceiveNetwork) return;
         if (isLocalPlayer) return;
 
-        // 부드럽게 보간해서 이동 시키기
+        PlayerState newState = (PlayerState)Enum.Parse(typeof(PlayerState), state);
+
+        // 공격 중일 때 다른 공격 상태는 무시
+        if (this.state == PlayerState.Punch && newState == PlayerState.Punch)
+            return;
+
+        // 이동, 점프, Idle 등은 허용
+        ChangeState(newState);
+
+        // 위치 보정은 항상 허용
         transform.position = Vector2.Lerp(transform.position, pos, 0.3f);
     }
 
-    /*private void Die()
+    public void EnableNetwork()
     {
-
-        rigid.linearVelocity = Vector2.zero;
-
-        anim.SetTrigger("isDie");
-        rigid.bodyType = RigidbodyType2D.Static;
-
-        StartCoroutine(WaitForAnimation());
-    }*/
-
-    private IEnumerator WaitForAnimation()
-    {
-        yield return null;
-        yield return new WaitForSeconds(0.12f);
-        float dieDuration = anim.GetCurrentAnimatorStateInfo(0).length;
-        StartCoroutine(RestartScene(dieDuration));
+        canReceiveNetwork = true;
     }
-
-    private IEnumerator RestartScene(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-
-    /*
-
-    private void PlayJumpSound()
-    {
-        if (jumpSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(jumpSound);
-        }
-    }
-
-    private void PlayPortalKeySound()
-    {
-        if (portalKeySound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(portalKeySound);
-        }
-    }
-
-
-    private void PlayerDeathSound() {
-
-        if (Deathsound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(Deathsound);
-        }
-
-    }
-    */
-
 }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static PlayerController;
 
 public class SocketClient : MonoBehaviour
 {
@@ -150,17 +151,14 @@ public class SocketClient : MonoBehaviour
 
             if (p.id != myUserId)
             {
-                var enemy = GameManager.Instance.enemyPlayer;
+                var enemy = GameManager.Instance.enemyPlayer; 
+
                 if (enemy != null)
                 {
                     var pc = enemy.GetComponent<PlayerController>();
 
-                    // 좌표는 그대로 적용
-                    pc.EnemyStateUpdate(new Vector2(p.x, p.y));
-
-                    // 상대 방향만 보정
-                    float dir = (SocketClient.Instance.side == "LEFT") ? -1 : 1;
-                    enemy.transform.localScale = new Vector3(dir, 1, 1);
+                    pc.EnemyStateUpdate(new Vector2(p.x, p.y), p.state);
+                    enemy.transform.localScale = new Vector2(p.dir, 1);
                 }
             }
         }

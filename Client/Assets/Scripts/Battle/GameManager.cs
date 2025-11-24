@@ -55,17 +55,30 @@ public class GameManager : MonoBehaviour
         // 내 플레이어 스폰
         myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
         var myPC = myPlayer.GetComponent<PlayerController>();
-        myPC.isLocalPlayer = true;
         myPC.isLeftSide = (SocketClient.Instance.side == "LEFT");
+        myPC.isLocalPlayer = true;
+
+        int myDir = (SocketClient.Instance.side == "LEFT") ? 1 : -1;
+        myPC.transform.localScale = new Vector3(myDir, 1, 1);
 
         // 상대 플레이어 스폰
         enemyPlayer = Instantiate(playerPrefab, enemySpawn.position, Quaternion.identity);
         var enemyPC = enemyPlayer.GetComponent<PlayerController>();
-        enemyPC.isLocalPlayer = false;
         enemyPC.isLeftSide = (SocketClient.Instance.side == "RIGHT");
+        enemyPC.isLocalPlayer = false;
+
+        int enemyDir = (SocketClient.Instance.side == "LEFT") ? -1 : 1;
+        enemyPC.transform.localScale = new Vector3(enemyDir, 1, 1);
 
         // HP 참고 용
         var myHealth = myPlayer.GetComponent<Health>();
         var enemyHealth = enemyPlayer.GetComponent<Health>();
+
+        Invoke(nameof(EnableEnemyNetwork), 0.3f);
+    }
+
+    void EnableEnemyNetwork()
+    {
+        enemyPlayer.GetComponent<PlayerController>().EnableNetwork();
     }
 }
