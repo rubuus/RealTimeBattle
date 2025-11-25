@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static PlayerController;
 
 public class SocketClient : MonoBehaviour
 {
@@ -114,7 +113,6 @@ public class SocketClient : MonoBehaviour
 
     private void HandlePacket(string msg)
     {
-        
         if (msg.StartsWith("MATCH_FOUND"))
         {
             var parts = msg.Split('|');
@@ -155,20 +153,25 @@ public class SocketClient : MonoBehaviour
 
                 if (enemy != null)
                 {
-                    var pc = enemy.GetComponent<PlayerController>();
+                    var pc = enemy.GetComponent<EnemyController>();
 
                     pc.EnemyStateUpdate(new Vector2(p.x, p.y), p.state);
-                    enemy.transform.localScale = new Vector2(p.dir, 1);
                 }
             }
+        }
+        else if (msg == "GAME_END")
+        {
+            enemyDisconnected = false;
+            Disconnect();
+            SceneManager.LoadScene("Result");
         }
         else if (msg == "ENEMY_EXIT")
         {
             enemyDisconnected = true;
+            Disconnect();
             SceneManager.LoadScene("Result");
         }
     }
-
 
     public void Disconnect()
     {
@@ -195,7 +198,6 @@ public class SocketClient : MonoBehaviour
             Debug.LogError("Disconnect error: " + ex.Message);
         }
     }
-
 
     private void OnApplicationQuit()
     {

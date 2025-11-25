@@ -13,6 +13,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public Vector2 lastPos;
     public string lastState = "Idle";
     public int lastDir = 1;
+    public bool isGameEnded = false;
     public bool battleReady = false;
 
     private TcpClient _client = client;
@@ -88,17 +89,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 break;
 
             case "GAME_END":
-                if (Room != null)
-                    _server.CloseRoom(Room.RoomId);
-                    
-                battleReady = false;
-                Disconnect();
-                break;
-
-            case "GAME_EXIT":
-                if (Room != null)
-                    _server.CloseRoom(Room.RoomId);
-
+                isGameEnded = true;
                 battleReady = false;
                 Disconnect();
                 break;
@@ -132,17 +123,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
         Console.WriteLine($"[DISCONNECT] {SessionId}");
 
         // 1) 방이 있으면 정리 + 상대에게 ENEMY_EXIT 전송
-        if (Room != null)
-        {
-            // 상대에게 알림
-            var other = Room.Player1 == this ? Room.Player2 : Room.Player1;
-
-            if (other != null)
-                other.Send("ENEMY_EXIT");
-
-            _server.CloseRoom(Room.RoomId);  // 반드시 Room 삭제!
-            Room = null;
-        }
+        ClearRoom();
 
         // 2) 매칭 큐에서 제거
         _server.RemoveFromMatchQueue(this);
@@ -150,5 +131,27 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
         // 3) 소켓/세션 정리
         try { _stream?.Close(); } catch { }
         try { _client?.Close(); } catch { }
+    }
+
+    public void ClearRoom()
+    {
+        if (Room != null)
+        {
+            // 상대에게 알림
+            var other = Room.Player1 == this ? Room.Player2 : Room.Player1;
+
+            if (other != null)
+            {
+                if (isGameEnded)
+                    other.Send("GAME_END");
+                else
+                    other.Send("ENEMY_EXIT");
+            }
+
+            _server.CloseRoom(Room.RoomId);  // 반드시 Room 삭제!
+            Room = null;
+        }
+        
+        isGameEnded = false;
     }
 }

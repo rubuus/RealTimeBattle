@@ -581,6 +581,7 @@ MonoBehaviour:
   leftSpawn: {fileID: 759331863}
   rightSpawn: {fileID: 1624702392}
   playerPrefab: {fileID: 4702911607469091163, guid: 64c748185145c9f4e97aef7f6e5bee75, type: 3}
+  enemyPrefab: {fileID: 3833960917163554118, guid: b51bfb8d497676a479b867f523205e77, type: 3}
   timerText: {fileID: 1852788050}
   myPlayer: {fileID: 0}
   enemyPlayer: {fileID: 0}

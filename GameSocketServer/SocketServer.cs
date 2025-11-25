@@ -21,53 +21,6 @@ public class SocketServer
         _port = port;
     }
 
-    private async Task TickLoop()
-    {
-        const int TICK_RATE = 30; // 30 FPS
-        const int TICK_DELAY = 1000 / TICK_RATE;
-
-        while (true)
-        {
-            BroadcastAllRooms();
-            await Task.Delay(TICK_DELAY);
-        }
-    }
-
-    private void BroadcastAllRooms()
-    {
-        foreach (var room in _rooms.Values)
-        {
-            BroadcastRoom(room);
-        }
-    }   
-
-    private void BroadcastRoom(Room room)
-    {
-        if (!room.Player1.battleReady || !room.Player2.battleReady)
-            return;
-
-        SendPlayerState(room.Player1, room.Player2);
-        SendPlayerState(room.Player2, room.Player1);
-    }
-
-    private void SendPlayerState(ClientSession src, ClientSession dest)
-    {
-        if (src == null || dest == null) return;
-
-        var pkt = new PlayerMovePacket
-        {
-            type = "PLAYER_MOVE",
-            id = src.SessionId,
-            x = src.lastPos.X,
-            y = src.lastPos.Y,
-            dir = src.lastDir,
-            state = src.lastState
-        };
-
-        string json = JsonSerializer.Serialize(pkt);
-        dest.Send(json);
-    }
-
     public async Task StartAsync()
     {
         _listener = new TcpListener(IPAddress.Any, _port);
@@ -148,5 +101,52 @@ public class SocketServer
     public Room GetRoom(int roomId)
     {
         return _rooms.TryGetValue(roomId, out var r) ? r : null;
+    }
+
+    private async Task TickLoop()
+    {
+        const int TICK_RATE = 30; // 30 FPS
+        const int TICK_DELAY = 1000 / TICK_RATE;
+
+        while (true)
+        {
+            BroadcastAllRooms();
+            await Task.Delay(TICK_DELAY);
+        }
+    }
+
+    private void BroadcastAllRooms()
+    {
+        foreach (var room in _rooms.Values)
+        {
+            BroadcastRoom(room);
+        }
+    }   
+
+    private void BroadcastRoom(Room room)
+    {
+        if (!room.Player1.battleReady || !room.Player2.battleReady)
+            return;
+
+        SendPlayerState(room.Player1, room.Player2);
+        SendPlayerState(room.Player2, room.Player1);
+    }
+
+    private void SendPlayerState(ClientSession src, ClientSession dest)
+    {
+        if (src == null || dest == null) return;
+
+        var pkt = new PlayerMovePacket
+        {
+            type = "PLAYER_MOVE",
+            id = src.SessionId,
+            x = src.lastPos.X,
+            y = src.lastPos.Y,
+            dir = src.lastDir,
+            state = src.lastState
+        };
+
+        string json = JsonSerializer.Serialize(pkt);
+        dest.Send(json);
     }
 }

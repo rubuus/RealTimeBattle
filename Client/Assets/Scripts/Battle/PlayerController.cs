@@ -34,25 +34,16 @@ public class PlayerController : MonoBehaviour
     public float dashSpeed = 20f;
     public float dashTime = 5f;
     public float dashCooldown = 0.5f;
-    float dashTimer = 0f;
-    float dashCooldownTimer = 0f;
+    public float dashTimer = 0f;
+    public float dashCooldownTimer = 0f;
 
-    float punchTimer = 0f;
+    public float punchTimer = 0f;
     public float punchDuration = 0.4f;   // 펀치 애니 길이(클립 기준)
     public float punchCooldown = 0.2f;   // 펀치 쿨타임
-    float punchCooldownTimer = 0f;
+    public float punchCooldownTimer = 0f;
 
     public bool isLeftSide;
-    private bool canReceiveNetwork = false;
 
-    private Color enemyColor = new Color(0f, 1f, 1f);
-
-    private Vector2 _networkTargetPos; // 서버로부터 받은 최종 목표 위치
-    private string _networkTargetState; // 서버로부터 받은 최종 목표 상태
-    public bool isNetworkUpdatePending = false;
-    private Vector2 smoothVel = Vector2.zero;
-    [SerializeField] private float networkSmoothTime = 0.02f;
-    private float networkActionEndTime = 0f;
 
     private Rigidbody2D rigid;
     private Animator anim;
@@ -61,7 +52,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 originalHitboxPos;
 
     void Awake()
-    {
+    {   
         rigid = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
 
@@ -71,68 +62,6 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (!isLocalPlayer)
-        {
-            // 1. 상태 업데이트 처리
-            if (isNetworkUpdatePending)
-            {
-                PlayerState newState = (PlayerState)Enum.Parse(typeof(PlayerState), _networkTargetState);
-
-                // ----------------------------------------------------------------------------------
-                // ★ 애니메이션 덮어쓰기 방지 핵심 로직 ★
-
-                // 1. 현재 Punch/Dash 상태이고, 아직 로컬 애니메이션 종료 시간이 지나지 않았는데
-                // 2. 서버에서 Idle, Run, Jump 등 액션을 취소하는 상태가 왔다면 (Hurt는 제외)
-                if (networkActionEndTime > Time.time)
-                {
-                    if (this.state == PlayerState.Punch || this.state == PlayerState.GroundDash || this.state == PlayerState.AirDash)
-                    {
-                        // 서버에서 받은 상태가 취소 상태(Idle, Run 등)일 경우 무시
-                        if (newState != PlayerState.Hurt && newState != this.state)
-                        {
-                            // 새로운 패킷을 받았지만, 현재 애니메이션이 끝나기를 기다림.
-                            isNetworkUpdatePending = false;
-                            return;
-                        }
-                    }
-                }
-                // ----------------------------------------------------------------------------------
-
-                // 공격 중일 때 같은 공격 상태는 무시 (기존 로직 유지)
-                if (this.state == PlayerState.Punch && newState == PlayerState.Punch)
-                    return;
-
-                ChangeState(newState);
-
-                isNetworkUpdatePending = false;
-            }
-
-            // 2. 위치 보간 (클라이언트 틱: Update에서 실행)
-            if (_networkTargetPos != Vector2.zero)
-            {
-                // ★ 애니메이션 간섭 방지 로직 추가 ★
-                // 펀치, 대시 등의 강제 이동 상태에서는 위치 보간을 건너뛰어 애니메이션이 위치를 제어하게 함.
-                // 이 상태들은 FixedUpdate에서 일정 시간이 지나면 Idle/Run으로 복귀할 것이므로, 
-                // 그 이후부터는 다시 위치 보간이 적용됩니다.
-                if (this.state == PlayerState.Punch ||
-                    this.state == PlayerState.GroundDash ||
-                    this.state == PlayerState.AirDash)
-                {
-                    // 위치 업데이트를 건너뛰지만, 방향은 유지
-                    transform.localScale = new Vector2(Mathf.Sign(transform.localScale.x), 1);
-                    return;
-                }
-
-                // ★ SmoothDamp 재도입 (떨림 Jitter 해결에 Lerp보다 효과적) ★
-                transform.position = Vector2.SmoothDamp(
-                    transform.position,
-                    _networkTargetPos,
-                    ref smoothVel, // ref 변수를 사용하여 부드러운 전환 속도 제어
-                    networkSmoothTime // 0.02f (빠른 보간 시간으로 지연 최소화)
-                );
-            }
-            return;
-        }
         // --- 로컬 플레이어 로직 (기존 유지) ---
         HandleInput();
 
@@ -205,15 +134,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void LateUpdate()
-    {
-        if (!isLocalPlayer)
-        {
-            foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
-                sr.color = enemyColor;
-        }
-    }
-
     void HandleInput()
     {
         // 이동 입력
@@ -260,27 +180,7 @@ public class PlayerController : MonoBehaviour
 
         state = newState;
 
-        if (!isLocalPlayer)
-        {
-            float duration = 0f;
-
-            if (newState == PlayerState.Punch)
-                duration = punchDuration;
-            else if (newState == PlayerState.GroundDash || newState == PlayerState.AirDash)
-                duration = dashTime;
-
-            if (duration > 0f)
-            {
-                // 현재 시간 + 지속 시간으로 종료 시간 설정
-                networkActionEndTime = Time.time + duration;
-            }
-            else
-            {
-                networkActionEndTime = 0f;
-            }
-        }
-
-        switch (newState)
+        switch (state)
         {
             case PlayerState.Idle:
                 anim.Play("Idle");
@@ -470,19 +370,5 @@ public class PlayerController : MonoBehaviour
         ChangeState(PlayerState.Hurt);
     }
 
-    public void EnemyStateUpdate(Vector2 pos, string state)
-    {
-        if (!canReceiveNetwork) return;
-        if (isLocalPlayer) return;
-
-        // 1. 상태 및 위치 정보 저장
-        _networkTargetPos = pos;
-        _networkTargetState = state;
-        isNetworkUpdatePending = true; // 새로운 데이터가 있음을 표시
-    }
-
-    public void EnableNetwork()
-    {
-        canReceiveNetwork = true;
-    }
+    
 }
