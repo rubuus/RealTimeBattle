@@ -75,6 +75,7 @@ public class GameManager : MonoBehaviour
         var enemyHealth = enemyPlayer.GetComponent<Health>();
 
         Invoke(nameof(EnableEnemyNetwork), 0.3f);
+        SocketClient.Instance.Send("BATTLE_READY");
     }
 
     void EnableEnemyNetwork()

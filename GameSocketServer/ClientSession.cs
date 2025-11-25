@@ -1,5 +1,7 @@
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text;
+using System.Text.Json;
 
 public class ClientSession(int id, TcpClient client, SocketServer server)
 {
@@ -7,6 +9,11 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public int UserId { get; set; }
     public int RoomId;
     public Room Room;
+
+    public Vector2 lastPos;
+    public string lastState = "Idle";
+    public int lastDir = 1;
+    public bool battleReady = false;
 
     private TcpClient _client = client;
     private NetworkStream _stream = client.GetStream();
@@ -49,8 +56,13 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
             // 너무 정교하게 할 필요 없고, type 문자열만 확인
             if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
             {
-                // 나 빼고 상대에게 브로드캐스트
-                Room?.BroadcastToOther(SessionId, msg);
+                if (battleReady)  // battle 준비 완료된 클라만 좌표 처리
+                {
+                    var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
+                    Room?.UpdatePlayerState(this, p);
+                    Console.WriteLine(msg);
+                }
+                
                 return;
             }
 
@@ -69,18 +81,25 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
             case "MATCH_START":
                 _server.AddToMatchQueue(this);
                 break;
+            
+            case "BATTLE_READY":
+                battleReady = true;
+                Console.WriteLine($"[READY] {SessionId} ready");
+                break;
 
             case "GAME_END":
                 if (Room != null)
                     _server.CloseRoom(Room.RoomId);
-
+                    
+                battleReady = false;
                 Disconnect();
                 break;
 
             case "GAME_EXIT":
                 if (Room != null)
                     _server.CloseRoom(Room.RoomId);
-                    
+
+                battleReady = false;
                 Disconnect();
                 break;
 

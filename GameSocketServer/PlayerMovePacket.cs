@@ -1,9 +1,9 @@
 public class PlayerMovePacket
 {
-    public string? type;
-    public int id;
-    public float x;
-    public float y;
-    public string? state;
-    public int dir;
+    public string type { get; set; }
+    public int id { get; set; }
+    public float x { get; set; }
+    public float y { get; set; }
+    public int dir { get; set; }
+    public string state { get; set; }
 }
