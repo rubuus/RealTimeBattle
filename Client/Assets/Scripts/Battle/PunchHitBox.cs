@@ -3,25 +3,38 @@ using UnityEngine;
 public class PunchHitBox : MonoBehaviour
 {
     public int damage = 10;
+    private bool hasHit = false;
 
-    private PlayerController owner; // 부모 플레이어 저장
-
-    private void Awake()
+    private void OnEnable()
     {
-        owner = GetComponentInParent<PlayerController>();
+        hasHit = false;
     }
 
     private void OnTriggerEnter2D(Collider2D col)
     {
         HurtBox hurtbox = col.GetComponent<HurtBox>();
 
-        if (hurtbox == null) return;
+        HurtBox myHurtbox = GetComponentInParent<HurtBox>();
 
-        // 자기 자신은 무시
-        if (hurtbox.GetComponentInParent<PlayerController>() == owner) return;
+        if (hurtbox == null || hurtbox == myHurtbox) return;
 
-        // 데미지 적용
-        hurtbox.ApplyDamage(10);
+        if (hasHit) return;
+        hasHit = true;
 
+        HitPacket hitPacket = new HitPacket()
+        {
+            type = "HIT",
+            hitId = SocketClient.Instance.myUserId,
+            hurtId = hurtbox.PlayerId,
+            damage = damage
+        };
+
+        string json = JsonUtility.ToJson(hitPacket);
+        SocketClient.Instance.Send(json);
+    }
+
+    private void OnDisable()
+    {
+        hasHit = false; 
     }
 }

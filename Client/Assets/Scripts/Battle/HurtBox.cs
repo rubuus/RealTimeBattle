@@ -2,15 +2,6 @@ using UnityEngine;
 
 public class HurtBox : MonoBehaviour
 {
-    private Health health;
-
-    private void Awake()
-    {
-        health = GetComponentInParent<Health>();
-    }
-
-    public void ApplyDamage(int amount)
-    {
-        health.TakeDamage(amount);
-    }
+    public int PlayerId {  get; private set; }
+    public void Initialize(int id) { PlayerId = id; }
 }

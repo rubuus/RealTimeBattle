@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8233600389090422746}
   - component: {fileID: 8582816817742073466}
-  - component: {fileID: 7462917872537616660}
+  - component: {fileID: 747958789305111346}
   m_Layer: 0
   m_Name: PunchHitBox
   m_TagString: Untagged
@@ -79,7 +79,7 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.5, y: 0.8}
   m_EdgeRadius: 0
---- !u!114 &7462917872537616660
+--- !u!114 &747958789305111346
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -109,7 +109,7 @@ GameObject:
   - component: {fileID: 855457589793888653}
   m_Layer: 6
   m_Name: Enemy
-  m_TagString: Player
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -305,8 +305,8 @@ MonoBehaviour:
   isNetworkUpdatePending: 0
   networkSmoothTime: 0.02
   punchDuration: 0.4
-  dashTime: 5
-  punchHitbox: {fileID: 7462917872537616660}
+  dashDuration: 0.25
+  punchHitbox: {fileID: 747958789305111346}
 --- !u!1 &6439793159432640653
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,8 +316,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2729716380269481820}
-  - component: {fileID: 7177343367135644237}
   - component: {fileID: 5755544464388376186}
+  - component: {fileID: 8883857970640553850}
   m_Layer: 0
   m_Name: HurtBox
   m_TagString: Untagged
@@ -340,18 +340,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6139874072162367441}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7177343367135644237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6439793159432640653}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HurtBox
 --- !u!70 &5755544464388376186
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -389,3 +377,15 @@ CapsuleCollider2D:
   m_Offset: {x: -0.05, y: -0.05}
   m_Size: {x: 0.6, y: 0.95}
   m_Direction: 0
+--- !u!114 &8883857970640553850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6439793159432640653}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HurtBox

@@ -11,9 +11,8 @@ public class EnemyController : MonoBehaviour
     public bool isNetworkUpdatePending = false;
 
     private Vector2 smoothVel;
-    [SerializeField] private float networkSmoothTime = 0.015f;  // �� �ڿ�������
+    [SerializeField] private float networkSmoothTime = 0.015f;
 
-    private float networkActionEndTime = 0f;
     public float punchDuration = 0.35f;
     public float dashDuration = 0.25f;
 
@@ -55,7 +54,7 @@ public class EnemyController : MonoBehaviour
             PlayerState newState =
                 (PlayerState)Enum.Parse(typeof(PlayerState), _networkTargetState);
 
-            
+
             if (enemyState == PlayerState.Punch && newState == PlayerState.Punch)
             {
                 isNetworkUpdatePending = false;
@@ -88,41 +87,34 @@ public class EnemyController : MonoBehaviour
 
         enemyState = newState;
 
-        if (newState == PlayerState.Punch)
-            networkActionEndTime = Time.time + punchDuration;
-        else if (newState == PlayerState.GroundDash || newState == PlayerState.AirDash)
-            networkActionEndTime = Time.time + dashDuration;
-        else
-            networkActionEndTime = 0f;
-
         switch (enemyState)
         {
-            case PlayerState.Idle: 
-                anim.Play("Idle"); 
+            case PlayerState.Idle:
+                anim.Play("Idle");
                 break;
 
-            case PlayerState.Run: 
-                anim.Play("Run"); 
+            case PlayerState.Run:
+                anim.Play("Run");
                 break;
 
-            case PlayerState.Jump: 
-                anim.Play("Jump"); 
+            case PlayerState.Jump:
+                anim.Play("Jump");
                 break;
 
-            case PlayerState.GroundDash: 
-                anim.Play("GroundDash"); 
+            case PlayerState.GroundDash:
+                anim.Play("GroundDash");
                 break;
 
-            case PlayerState.AirDash: 
-                anim.Play("AirDash"); 
+            case PlayerState.AirDash:
+                anim.Play("AirDash");
                 break;
 
-            case PlayerState.Punch: 
-                anim.Play("Punch"); 
+            case PlayerState.Punch:
+                anim.Play("Punch");
                 break;
 
-            case PlayerState.Hurt: 
-                anim.Play("Hurt"); 
+            case PlayerState.Hurt:
+                anim.Play("Hurt");
                 break;
         }
     }

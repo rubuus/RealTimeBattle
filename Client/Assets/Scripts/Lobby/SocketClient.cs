@@ -17,14 +17,15 @@ public class SocketClient : MonoBehaviour
     private byte[] buffer = new byte[1024];
     private StringBuilder recvBuffer = new StringBuilder();
 
-    private bool connected = false;
-    public bool IsConnected => connected;
+    public bool connected = false;
     public bool enemyDisconnected = false;
 
     public int myUserId;
     public int enemyUserId;
     public int roomId;
     public string side;
+
+    public string finalResult = "DRAW";
 
     private void Awake()
     {
@@ -97,11 +98,11 @@ public class SocketClient : MonoBehaviour
                     string packet = recvBuffer.ToString(0, idx).Trim();
                     recvBuffer.Remove(0, idx + 1);
 
-                    Debug.Log("[SERVER PACKET] " + packet);
-                    HandlePacket(packet);
+                    HandleMessage(packet);
+                    HandleJson(packet);
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError("ReceiveLoop Exception: " + e);
                 connected = false;
@@ -110,8 +111,7 @@ public class SocketClient : MonoBehaviour
         }
     }
 
-
-    private void HandlePacket(string msg)
+    private void HandleMessage(string msg)
     {
         if (msg.StartsWith("MATCH_FOUND"))
         {
@@ -131,46 +131,84 @@ public class SocketClient : MonoBehaviour
 
             if (instance != null)
                 instance.SuccessMatching();
-        }
-        else if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
-        {
-            if (SceneManager.GetActiveScene().name != "Battle")
-                return;
-
-            // GameManager 준비 안 됐으면 버리기
-            if (GameManager.Instance == null || GameManager.Instance.enemyPlayer == null)
-                return;
-
-            PlayerMovePacket p = JsonUtility.FromJson<PlayerMovePacket>(msg);
-
-            // 내 패킷이면 무시
-            if (p.id == myUserId)
-                return;
-
-            if (p.id != myUserId)
+            }
+            else if (msg == "GAME_WIN")
             {
-                var enemy = GameManager.Instance.enemyPlayer; 
+                enemyDisconnected = false;
+                finalResult = "Win";
+                SceneManager.LoadScene("Result");
+            }
+            else if (msg == "GAME_LOSE")
+            {
+                enemyDisconnected = false;
+                finalResult = "Lose";
+                SceneManager.LoadScene("Result");
+            }
+            else if (msg == "ENEMY_EXIT")
+            {
+                enemyDisconnected = true;
+                SceneManager.LoadScene("Result");
+            }
+    }
 
-                if (enemy != null)
+    private void HandleJson(string msg)
+    {
+
+        if (SceneManager.GetActiveScene().name != "Battle")
+            return;
+
+        if (msg.StartsWith("{"))
+        {
+            if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
+            {
+                // GameManager 준비 안 됐으면 버리기
+                if (GameManager.Instance == null || GameManager.Instance.enemyPlayer == null)
+                    return;
+
+                PlayerMovePacket p = JsonUtility.FromJson<PlayerMovePacket>(msg);
+
+                // 내 패킷이면 무시
+                if (p.id == myUserId)
+                    return;
+
+                if (p.id != myUserId)
                 {
-                    var pc = enemy.GetComponent<EnemyController>();
+                    var enemy = GameManager.Instance.enemyPlayer;
 
-                    pc.EnemyStateUpdate(new Vector2(p.x, p.y), p.state);
+                    if (enemy != null)
+                    {
+                        var pc = enemy.GetComponent<EnemyController>();
+
+                        pc.EnemyStateUpdate(new Vector2(p.x, p.y), p.state);
+                    }
+                }
+            }
+            if (msg.Contains("\"type\":\"TAKE_DAMAGE\""))
+            {
+                if (GameManager.Instance == null) return;
+
+                DamagePacket p = JsonUtility.FromJson<DamagePacket>(msg);
+
+                GameObject target = (p.id == myUserId) ?
+                GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
+
+                // 캐릭터 Health 업데이트
+                Health targetHealth = target.GetComponent<Health>();
+                targetHealth.currentHp = p.currentHP;
+                targetHealth.UpdateHPBar();
+
+                if (p.id == myUserId)
+                {
+                    PlayerHUD.Instance.myHp = p.currentHP;
+                }
+                else if (p.id == enemyUserId)
+                {
+                    PlayerHUD.Instance.enemyHp = p.currentHP;
                 }
             }
         }
-        else if (msg == "GAME_END")
-        {
-            enemyDisconnected = false;
-            Disconnect();
-            SceneManager.LoadScene("Result");
-        }
-        else if (msg == "ENEMY_EXIT")
-        {
-            enemyDisconnected = true;
-            Disconnect();
-            SceneManager.LoadScene("Result");
-        }
+
+        
     }
 
     public void Disconnect()

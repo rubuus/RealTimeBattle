@@ -1,4 +1,4 @@
-using TMPro;
+ï»¿using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,10 +20,6 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-    }
-
-    void Start()
-    {
         SpawnPlayers();
     }
 
@@ -50,22 +46,28 @@ public class GameManager : MonoBehaviour
         Transform mySpawn = (SocketClient.Instance.side == "LEFT") ? leftSpawn : rightSpawn;
         Transform enemySpawn = (SocketClient.Instance.side == "LEFT") ? rightSpawn : leftSpawn;
 
-        // ³» ÇÃ·¹ÀÌ¾î´Â PlayerPrefab (PlayerController)
+        // ë‚´ í”Œë ˆì´ì–´ëŠ” PlayerPrefab (PlayerController)
         myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
-        var myPC = myPlayer.GetComponent<PlayerController>();
-        myPC.isLeftSide = (SocketClient.Instance.side == "LEFT");
-        myPC.isLocalPlayer = true;
 
         int myDir = (SocketClient.Instance.side == "LEFT") ? 1 : -1;
-        myPC.transform.localScale = new Vector3(myDir, 1, 1);
+        myPlayer.transform.localScale = new Vector3(myDir, 1, 1);
 
-        // »ó´ë ÇÃ·¹ÀÌ¾î´Â EnemyPrefab (EnemyController)
+        var myHurtBox = myPlayer.GetComponentInChildren<HurtBox>();
+        if (myHurtBox != null)
+            myHurtBox.Initialize(SocketClient.Instance.myUserId);
+
+
+        // ìƒëŒ€ í”Œë ˆì´ì–´ëŠ” EnemyPrefab (EnemyController)
         enemyPlayer = Instantiate(enemyPrefab, enemySpawn.position, Quaternion.identity);
-
         int enemyDir = (SocketClient.Instance.side == "LEFT") ? -1 : 1;
         enemyPlayer.transform.localScale = new Vector3(enemyDir, 1, 1);
 
-        // HP Âü°í¿ë
+        var enemyHurtBox = enemyPlayer.GetComponentInChildren<HurtBox>();
+        if (enemyHurtBox != null)
+            enemyHurtBox.Initialize(SocketClient.Instance.enemyUserId);
+
+
+        // HP ì°¸ê³ ìš©
         var myHealth = myPlayer.GetComponent<Health>();
         var enemyHealth = enemyPlayer.GetComponent<Health>();
 

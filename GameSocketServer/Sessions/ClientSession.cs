@@ -8,18 +8,19 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public int SessionId { get; set; } = id;
     public int UserId { get; set; }
     public int RoomId;
-    public Room Room;
+    public Room ?Room;
 
     public Vector2 lastPos;
     public string lastState = "Idle";
-    public int lastDir = 1;
     public bool isGameEnded = false;
+    public bool player1Ended = false;
+    public bool player2Ended = false;
     public bool battleReady = false;
+    public int currentHp = 100;
 
     private TcpClient _client = client;
     private NetworkStream _stream = client.GetStream();
     private SocketServer _server = server;
-
     private StringBuilder recvBuffer = new StringBuilder();
 
     public async Task ReceiveLoop()
@@ -61,13 +62,16 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 {
                     var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
                     Room?.UpdatePlayerState(this, p);
-                    Console.WriteLine(msg);
                 }
-                
-                return;
             }
 
-            // 나중에 다른 JSON 타입 생기면 여기 else if 추가
+            if (msg.Contains("\"type\":\"HIT\""))
+            {
+                var p = JsonSerializer.Deserialize<HitPacket>(msg);
+                Room?.UpdatePlayerHP(p);
+                Console.WriteLine(msg);
+            }
+
             return;
         }
 
@@ -85,20 +89,20 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
             
             case "BATTLE_READY":
                 battleReady = true;
-                Console.WriteLine($"[READY] {SessionId} ready");
                 break;
 
             case "GAME_END":
-                isGameEnded = true;
                 battleReady = false;
-                Disconnect();
+                
+                if (Room != null)
+                    Room.OnGameEnd(this);
                 break;
 
             default:
                 Console.WriteLine($"[WARN] Unknown command: {msg}");
                 break;
         }
-}
+    }
 
     public void HandleLogin(string msg)
     {
@@ -122,11 +126,10 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     {
         Console.WriteLine($"[DISCONNECT] {SessionId}");
 
-        // 1) 방이 있으면 정리 + 상대에게 ENEMY_EXIT 전송
-        ClearRoom();
+        if (Room != null)
+            Room.OnPlayerDisconnect(this);
 
-        // 2) 매칭 큐에서 제거
-        _server.RemoveFromMatchQueue(this);
+        SocketServer.Instance.RemoveClient(this);
 
         // 3) 소켓/세션 정리
         try { _stream?.Close(); } catch { }
@@ -135,23 +138,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     public void ClearRoom()
     {
-        if (Room != null)
-        {
-            // 상대에게 알림
-            var other = Room.Player1 == this ? Room.Player2 : Room.Player1;
-
-            if (other != null)
-            {
-                if (isGameEnded)
-                    other.Send("GAME_END");
-                else
-                    other.Send("ENEMY_EXIT");
-            }
-
-            _server.CloseRoom(Room.RoomId);  // 반드시 Room 삭제!
-            Room = null;
-        }
-        
-        isGameEnded = false;
+        Room = null;
     }
 }

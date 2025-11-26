@@ -136,7 +136,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8716fe9fac6eab744b500286ec8a64cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  isLocalPlayer: 1
   isColliding: 0
   dashSpeed: 20
   dashTime: 0.15
@@ -147,7 +146,6 @@ MonoBehaviour:
   punchDuration: 0.2
   punchCooldown: 0.2
   punchCooldownTimer: 0
-  isLeftSide: 1
   punchHitbox: {fileID: 6388919396738224226}
 --- !u!95 &6015396263757039999
 Animator:
@@ -232,8 +230,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8812232585410181635}
-  - component: {fileID: 7077115724083344663}
   - component: {fileID: 2703816107872609677}
+  - component: {fileID: 9052869820546432638}
   m_Layer: 0
   m_Name: HurtBox
   m_TagString: Untagged
@@ -256,18 +254,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8962006151378012085}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7077115724083344663
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4972027532756018404}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HurtBox
 --- !u!70 &2703816107872609677
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -305,6 +291,18 @@ CapsuleCollider2D:
   m_Offset: {x: -0.05, y: -0.05}
   m_Size: {x: 0.6, y: 0.95}
   m_Direction: 0
+--- !u!114 &9052869820546432638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4972027532756018404}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HurtBox
 --- !u!1 &6383906384984001858
 GameObject:
   m_ObjectHideFlags: 0

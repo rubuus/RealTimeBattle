@@ -8,5 +8,4 @@ public class PlayerMovePacket
     public float x;
     public float y;
     public string state;
-    public int dir;
 }

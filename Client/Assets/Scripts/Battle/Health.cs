@@ -7,17 +7,9 @@ public class Health : MonoBehaviour
     public int maxHp = 100;
     public int currentHp;
 
-    private PlayerController playerController;
-
     private void Awake()
     {
-        playerController = GetComponent<PlayerController>();
-
-        if (playerController == null)
-            playerController = GetComponentInParent<PlayerController>();
-
         currentHp = maxHp;
-        UpdateHUD();
     }
 
     private void Start()
@@ -30,47 +22,28 @@ public class Health : MonoBehaviour
     {
         if (hpBar != null) return;
 
-        if (playerController.isLeftSide)
-            hpBar = GameObject.Find("HP_Bar_Left").GetComponentInChildren<HPBar>();
+        if (CompareTag("Player"))
+        {
+            if (SocketClient.Instance.side == "LEFT")
+                hpBar = GameObject.Find("HP_Bar_Left").GetComponentInChildren<HPBar>();
+            else
+                hpBar = GameObject.Find("HP_Bar_Right").GetComponentInChildren<HPBar>();
+        }
         else
-            hpBar = GameObject.Find("HP_Bar_Right").GetComponentInChildren<HPBar>();
-    }
-
-
-    public void TakeDamage(int amount)
-    {
-        currentHp -= amount;
-        currentHp = Mathf.Clamp(currentHp, 0, maxHp);
-
-        UpdateHPBar();
-
-        playerController.OnHurt();
-
-        if (currentHp <= 0)
         {
-            Die();
+            if (SocketClient.Instance.side == "LEFT")
+                hpBar = GameObject.Find("HP_Bar_Right").GetComponentInChildren<HPBar>();
+            else
+                hpBar = GameObject.Find("HP_Bar_Left").GetComponentInChildren<HPBar>();
         }
     }
 
-    private void UpdateHPBar()
+    public void UpdateHPBar()
     {
-        if (hpBar == null)
-        {
-            Debug.LogError("HPBar가 null임! 연결 안 됨!");
-            return;
-        }
+        if (hpBar == null) return;
+
         float rate = (float)currentHp / maxHp;
         hpBar.SetValue(rate);
-    }
-
-    private void UpdateHUD()
-    {
-        if (PlayerHUD.Instance == null) return;
-
-        if (playerController.isLocalPlayer)
-            PlayerHUD.Instance.myHp = currentHp;
-        else
-            PlayerHUD.Instance.enemyHp = currentHp;
     }
 
     private void Die()

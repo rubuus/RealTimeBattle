@@ -20,8 +20,6 @@ public class PlayerController : MonoBehaviour
 
     private PlayerState state = PlayerState.Idle;
 
-    public bool isLocalPlayer = true;
-
     private float moveSpeed = 6.0f;
     private float jumpForce = 15.0f;
     private int jumpCount = 2;
@@ -41,8 +39,6 @@ public class PlayerController : MonoBehaviour
     public float punchDuration = 0.4f;   // 펀치 애니 길이(클립 기준)
     public float punchCooldown = 0.2f;   // 펀치 쿨타임
     public float punchCooldownTimer = 0f;
-
-    public bool isLeftSide;
 
 
     private Rigidbody2D rigid;
@@ -80,8 +76,7 @@ public class PlayerController : MonoBehaviour
             id = SocketClient.Instance.myUserId,
             x = transform.position.x,
             y = transform.position.y,
-            state = state.ToString(),
-            dir = (int)Mathf.Sign(transform.localScale.x)
+            state = state.ToString()
         };
 
         string json = JsonUtility.ToJson(movePacket);

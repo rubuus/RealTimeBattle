@@ -8,6 +8,7 @@ using System.Text.Json;
 
 public class SocketServer
 {
+    public static SocketServer Instance;
     private TcpListener _listener;
 
     private Dictionary<int, ClientSession> _clients = new();
@@ -64,13 +65,6 @@ public class SocketServer
 
             CreateRoom(p1, p2);
         }
-    }
-
-    public void RemoveFromMatchQueue(ClientSession s)
-    {
-        // 간단한 remove - 큐 다시 생성
-        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.SessionId != s.SessionId));
-        Console.WriteLine($"[MATCH] Player {s.UserId} removed from queue");
     }
 
     // -----------------------
@@ -142,11 +136,23 @@ public class SocketServer
             id = src.SessionId,
             x = src.lastPos.X,
             y = src.lastPos.Y,
-            dir = src.lastDir,
             state = src.lastState
         };
 
         string json = JsonSerializer.Serialize(pkt);
         dest.Send(json);
     }
+
+    public void RemoveClient(ClientSession s)
+    {
+        // 1) 해당 세션을 매칭큐에서 제거
+        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.SessionId != s.SessionId));
+
+        // 2) 딕셔너리에서 제거
+        if (_clients.ContainsKey(s.SessionId))
+            _clients.Remove(s.SessionId);
+
+        Console.WriteLine($"[SERVER] Client {s.SessionId} removed completely.");
+    }
+
 }

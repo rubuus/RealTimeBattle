@@ -20,7 +20,7 @@ public class MatchButton : MonoBehaviour
 
         isMatching = true;
 
-        if (!SocketClient.Instance.IsConnected)
+        if (!SocketClient.Instance.connected)
         {
             await SocketClient.Instance.Connect(); // await로 바꿔서 순서 보장
         }
