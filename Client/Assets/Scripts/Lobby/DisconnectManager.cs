@@ -6,7 +6,10 @@ public class DisconnectManager : MonoBehaviour
 {
     private IEnumerator Start()
     {
-        yield return null;   // 1프레임 대기
+        if (SceneLoader.Instance.lastSceneName != "Result")
+            yield break;
+
+        yield return null;
 
         SocketClient.Instance.Disconnect();
     }

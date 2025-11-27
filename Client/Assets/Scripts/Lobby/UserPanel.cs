@@ -8,6 +8,5 @@ public class UserPanel : MonoBehaviour
     private void Awake()
     {
         nicknameText.text = AuthManager.Instance.Nickname;
-        SocketClient.Instance.Disconnect();
     }
 }

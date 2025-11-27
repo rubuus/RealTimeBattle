@@ -8,12 +8,11 @@ public class SceneLoader : MonoBehaviour
 
     [SerializeField] private LoginManager loginManager;
 
-    public string currentSceneName = string.Empty;
-    public string nextSceneName = string.Empty;
+    public string lastSceneName = string.Empty;
 
     private void Awake()
     {
-        currentSceneName = SceneManager.GetActiveScene().name;
+        lastSceneName = SceneManager.GetActiveScene().name;
 
         if (Instance != null && Instance != this)
         {
@@ -35,13 +34,13 @@ public class SceneLoader : MonoBehaviour
     public IEnumerator LoadSceneCoroutine(string targetSceneName, float fadeDuration)
     {
         yield return FadeManager.Instance.FadeOut(fadeDuration);
+        lastSceneName = SceneManager.GetActiveScene().name;
         SceneManager.LoadSceneAsync(targetSceneName);
     }
 
     public IEnumerator ViewSceneCoroutine(float fadeDuration)
     {
         yield return new WaitUntil(() => FadeManager.Instance.HasCanvasGroup);
-        currentSceneName = SceneManager.GetActiveScene().name;
         yield return FadeManager.Instance.FadeIn(fadeDuration);
     }
 }

@@ -7,6 +7,9 @@ public class Room
     public ClientSession Player1;
     public ClientSession Player2;
 
+    public bool P1Ready = false;
+    public bool P2Ready = false;
+
     public bool P1Ended = false;
     public bool P2Ended = false;
 
@@ -51,15 +54,6 @@ public class Room
 
         target.currentHp -= hit.damage;
 
-        if (target.currentHp < 0)
-        {
-            ClientSession winner = (target == Player1) ? Player2 : Player1;
-            ClientSession loser = target;
-            
-            // 💡 서버가 승패를 결정하고 클라이언트에게 통보
-            SendGameResult(winner, loser);
-        }
-
         // DAMAGE 패킷 만들어서 양쪽에게 전송
         var dmg = new DamagePacket
         {
@@ -74,6 +68,27 @@ public class Room
 
         Player1.Send(json);
         Player2.Send(json);
+
+        // hp 변화하면 winner, loser 갱신
+        ClientSession winner = (target == Player1) ? Player2 : Player1;
+        ClientSession loser = target;
+
+        if (loser.currentHp <= 0)
+            SendGameResult(winner, loser);
+    }
+
+    public void SendGameResult(ClientSession winner, ClientSession loser)
+    {
+        if (winner.currentHp != loser.currentHp)
+        {
+            winner.Send("GAME_WIN");
+            loser.Send("GAME_LOSE");
+        }
+        else
+        {
+            winner.Send("GAME_DRAW");
+            loser.Send("GAME_DRAW");
+        }
     }
 
     public void OnGameEnd(ClientSession s)
@@ -86,12 +101,6 @@ public class Room
             SocketServer.Instance.CloseRoom(RoomId); 
     }
 
-    public void SendGameResult(ClientSession winner, ClientSession loser)
-    {
-        winner.Send("GAME_WIN");
-        loser.Send("GAME_LOSE");
-    }
-
     public void OnPlayerDisconnect(ClientSession s)
     {
         if (P1Ended && P2Ended)
@@ -100,10 +109,6 @@ public class Room
             return; 
         }
 
-        // 2. 💔 게임이 진행 중이거나 한쪽만 끝났는데 Disconnect된 상황 (튕김)
-        
-        // Disconnect된 쪽이 Player1인지 Player2인지 확인
-        ClientSession disconnectedPlayer = s;
         ClientSession remainingPlayer = (s == Player1) ? Player2 : Player1;
         
         // 살아있는 상대방에게만 즉시 튕김 신호를 보냅니다.

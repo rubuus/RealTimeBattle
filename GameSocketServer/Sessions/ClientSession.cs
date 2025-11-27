@@ -44,6 +44,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 recvBuffer.Remove(0, idx + 1);
 
                 HandleMessage(packet);
+                HandleJson(packet);
             }
         }
 
@@ -53,28 +54,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     private void HandleMessage(string msg)
     {
-        if (msg.StartsWith("{"))
-        {
-            // 너무 정교하게 할 필요 없고, type 문자열만 확인
-            if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
-            {
-                if (battleReady)  // battle 준비 완료된 클라만 좌표 처리
-                {
-                    var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
-                    Room?.UpdatePlayerState(this, p);
-                }
-            }
-
-            if (msg.Contains("\"type\":\"HIT\""))
-            {
-                var p = JsonSerializer.Deserialize<HitPacket>(msg);
-                Room?.UpdatePlayerHP(p);
-                Console.WriteLine(msg);
-            }
-
-            return;
-        }
-
         string command = msg.Contains("|") ? msg.Split('|')[0] : msg;
 
         switch (command)
@@ -101,6 +80,31 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
             default:
                 Console.WriteLine($"[WARN] Unknown command: {msg}");
                 break;
+        }
+    }
+
+    public void HandleJson(string msg)
+    {
+        if (msg.StartsWith("{"))
+        {
+            // 너무 정교하게 할 필요 없고, type 문자열만 확인
+            if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
+            {
+                if (battleReady)  // battle 준비 완료된 클라만 좌표 처리
+                {
+                    var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
+                    Room?.UpdatePlayerState(this, p);
+                }
+            }
+
+            if (msg.Contains("\"type\":\"HIT\""))
+            {
+                var p = JsonSerializer.Deserialize<HitPacket>(msg);
+                Room?.UpdatePlayerHP(p);
+                Console.WriteLine(msg);
+            }
+
+            return;
         }
     }
 

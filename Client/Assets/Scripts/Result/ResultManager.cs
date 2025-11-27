@@ -38,10 +38,8 @@ public class ResultManager : MonoBehaviour
 
         resultMessage.text = resultText;
 
-        // 서버에 게임 종료 알림
         SocketClient.Instance.Send("GAME_END");
 
-        // 3초 후 로비로 이동
         yield return new WaitForSeconds(3f);
 
         StartCoroutine(SceneLoader.Instance.LoadSceneCoroutine("Lobby", 0.5f));

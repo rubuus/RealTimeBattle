@@ -20,26 +20,46 @@ public class PlayerController : MonoBehaviour
 
     private PlayerState state = PlayerState.Idle;
 
-    private float moveSpeed = 6.0f;
-    private float jumpForce = 15.0f;
-    private int jumpCount = 2;
-    private float moveInput = 0;
-    private bool jumpPressed = false;
+    // ----- Skill Structs -----
+    private struct Dash
+    {
+        // Config
+        public float Speed;
+        public float Duration;
+        public float Cooldown;
 
+        // State
+        public float Timer;
+        public float CooldownTimer;
+    }
+
+    private struct Punch
+    {
+        // Config
+        public float Duration;
+        public float Cooldown;
+
+        // State
+        public float Timer;
+        public float CooldownTimer;
+    }
+
+    // ----- Movement Config -----
+    [SerializeField] private float moveSpeed = 6.0f;
+    [SerializeField] private float jumpForce = 15.0f;
+    [SerializeField] private int jumpCount = 2;
+
+    // ----- Movement State -----
+    private float moveInput = 0f;
+    private bool jumpPressed = false;
     private bool onGround = true;
+
+    // ----- Collision -----
     public bool isColliding = false;
 
-    public float dashSpeed = 20f;
-    public float dashTime = 5f;
-    public float dashCooldown = 0.5f;
-    public float dashTimer = 0f;
-    public float dashCooldownTimer = 0f;
-
-    public float punchTimer = 0f;
-    public float punchDuration = 0.4f;   // 펀치 애니 길이(클립 기준)
-    public float punchCooldown = 0.2f;   // 펀치 쿨타임
-    public float punchCooldownTimer = 0f;
-
+    // ----- Skill State -----
+    private Dash dash;
+    private Punch punch;
 
     private Rigidbody2D rigid;
     private Animator anim;
@@ -48,9 +68,12 @@ public class PlayerController : MonoBehaviour
     private Vector2 originalHitboxPos;
 
     void Awake()
-    {   
+    {
         rigid = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+
+        InitDash();
+        InitPunch();
 
         rigid.gravityScale = 4.0f;
         originalHitboxPos = punchHitbox.transform.localPosition;
@@ -85,17 +108,16 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // ... (FixedUpdate 이하 기존 로직은 네트워크 플레이어에게는 적용되지 않으므로 그대로 유지)
         HandleGroundCheck();
 
         if (onGround)
             jumpCount = 1;
 
         // 쿨타임 감소
-        if (dashCooldownTimer > 0f)
-            dashCooldownTimer -= Time.fixedDeltaTime;
-        if (punchCooldownTimer > 0f)
-            punchCooldownTimer -= Time.fixedDeltaTime;
+        if (dash.CooldownTimer > 0f)
+            dash.CooldownTimer -= Time.fixedDeltaTime;
+        if (punch.CooldownTimer > 0f)
+            punch.CooldownTimer -= Time.fixedDeltaTime;
 
         // ----- D A S H  -----
         if (state == PlayerState.GroundDash || state == PlayerState.AirDash)
@@ -129,6 +151,26 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void InitDash() 
+    { 
+        dash = new Dash { 
+            Speed = 20f, 
+            Duration = 0.1f, 
+            Cooldown = 0.5f, 
+            Timer = 0f, 
+            CooldownTimer = 0f 
+        }; 
+    }
+    void InitPunch() 
+    { 
+        punch = new Punch { 
+            Duration = 0.4f, 
+            Cooldown = 0.2f, 
+            Timer = 0f, 
+            CooldownTimer = 0f 
+        }; 
+    }
+
     void HandleInput()
     {
         // 이동 입력
@@ -142,10 +184,10 @@ public class PlayerController : MonoBehaviour
         // 점프 입력
         if (Input.GetKeyDown(KeyCode.C) && jumpCount > 0)
             jumpPressed = true;
-            
+
 
         if (Input.GetKeyDown(KeyCode.X) &&
-            dashCooldownTimer <= 0f &&
+            dash.CooldownTimer <= 0f &&
             state != PlayerState.Punch &&
             state != PlayerState.GroundDash &&
             state != PlayerState.AirDash)
@@ -158,7 +200,7 @@ public class PlayerController : MonoBehaviour
 
         // 펀치 입력
         if (Input.GetKeyDown(KeyCode.Z) &&
-            punchCooldownTimer <= 0f &&
+            punch.CooldownTimer <= 0f &&
             state != PlayerState.Punch &&
             state != PlayerState.GroundDash &&
             state != PlayerState.AirDash)
@@ -225,8 +267,6 @@ public class PlayerController : MonoBehaviour
             ChangeState(PlayerState.Idle);
     }
 
-
-
     void HandleGroundCheck()
     {
         float extraHeight = 0.2f;
@@ -270,13 +310,13 @@ public class PlayerController : MonoBehaviour
     {
         ChangeState(PlayerState.GroundDash);
 
-        dashTimer = dashTime;
-        dashCooldownTimer = dashCooldown;
+        dash.Timer = dash.Duration;
+        dash.CooldownTimer = dash.Cooldown;
 
         rigid.gravityScale = 4; // 지상은 중력 켜둠
 
         float dir = transform.localScale.x;
-        rigid.linearVelocity = new Vector2(dir * dashSpeed, 0);
+        rigid.linearVelocity = new Vector2(dir * dash.Speed, 0);
     }
 
 
@@ -284,23 +324,23 @@ public class PlayerController : MonoBehaviour
     {
         ChangeState(PlayerState.AirDash);
 
-        dashTimer = dashTime;
-        dashCooldownTimer = dashCooldown;
+        dash.Timer = dash.Duration;
+        dash.CooldownTimer = dash.Cooldown;
 
         rigid.gravityScale = 0; // 공중 대쉬는 중력 OFF
 
         float dir = transform.localScale.x;
-        rigid.linearVelocity = new Vector2(dir * dashSpeed, 0);
+        rigid.linearVelocity = new Vector2(dir * dash.Speed, 0);
     }
 
 
     void HandleDash()
     {
-        dashTimer -= Time.fixedDeltaTime;
+        dash.Timer -= Time.fixedDeltaTime;
 
         // 대쉬 중에는 지속적으로 전진
         float dir = Mathf.Sign(transform.localScale.x);
-        rigid.linearVelocity = new Vector2(dir * dashSpeed, 0);
+        rigid.linearVelocity = new Vector2(dir * dash.Speed, 0);
 
         // 공중대쉬는 중력 제거 / 지상은 유지
         if (state == PlayerState.AirDash)
@@ -309,7 +349,7 @@ public class PlayerController : MonoBehaviour
             rigid.gravityScale = 4;
 
         // ---- 종료 ----
-        if (dashTimer <= 0f)
+        if (dash.Timer <= 0f)
         {
             rigid.gravityScale = 4; // 중력 복구
 
@@ -333,20 +373,19 @@ public class PlayerController : MonoBehaviour
     {
         ChangeState(PlayerState.Punch);
 
-        punchTimer = punchDuration;
-        punchCooldownTimer = punchDuration + punchCooldown;
+        punch.Timer = punch.Duration;
+        punch.CooldownTimer = punch.Duration + punch.Cooldown;
 
         punchHitbox.gameObject.SetActive(true);
 
-        if (onGround)
-            rigid.linearVelocity = Vector2.zero;
+        rigid.linearVelocity = Vector2.zero;
     }
 
     void HandlePunching()
     {
-        punchTimer -= Time.fixedDeltaTime;
+        punch.Timer -= Time.fixedDeltaTime;
 
-        if (punchTimer <= 0f)
+        if (punch.Timer <= 0f)
         {
             punchHitbox.gameObject.SetActive(false);
 
@@ -364,6 +403,4 @@ public class PlayerController : MonoBehaviour
     {
         ChangeState(PlayerState.Hurt);
     }
-
-    
 }

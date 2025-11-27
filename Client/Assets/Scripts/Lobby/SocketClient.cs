@@ -131,29 +131,35 @@ public class SocketClient : MonoBehaviour
 
             if (instance != null)
                 instance.SuccessMatching();
-            }
-            else if (msg == "GAME_WIN")
-            {
-                enemyDisconnected = false;
-                finalResult = "Win";
-                SceneManager.LoadScene("Result");
-            }
-            else if (msg == "GAME_LOSE")
-            {
-                enemyDisconnected = false;
-                finalResult = "Lose";
-                SceneManager.LoadScene("Result");
-            }
-            else if (msg == "ENEMY_EXIT")
-            {
-                enemyDisconnected = true;
-                SceneManager.LoadScene("Result");
-            }
+        }
+        else if (msg == "ENEMY_EXIT")
+        {
+            enemyDisconnected = true;
+            SceneManager.LoadScene("Result");
+        }
+        else if (msg == "GAME_WIN")
+        {
+            enemyDisconnected = false;
+            finalResult = "Win";
+            SceneManager.LoadScene("Result");
+        }
+        else if (msg == "GAME_LOSE")
+        {
+            enemyDisconnected = false;
+            finalResult = "Lose";
+            SceneManager.LoadScene("Result");
+        }
+        else if (msg == "GAME_Draw")
+        {
+            enemyDisconnected = false;
+            finalResult = "Draw";
+            SceneManager.LoadScene("Result");
+        }
     }
+
 
     private void HandleJson(string msg)
     {
-
         if (SceneManager.GetActiveScene().name != "Battle")
             return;
 
@@ -207,8 +213,6 @@ public class SocketClient : MonoBehaviour
                 }
             }
         }
-
-        
     }
 
     public void Disconnect()
