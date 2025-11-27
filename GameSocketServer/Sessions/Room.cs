@@ -14,6 +14,8 @@ public class Room
     public bool P1Ended = false;
     public bool P2Ended = false;
 
+    private bool closed = false;
+
     public Room(int roomId, ClientSession p1, ClientSession p2)
     {
         RoomId = roomId;
@@ -117,6 +119,9 @@ public class Room
 
     public void OnPlayerDisconnect(ClientSession s)
     {
+        if (closed) return;
+        closed = true;
+
         if (!GameStarted || P1Ended || P2Ended)
         {
             SocketServer.Instance.CloseRoom(RoomId);
@@ -134,6 +139,9 @@ public class Room
 
     public void CloseRoom()
     {
+        if (closed) return;
+        closed = true;
+
         Player1._room = null;
         Player2._room = null;
     }

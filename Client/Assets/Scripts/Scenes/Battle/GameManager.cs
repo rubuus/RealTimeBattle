@@ -9,7 +9,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject enemyPrefab;
 
-    private float timer = 10f;
+    private float timer = 100f;
     [SerializeField] private TMP_Text timerText;
 
     public static GameManager Instance;

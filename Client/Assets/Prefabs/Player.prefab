@@ -136,16 +136,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8716fe9fac6eab744b500286ec8a64cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  moveSpeed: 6
+  jumpForce: 15
+  jumpCount: 2
   isColliding: 0
-  dashSpeed: 20
-  dashTime: 0.15
-  dashCooldown: 0.5
-  dashTimer: 0
-  dashCooldownTimer: 0
-  punchTimer: 0
-  punchDuration: 0.2
-  punchCooldown: 0.2
-  punchCooldownTimer: 0
   punchHitbox: {fileID: 6388919396738224226}
 --- !u!95 &6015396263757039999
 Animator:
@@ -232,6 +226,7 @@ GameObject:
   - component: {fileID: 8812232585410181635}
   - component: {fileID: 2703816107872609677}
   - component: {fileID: 9052869820546432638}
+  - component: {fileID: 2741933010512325739}
   m_Layer: 0
   m_Name: HurtBox
   m_TagString: Untagged
@@ -303,6 +298,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HurtBox
+--- !u!50 &2741933010512325739
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4972027532756018404}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 7
 --- !u!1 &6383906384984001858
 GameObject:
   m_ObjectHideFlags: 0
@@ -314,6 +336,7 @@ GameObject:
   - component: {fileID: 2351898024359058604}
   - component: {fileID: 962947686410664789}
   - component: {fileID: 6388919396738224226}
+  - component: {fileID: 3540017252970257783}
   m_Layer: 0
   m_Name: PunchHitBox
   m_TagString: Untagged
@@ -395,3 +418,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PunchHitBox
   damage: 10
+--- !u!50 &3540017252970257783
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6383906384984001858}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 7

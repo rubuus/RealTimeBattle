@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8233600389090422746}
   - component: {fileID: 8582816817742073466}
   - component: {fileID: 747958789305111346}
+  - component: {fileID: 791005923287543801}
   m_Layer: 0
   m_Name: PunchHitBox
   m_TagString: Untagged
@@ -92,6 +93,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PunchHitBox
   damage: 10
+--- !u!50 &791005923287543801
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1218572912265518046}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 7
 --- !u!1 &3833960917163554118
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,6 +344,7 @@ GameObject:
   - component: {fileID: 2729716380269481820}
   - component: {fileID: 5755544464388376186}
   - component: {fileID: 8883857970640553850}
+  - component: {fileID: 2379704678852927952}
   m_Layer: 0
   m_Name: HurtBox
   m_TagString: Untagged
@@ -387,3 +416,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c7cdcef148dc8c4bbc78798c54fb4df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HurtBox
+--- !u!50 &2379704678852927952
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6439793159432640653}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 7

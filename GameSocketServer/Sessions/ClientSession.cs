@@ -11,13 +11,13 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     public Vector2 lastPos;
     public string lastState = "Idle";
-    public bool isGameEnded = false;
+    private bool disconnected = false;
     public bool player1Ended = false;
     public bool player2Ended = false;
     public bool battleReady = false;
     public int currentHp = 100;
 
-    public Room _room;
+    public Room? _room;
     private TcpClient _client = client;
     private NetworkStream _stream = client.GetStream();
     private SocketServer _server = server;
@@ -53,10 +53,13 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     private void HandleMessage(string msg)
     {
+        if (disconnected)
+            return;
+
         try
         {
             var basePacket = JsonSerializer.Deserialize<BasePacket>(msg);
-            Console.WriteLine(msg);
+
             switch (basePacket?.type)
             {
                 case "LOGIN":
@@ -87,14 +90,14 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                     if (battleReady)
                     {
                         var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
-                        _room?.UpdatePlayerState(this, p);
+                        _room.UpdatePlayerState(this, p);
                     }
                     break;
 
                 case "HIT":
                     {
                         var p = JsonSerializer.Deserialize<HitPacket>(msg);
-                        _room?.UpdatePlayerHP(p);
+                        _room.UpdatePlayerHP(p);
                     }
                     break;
 
@@ -128,18 +131,17 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     {
         Console.WriteLine($"[DISCONNECT] {SessionId}");
 
+        disconnected = true;
+
+        // 1) 스트림 먼저 닫기 (ReceiveLoop 강제 종료)
+        try { _stream?.Close(); } catch { }
+        try { _client?.Close(); } catch { }
+
+        // 2) 룸 정리
         if (_room != null)
             _room.OnPlayerDisconnect(this);
 
+        // 3) 클라이언트 목록 제거
         SocketServer.Instance.RemoveClient(this);
-
-        // 3) 소켓/세션 정리
-        try { _stream?.Close(); } catch { }
-        try { _client?.Close(); } catch { }
-    }
-
-    public void ClearRoom()
-    {
-        _room = null;
     }
 }

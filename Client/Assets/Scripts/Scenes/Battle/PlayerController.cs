@@ -84,8 +84,11 @@ public class PlayerController : MonoBehaviour
         // --- 로컬 플레이어 로직 (기존 유지) ---
         HandleInput();
 
-        if (moveInput > 0) transform.localScale = new Vector2(1, 1);
-        else if (moveInput < 0) transform.localScale = new Vector2(-1, 1);
+        if (state != PlayerState.Punch)
+        {
+            if (moveInput > 0) transform.localScale = new Vector2(1, 1);
+            else if (moveInput < 0) transform.localScale = new Vector2(-1, 1);
+        }
 
         // 히트박스 좌표 갱신
         punchHitbox.transform.localPosition = new Vector2(
@@ -108,13 +111,20 @@ public class PlayerController : MonoBehaviour
         HandleGroundCheck();
 
         if (onGround)
-            jumpCount = 1;
+            jumpCount = 2;
 
         // 쿨타임 감소
         if (dash.CooldownTimer > 0f)
             dash.CooldownTimer -= Time.fixedDeltaTime;
         if (punch.CooldownTimer > 0f)
             punch.CooldownTimer -= Time.fixedDeltaTime;
+
+        // ----- P U N C H -----
+        if (state == PlayerState.Punch)
+        {
+            HandlePunching();
+            return;
+        }
 
         // ----- D A S H  -----
         if (state == PlayerState.GroundDash || state == PlayerState.AirDash)
@@ -126,13 +136,6 @@ public class PlayerController : MonoBehaviour
         HandleMovement();
         HandleJump();
         HandleStopOnCollision();
-
-        // ----- P U N C H -----
-        if (state == PlayerState.Punch)
-        {
-            HandlePunching();
-            return;
-        }
 
         // ----- I D L E / R U N / J U M P -----
         if (state != PlayerState.GroundDash &&
@@ -161,7 +164,7 @@ public class PlayerController : MonoBehaviour
     void InitPunch() 
     { 
         punch = new Punch { 
-            Duration = 0.4f, 
+            Duration = 0.3f, 
             Cooldown = 0.2f, 
             Timer = 0f, 
             CooldownTimer = 0f 
@@ -280,7 +283,7 @@ public class PlayerController : MonoBehaviour
     void HandleJump()
     {
         if (!jumpPressed) return;
-        if (!onGround && jumpCount <= 0) return;
+        if (jumpCount <= 0) return;
 
         jumpPressed = false;
         jumpCount--;
@@ -373,7 +376,7 @@ public class PlayerController : MonoBehaviour
         punch.Timer = punch.Duration;
         punch.CooldownTimer = punch.Duration + punch.Cooldown;
 
-        punchHitbox.gameObject.SetActive(true);
+        StartCoroutine(PunchHitboxReset());
 
         rigid.linearVelocity = Vector2.zero;
     }
@@ -394,6 +397,13 @@ public class PlayerController : MonoBehaviour
             else
                 ChangeState(PlayerState.Idle);
         }
+    }
+
+    IEnumerator PunchHitboxReset()
+    {
+        punchHitbox.gameObject.SetActive(false);
+        yield return new WaitForFixedUpdate();
+        punchHitbox.gameObject.SetActive(true);
     }
 
     public void OnHurt()

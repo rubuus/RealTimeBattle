@@ -13,7 +13,7 @@ public static class PacketRouter
             Console.WriteLine("[WARN] Unknown packet: " + msg);
             return;
         }
-        Debug.Log(basePacket);
+
         switch (type)
         {
             case PacketType.MATCH_FOUND:
