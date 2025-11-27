@@ -8,7 +8,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public int SessionId { get; set; } = id;
     public int UserId { get; set; }
     public int RoomId;
-    public Room ?Room;
 
     public Vector2 lastPos;
     public string lastState = "Idle";
@@ -18,6 +17,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public bool battleReady = false;
     public int currentHp = 100;
 
+    public Room _room;
     private TcpClient _client = client;
     private NetworkStream _stream = client.GetStream();
     private SocketServer _server = server;
@@ -44,7 +44,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 recvBuffer.Remove(0, idx + 1);
 
                 HandleMessage(packet);
-                HandleJson(packet);
             }
         }
 
@@ -54,75 +53,74 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     private void HandleMessage(string msg)
     {
-        string command = msg.Contains("|") ? msg.Split('|')[0] : msg;
-
-        switch (command)
+        try
         {
-            case "LOGIN":
-                HandleLogin(msg);
-                break;
+            var basePacket = JsonSerializer.Deserialize<BasePacket>(msg);
+            Console.WriteLine(msg);
+            switch (basePacket?.type)
+            {
+                case "LOGIN":
+                    {
+                        var p = JsonSerializer.Deserialize<LoginPacket>(msg);
+                        UserId = p.userId;
+                    }
+                    break;
 
-            case "MATCH_START":
-                _server.AddToMatchQueue(this);
-                break;
-            
-            case "BATTLE_READY":
-                battleReady = true;
-                break;
-
-            case "GAME_END":
-                battleReady = false;
+                case "MATCH_START":
+                    if (UserId == 0)
+                    {
+                        Console.WriteLine("[MATCH_START DENIED] UserId not assigned yet");
+                        return;
+                    }
+                    _server.AddToMatchQueue(this);
+                    break;
                 
-                if (Room != null)
-                    Room.OnGameEnd(this);
-                break;
+                case "BATTLE_READY":
+                    _room.CheckMatch(this);
+                    break;
+                
+                case "BATTLE_START":
+                    battleReady = true;
+                    break;
+                
+                case "PLAYER_MOVE":
+                    if (battleReady)
+                    {
+                        var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
+                        _room?.UpdatePlayerState(this, p);
+                    }
+                    break;
 
-            default:
-                Console.WriteLine($"[WARN] Unknown command: {msg}");
-                break;
+                case "HIT":
+                    {
+                        var p = JsonSerializer.Deserialize<HitPacket>(msg);
+                        _room?.UpdatePlayerHP(p);
+                    }
+                    break;
+
+                case "GAME_END":
+                    battleReady = false;
+                    
+                    if (_room != null)
+                        _room.OnGameEnd(this);
+                    break;
+
+                default:
+                    break;
+            }
         }
-    }
-
-    public void HandleJson(string msg)
-    {
-        if (msg.StartsWith("{"))
+        catch (Exception e)
         {
-            // 너무 정교하게 할 필요 없고, type 문자열만 확인
-            if (msg.Contains("\"type\":\"PLAYER_MOVE\""))
-            {
-                if (battleReady)  // battle 준비 완료된 클라만 좌표 처리
-                {
-                    var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
-                    Room?.UpdatePlayerState(this, p);
-                }
-            }
-
-            if (msg.Contains("\"type\":\"HIT\""))
-            {
-                var p = JsonSerializer.Deserialize<HitPacket>(msg);
-                Room?.UpdatePlayerHP(p);
-                Console.WriteLine(msg);
-            }
-
-            return;
+            Console.WriteLine(e);
         }
     }
 
-    public void HandleLogin(string msg)
-    {
-        string[] data = msg.Split('|');
-        int userId = int.Parse(data[1]);
-
-        UserId = userId;
-
-        Console.WriteLine($"[LOGIN] Session {SessionId} mapped to User {UserId}");
-    }
-
-    public void Send(string message)
+    public void Send(object obj)
     {
         if (!_client.Connected) return;
 
-        byte[] data = Encoding.UTF8.GetBytes(message + "\n");
+        string json = JsonSerializer.Serialize(obj);
+        byte[] data = Encoding.UTF8.GetBytes(json + "\n");
         _stream.Write(data, 0, data.Length);
     }
 
@@ -130,8 +128,8 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     {
         Console.WriteLine($"[DISCONNECT] {SessionId}");
 
-        if (Room != null)
-            Room.OnPlayerDisconnect(this);
+        if (_room != null)
+            _room.OnPlayerDisconnect(this);
 
         SocketServer.Instance.RemoveClient(this);
 
@@ -142,6 +140,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     public void ClearRoom()
     {
-        Room = null;
+        _room = null;
     }
 }

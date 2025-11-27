@@ -15,13 +15,12 @@ public class MatchManager : MonoBehaviour
     private void Start()
     {
         StartCoroutine(UIActive());
-        StartCoroutine(LoadBattle());
+        StartCoroutine(SceneLoader.Instance.LoadBattle());
     }
 
     private IEnumerator UIActive()
     {
         string side = SocketClient.Instance.side;
-
         int myId = SocketClient.Instance.myUserId;
         int enemyId = SocketClient.Instance.enemyUserId;
 
@@ -53,12 +52,7 @@ public class MatchManager : MonoBehaviour
             },
             onError: err => Debug.LogError(err)
         );
-    }
 
-    private IEnumerator LoadBattle()
-    {
-        yield return new WaitForSeconds(5f);
-
-        SceneManager.LoadScene("Battle");
+        SocketClient.Instance.Send(new BasePacket { type = "BATTLE_READY" });
     }
 }

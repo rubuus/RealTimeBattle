@@ -93,17 +93,14 @@ public class PlayerController : MonoBehaviour
             originalHitboxPos.y
         );
 
-        PlayerMovePacket movePacket = new PlayerMovePacket()
+        SocketClient.Instance.Send(new PlayerMovePacket
         {
             type = "PLAYER_MOVE",
             id = SocketClient.Instance.myUserId,
             x = transform.position.x,
             y = transform.position.y,
             state = state.ToString()
-        };
-
-        string json = JsonUtility.ToJson(movePacket);
-        SocketClient.Instance.Send(json);
+        });
     }
 
     void FixedUpdate()

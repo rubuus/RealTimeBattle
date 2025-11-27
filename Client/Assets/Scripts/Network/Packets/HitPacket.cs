@@ -1,8 +1,9 @@
+using System;
 using UnityEngine;
 
-public class HitPacket
+[Serializable]
+public class HitPacket : BasePacket
 {
-    public string type;
     public int hitId;
     public int hurtId;
     public int damage;

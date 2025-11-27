@@ -25,7 +25,8 @@ public class MatchButton : MonoBehaviour
             await SocketClient.Instance.Connect(); // await로 바꿔서 순서 보장
         }
 
-        SocketClient.Instance.Send("MATCH_START");
+        SocketClient.Instance.Send(new BasePacket { type = "MATCH_START" });
+
         Debug.Log("MATCH_START sent");
     }
 }

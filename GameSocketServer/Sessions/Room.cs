@@ -9,12 +9,10 @@ public class Room
 
     public bool P1Ready = false;
     public bool P2Ready = false;
+    public bool GameStarted = false;
 
     public bool P1Ended = false;
     public bool P2Ended = false;
-
-    public bool P1Disconnected = false;
-    public bool P2Disconnected = false;
 
     public Room(int roomId, ClientSession p1, ClientSession p2)
     {
@@ -22,8 +20,24 @@ public class Room
         Player1 = p1;
         Player2 = p2;
 
-        p1.Room = this;
-        p2.Room = this;
+        p1._room = this;
+        p2._room = this;
+    }
+
+    public void CheckMatch(ClientSession sender)
+    {
+        if (sender == Player1)
+            P1Ready = true;
+
+        if (sender == Player2)
+            P2Ready = true;
+
+        if (P1Ready && P2Ready)
+        {
+            GameStarted = true;
+            Player1.Send(new { type = "LOAD_BATTLE" });
+            Player2.Send(new { type = "LOAD_BATTLE" });
+        }   
     }
 
     public void UpdatePlayerState(ClientSession sender, PlayerMovePacket p)
@@ -63,11 +77,8 @@ public class Room
             currentHP = target.currentHp
         };
 
-        string json = JsonSerializer.Serialize(dmg);
-        Console.WriteLine(json);
-
-        Player1.Send(json);
-        Player2.Send(json);
+        Player1.Send(dmg);
+        Player2.Send(dmg);
 
         // hp 변화하면 winner, loser 갱신
         ClientSession winner = (target == Player1) ? Player2 : Player1;
@@ -81,13 +92,13 @@ public class Room
     {
         if (winner.currentHp != loser.currentHp)
         {
-            winner.Send("GAME_WIN");
-            loser.Send("GAME_LOSE");
+            winner.Send(new { type = "GAME_WIN" });
+            loser.Send(new { type = "GAME_LOSE" });
         }
         else
         {
-            winner.Send("GAME_DRAW");
-            loser.Send("GAME_DRAW");
+            winner.Send(new { type = "GAME_DRAW" });
+            loser.Send(new { type = "GAME_DRAW" });
         }
     }
 
@@ -98,35 +109,32 @@ public class Room
 
         // 양쪽 다 정상적으로 끝남
         if (P1Ended && P2Ended)
+        {
+            GameStarted = false;
             SocketServer.Instance.CloseRoom(RoomId); 
+        }
     }
 
     public void OnPlayerDisconnect(ClientSession s)
     {
-        if (P1Ended && P2Ended)
+        if (!GameStarted || P1Ended || P2Ended)
         {
             SocketServer.Instance.CloseRoom(RoomId);
-            return; 
+            return;
         }
 
-        ClientSession remainingPlayer = (s == Player1) ? Player2 : Player1;
+        // 비정상 종료(진짜 튕김)
+        ClientSession remaining = (s == Player1) ? Player2 : Player1;
         
-        // 살아있는 상대방에게만 즉시 튕김 신호를 보냅니다.
-        // (remainingPlayer가 null이 아닐 경우에만 send)
-        if (remainingPlayer != null)
-        {
-            remainingPlayer.Send("ENEMY_EXIT");
-        }
+        if (remaining != null)
+            remaining.Send(new { type = "ENEMY_EXIT" });
 
-        // 3. 방 삭제
         SocketServer.Instance.CloseRoom(RoomId);
     }
 
-
-
     public void CloseRoom()
     {
-        Player1.Room = null;
-        Player2.Room = null;
+        Player1._room = null;
+        Player2._room = null;
     }
 }

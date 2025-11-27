@@ -179,7 +179,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 0
   m_Sprite: {fileID: 8975721076584580134, guid: dcd7d1f5fb452e447b630a8f91df29c6, type: 3}
-  m_Color: {r: 0, g: 0.41389275, b: 1, a: 1}
+  m_Color: {r: 0, g: 0, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -304,8 +304,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   isNetworkUpdatePending: 0
   networkSmoothTime: 0.02
-  punchDuration: 0.4
-  dashDuration: 0.25
   punchHitbox: {fileID: 747958789305111346}
 --- !u!1 &6439793159432640653
 GameObject:

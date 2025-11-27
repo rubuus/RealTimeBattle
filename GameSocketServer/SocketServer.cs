@@ -67,9 +67,6 @@ public class SocketServer
         }
     }
 
-    // -----------------------
-    // 룸 생성
-    // -----------------------
     public void CreateRoom(ClientSession p1, ClientSession p2)
     {
         int roomId = _roomIdCounter++;
@@ -78,8 +75,23 @@ public class SocketServer
 
         Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.UserId}, {p2.UserId})");
 
-        p1.Send($"MATCH_FOUND|{roomId}|{p1.UserId}|{p2.UserId}|LEFT");
-        p2.Send($"MATCH_FOUND|{roomId}|{p2.UserId}|{p1.UserId}|RIGHT");
+        p1.Send(new
+        {
+            type = "MATCH_FOUND",
+            roomId = roomId,
+            myUserId = p1.UserId,
+            enemyUserId = p2.UserId,
+            side = "LEFT",
+        });
+
+        p2.Send(new
+        {
+            type = "MATCH_FOUND",
+            roomId = roomId,
+            myUserId = p2.UserId,
+            enemyUserId = p1.UserId,
+            side = "RIGHT",
+        });
     }
 
     public void CloseRoom(int roomId)
@@ -126,21 +138,18 @@ public class SocketServer
         SendPlayerState(room.Player2, room.Player1);
     }
 
-    private void SendPlayerState(ClientSession src, ClientSession dest)
+    private void SendPlayerState(ClientSession player, ClientSession enemy)
     {
-        if (src == null || dest == null) return;
+        if (player == null || enemy == null) return;
 
-        var pkt = new PlayerMovePacket
+        enemy.Send(new
         {
             type = "PLAYER_MOVE",
-            id = src.SessionId,
-            x = src.lastPos.X,
-            y = src.lastPos.Y,
-            state = src.lastState
-        };
-
-        string json = JsonSerializer.Serialize(pkt);
-        dest.Send(json);
+            id = player.SessionId,
+            x = player.lastPos.X,
+            y = player.lastPos.Y,
+            state = player.lastState
+        });
     }
 
     public void RemoveClient(ClientSession s)

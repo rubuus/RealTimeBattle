@@ -31,6 +31,12 @@ public class SceneLoader : MonoBehaviour
         }
     }
 
+    public IEnumerator LoadBattle()
+    {
+        yield return new WaitForSeconds(3f);
+        SceneManager.LoadScene("Battle");
+    }
+
     public IEnumerator LoadSceneCoroutine(string targetSceneName, float fadeDuration)
     {
         yield return FadeManager.Instance.FadeOut(fadeDuration);

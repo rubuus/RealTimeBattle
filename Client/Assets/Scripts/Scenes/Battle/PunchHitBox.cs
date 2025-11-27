@@ -21,16 +21,13 @@ public class PunchHitBox : MonoBehaviour
         if (hasHit) return;
         hasHit = true;
 
-        HitPacket hitPacket = new HitPacket()
+        SocketClient.Instance.Send(new HitPacket()
         {
             type = "HIT",
             hitId = SocketClient.Instance.myUserId,
             hurtId = hurtbox.PlayerId,
             damage = damage
-        };
-
-        string json = JsonUtility.ToJson(hitPacket);
-        SocketClient.Instance.Send(json);
+        });
     }
 
     private void OnDisable()

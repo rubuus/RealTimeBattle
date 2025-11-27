@@ -38,7 +38,7 @@ public class ResultManager : MonoBehaviour
 
         resultMessage.text = resultText;
 
-        SocketClient.Instance.Send("GAME_END");
+        SocketClient.Instance.Send(new BasePacket { type = "GAME_END" });
 
         yield return new WaitForSeconds(3f);
 

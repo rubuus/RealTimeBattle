@@ -1,6 +1,5 @@
-public class PlayerMovePacket
+public class PlayerMovePacket : BasePacket
 {
-    public string type { get; set; } = string.Empty;
     public int id { get; set; }
     public float x { get; set; }
     public float y { get; set; }
