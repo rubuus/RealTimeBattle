@@ -98,6 +98,11 @@ public static class PacketRouter
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, p.currentHP);
+
+        if (p.id == SocketClient.Instance.myUserId)
+            target.GetComponent<PlayerController>().OnHurt();
+        else
+            target.GetComponent<EnemyController>().OnHurt();
     }
 
     private static void HandleGameWin()

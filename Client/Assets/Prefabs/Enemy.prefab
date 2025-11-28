@@ -332,7 +332,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   isNetworkUpdatePending: 0
   networkSmoothTime: 0.02
-  punchHitbox: {fileID: 747958789305111346}
+  punchHitBox: {fileID: 747958789305111346}
+  hurtBox: {fileID: 8883857970640553850}
 --- !u!1 &6439793159432640653
 GameObject:
   m_ObjectHideFlags: 0

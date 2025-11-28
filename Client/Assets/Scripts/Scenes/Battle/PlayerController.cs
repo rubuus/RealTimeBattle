@@ -48,6 +48,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 6.0f;
     [SerializeField] private float jumpForce = 15.0f;
     [SerializeField] private int jumpCount = 2;
+    [SerializeField] private float hurtDuration = 0.05f;
+    [SerializeField] private float hurtTimer;
 
     // ----- Movement State -----
     private float moveInput = 0f;
@@ -64,7 +66,8 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rigid;
     private Animator anim;
 
-    [SerializeField] private PunchHitBox punchHitbox;
+    [SerializeField] private PunchHitBox punchHitBox;
+    [SerializeField] private HurtBox hurtBox;
     private Vector2 originalHitboxPos;
 
     void Awake()
@@ -76,7 +79,12 @@ public class PlayerController : MonoBehaviour
         InitPunch();
 
         rigid.gravityScale = 4.0f;
-        originalHitboxPos = punchHitbox.transform.localPosition;
+        originalHitboxPos = punchHitBox.transform.localPosition;
+    }
+
+    void Start()
+    {
+        hurtBox.Initialize(SocketClient.Instance.myUserId);
     }
 
     void Update()
@@ -91,7 +99,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // 히트박스 좌표 갱신
-        punchHitbox.transform.localPosition = new Vector2(
+        punchHitBox.transform.localPosition = new Vector2(
             originalHitboxPos.x * transform.localScale.x,
             originalHitboxPos.y
         );
@@ -118,6 +126,12 @@ public class PlayerController : MonoBehaviour
             dash.CooldownTimer -= Time.fixedDeltaTime;
         if (punch.CooldownTimer > 0f)
             punch.CooldownTimer -= Time.fixedDeltaTime;
+
+        if (state == PlayerState.Hurt)
+        {
+            HandleHurt();
+            return;
+        }
 
         // ----- P U N C H -----
         if (state == PlayerState.Punch)
@@ -387,7 +401,7 @@ public class PlayerController : MonoBehaviour
 
         if (punch.Timer <= 0f)
         {
-            punchHitbox.gameObject.SetActive(false);
+            punchHitBox.gameObject.SetActive(false);
 
             // 펀치 종료 후 상태 복귀
             if (!onGround)
@@ -401,13 +415,30 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator PunchHitboxReset()
     {
-        punchHitbox.gameObject.SetActive(false);
+        punchHitBox.gameObject.SetActive(false);
         yield return new WaitForFixedUpdate();
-        punchHitbox.gameObject.SetActive(true);
+        punchHitBox.gameObject.SetActive(true);
     }
 
     public void OnHurt()
     {
         ChangeState(PlayerState.Hurt);
+        hurtTimer = hurtDuration;
+        rigid.linearVelocity = Vector2.zero;
+    }
+
+    private void HandleHurt()
+    {
+        hurtTimer -= Time.fixedDeltaTime;
+
+        if (hurtTimer <= 0f)
+        {
+            if (!onGround)
+                ChangeState(PlayerState.Jump);
+            else if (Mathf.Abs(moveInput) > 0.01f)
+                ChangeState(PlayerState.Run);
+            else
+                ChangeState(PlayerState.Idle);
+        }
     }
 }

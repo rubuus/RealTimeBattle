@@ -139,8 +139,11 @@ MonoBehaviour:
   moveSpeed: 6
   jumpForce: 15
   jumpCount: 2
+  hurtDuration: 0.05
+  hurtTimer: 0
   isColliding: 0
-  punchHitbox: {fileID: 6388919396738224226}
+  punchHitBox: {fileID: 6388919396738224226}
+  hurtBox: {fileID: 9052869820546432638}
 --- !u!95 &6015396263757039999
 Animator:
   serializedVersion: 7

@@ -18,7 +18,8 @@ public class EnemyController : MonoBehaviour
     private Rigidbody2D rigid;
     private Animator anim;
 
-    [SerializeField] private PunchHitBox punchHitbox;
+    [SerializeField] private PunchHitBox punchHitBox;
+    [SerializeField] private HurtBox hurtBox;
     private Vector2 originalHitboxPos;
 
     void Awake()
@@ -28,7 +29,12 @@ public class EnemyController : MonoBehaviour
 
         rigid.bodyType = RigidbodyType2D.Kinematic;
         rigid.linearVelocity = Vector2.zero;
-        originalHitboxPos = punchHitbox.transform.localPosition;
+        originalHitboxPos = punchHitBox.transform.localPosition;
+    }
+
+    void Start()
+    {
+        hurtBox.Initialize(SocketClient.Instance.enemyUserId);
     }
 
     private void Update()
@@ -41,7 +47,7 @@ public class EnemyController : MonoBehaviour
             transform.localScale = new Vector2(dx > 0 ? 1 : -1, 1);
         }
 
-        punchHitbox.transform.localPosition = new Vector2(
+        punchHitBox.transform.localPosition = new Vector2(
             originalHitboxPos.x * transform.localScale.x,
             originalHitboxPos.y
         );
@@ -128,5 +134,11 @@ public class EnemyController : MonoBehaviour
     public void EnableNetwork()
     {
         canReceiveNetwork = true;
+    }
+
+    public void OnHurt()
+    {
+        ChangeState(PlayerState.Hurt);
+        rigid.linearVelocity = Vector2.zero;
     }
 }
