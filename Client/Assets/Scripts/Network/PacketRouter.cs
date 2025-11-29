@@ -24,8 +24,8 @@ public static class PacketRouter
                 HandleLoadBattle();
                 break;
 
-            case PacketType.PLAYER_MOVE:
-                HandleMove(msg);
+            case PacketType.PLAYER_STATE:
+                HandleState(msg);
                 break;
 
             case PacketType.TAKE_DAMAGE:
@@ -70,23 +70,28 @@ public static class PacketRouter
         SceneLoader.Instance.LoadBattle();
     }
 
-    private static void HandleMove(string msg)
+    private static void HandleState(string msg)
     {
-        PlayerMovePacket p = JsonUtility.FromJson<PlayerMovePacket>(msg);
-
-        if (p.id == SocketClient.Instance.myUserId)
-            return;
-
-        if (p.id != SocketClient.Instance.myUserId)
+        if (!GameManager.Instance ||
+            GameManager.Instance.myPlayer == null ||
+            GameManager.Instance.enemyPlayer == null)
         {
-            var enemy = GameManager.Instance.enemyPlayer;
+            return;
+        }
 
-            if (enemy != null)
-            {
-                var pc = enemy.GetComponent<EnemyController>();
+        PlayerStatePacket p = JsonUtility.FromJson<PlayerStatePacket>(msg);
 
-                pc.EnemyStateUpdate(new Vector2(p.x, p.y), p.state);
-            }
+        if (p.userId == SocketClient.Instance.myUserId)
+        {
+            // 내 캐릭터 업데이트
+            var pc = GameManager.Instance.myPlayer.GetComponent<PlayerController>();
+            pc.ApplyServerState(new Vector2(p.x, p.y), p.state, p.dir);
+        }
+        else
+        {
+            // 상대 캐릭터 업데이트
+            var pc = GameManager.Instance.enemyPlayer.GetComponent<EnemyController>();
+            pc.ApplyServerState(new Vector2(p.x, p.y), p.state, p.dir);
         }
     }
 
@@ -98,11 +103,6 @@ public static class PacketRouter
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, p.currentHP);
-
-        if (p.id == SocketClient.Instance.myUserId)
-            target.GetComponent<PlayerController>().OnHurt();
-        else
-            target.GetComponent<EnemyController>().OnHurt();
     }
 
     private static void HandleGameWin()

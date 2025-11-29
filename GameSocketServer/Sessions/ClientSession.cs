@@ -5,9 +5,9 @@ using System.Text.Json;
 
 public class ClientSession(int id, TcpClient client, SocketServer server)
 {
-    public int SessionId { get; set; } = id;
-    public int UserId { get; set; }
-    public int RoomId;
+    public int sessionId { get; set; } = id;
+    public int userId { get; set; }
+    public int roomId;
 
     public Vector2 lastPos;
     public string lastState = "Idle";
@@ -65,14 +65,14 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 case "LOGIN":
                     {
                         var p = JsonSerializer.Deserialize<LoginPacket>(msg);
-                        UserId = p.userId;
+                        userId = p.userId;
                     }
                     break;
 
                 case "MATCH_START":
-                    if (UserId == 0)
+                    if (userId == 0)
                     {
-                        Console.WriteLine("[MATCH_START DENIED] UserId not assigned yet");
+                        Console.WriteLine("[MATCH_START DENIED] userId not assigned yet");
                         return;
                     }
                     _server.AddToMatchQueue(this);
@@ -85,21 +85,21 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                 case "BATTLE_START":
                     battleReady = true;
                     break;
-                
-                case "PLAYER_MOVE":
+
+                case "INPUT":
                     if (battleReady)
                     {
-                        var p = JsonSerializer.Deserialize<PlayerMovePacket>(msg);
-                        _room.UpdatePlayerState(this, p);
+                        var p = JsonSerializer.Deserialize<PlayerInputPacket>(msg);
+                        _room.OnInputPacket(this, p);
                     }
                     break;
 
-                case "HIT":
+                /*case "HIT":
                     {
                         var p = JsonSerializer.Deserialize<HitPacket>(msg);
                         _room.UpdatePlayerHP(p);
                     }
-                    break;
+                    break;*/
 
                 case "GAME_END":
                     battleReady = false;
@@ -129,7 +129,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
 
     public void Disconnect()
     {
-        Console.WriteLine($"[DISCONNECT] {SessionId}");
+        Console.WriteLine($"[DISCONNECT] {sessionId}");
 
         disconnected = true;
 

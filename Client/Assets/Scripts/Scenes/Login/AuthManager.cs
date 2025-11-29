@@ -12,56 +12,6 @@ public class AuthManager : MonoBehaviour
     public string Nickname { get; private set; }
     public string AccessToken { get; private set; }
 
-    [System.Serializable]
-    public class RegisterRequest
-    {
-        public string accountId;
-        public string password;
-        public string nickname;
-    }
-
-    [System.Serializable]
-    public class RegisterResponse
-    {
-        public int userId;
-        public string message;
-    }
-
-    [System.Serializable]
-    public class LoginRequest
-    {
-        public string accountId;
-        public string password;
-    }
-
-    [System.Serializable]
-    public class LoginResponse
-    {
-        public int userId;
-        public string nickname;
-        public string accessToken;
-    }
-
-    [System.Serializable]
-    public class DuplicateCheckResponse
-    {
-        public bool isDuplicate;
-        public string message;
-    }
-
-    [System.Serializable]
-    public class AccountCheckRequest
-    {
-        public string accountId;
-    }
-
-    [System.Serializable]
-    public class NicknameCheckRequest
-    {
-        public string nickname;
-    }
-
-
     private void Awake()
     {
         if (Instance != null && Instance != this)

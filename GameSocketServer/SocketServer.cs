@@ -56,7 +56,7 @@ public class SocketServer
             return;
 
         _matchQueue.Enqueue(s);
-        Console.WriteLine($"[MATCH] User {s.UserId} Enqueued");
+        Console.WriteLine($"[MATCH] User {s.userId} Enqueued");
 
         if (_matchQueue.Count >= 2)
         {
@@ -73,14 +73,14 @@ public class SocketServer
         var room = new Room(roomId, p1, p2);
         _rooms.Add(roomId, room);
 
-        Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.UserId}, {p2.UserId})");
+        Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.userId}, {p2.userId})");
 
         p1.Send(new
         {
             type = "MATCH_FOUND",
             roomId = roomId,
-            myUserId = p1.UserId,
-            enemyUserId = p2.UserId,
+            myUserId = p1.userId,
+            enemyUserId = p2.userId,
             side = "LEFT",
         });
 
@@ -88,8 +88,8 @@ public class SocketServer
         {
             type = "MATCH_FOUND",
             roomId = roomId,
-            myUserId = p2.UserId,
-            enemyUserId = p1.UserId,
+            myUserId = p2.userId,
+            enemyUserId = p1.userId,
             side = "RIGHT",
         });
     }
@@ -111,57 +111,29 @@ public class SocketServer
 
     private async Task TickLoop()
     {
-        const int TICK_RATE = 30; // 30 FPS
+        const int TICK_RATE = 60; // 60 FPS
         const int TICK_DELAY = 1000 / TICK_RATE;
+        float dt = 1f / TICK_RATE;
 
         while (true)
         {
-            BroadcastAllRooms();
+            foreach (var room in _rooms.Values)
+                room.Update(dt);
+
             await Task.Delay(TICK_DELAY);
         }
-    }
-
-    private void BroadcastAllRooms()
-    {
-        foreach (var room in _rooms.Values)
-        {
-            BroadcastRoom(room);
-        }
-    }   
-
-    private void BroadcastRoom(Room room)
-    {
-        if (!room.Player1.battleReady || !room.Player2.battleReady)
-            return;
-
-        SendPlayerState(room.Player1, room.Player2);
-        SendPlayerState(room.Player2, room.Player1);
-    }
-
-    private void SendPlayerState(ClientSession player, ClientSession enemy)
-    {
-        if (player == null || enemy == null) return;
-
-        enemy.Send(new
-        {
-            type = "PLAYER_MOVE",
-            id = player.SessionId,
-            x = player.lastPos.X,
-            y = player.lastPos.Y,
-            state = player.lastState
-        });
     }
 
     public void RemoveClient(ClientSession s)
     {
         // 1) 해당 세션을 매칭큐에서 제거
-        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.SessionId != s.SessionId));
+        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.sessionId != s.sessionId));
 
         // 2) 딕셔너리에서 제거
-        if (_clients.ContainsKey(s.SessionId))
-            _clients.Remove(s.SessionId);
+        if (_clients.ContainsKey(s.sessionId))
+            _clients.Remove(s.sessionId);
 
-        Console.WriteLine($"[SERVER] Client {s.SessionId} removed completely.");
+        Console.WriteLine($"[SERVER] Client {s.sessionId} removed completely.");
     }
 
 }

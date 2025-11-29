@@ -142,6 +142,16 @@ public class SocketClient : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        Disconnect();
+    }
+
+    private void OnApplicationQuit()
+    {
+        Disconnect();
+    }
+
     public void OnMatchFound()
     {
         MatchingTime instance = FindAnyObjectByType<MatchingTime>();
@@ -155,10 +165,5 @@ public class SocketClient : MonoBehaviour
         Health targetHealth = target.GetComponent<Health>();
         targetHealth.currentHp = currentHP;
         targetHealth.UpdateHPBar();
-    }
-
-    private void OnApplicationQuit()
-    {
-        if (client != null) client.Close();
     }
 }

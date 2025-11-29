@@ -46,21 +46,16 @@ public class GameManager : MonoBehaviour
         Transform mySpawn = (SocketClient.Instance.side == "LEFT") ? leftSpawn : rightSpawn;
         Transform enemySpawn = (SocketClient.Instance.side == "LEFT") ? rightSpawn : leftSpawn;
 
-        // 내 플레이어는 PlayerPrefab (PlayerController)
         myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
-
-        int myDir = (SocketClient.Instance.side == "LEFT") ? 1 : -1;
-        myPlayer.transform.localScale = new Vector3(myDir, 1, 1);
 
         var myHurtBox = myPlayer.GetComponentInChildren<HurtBox>();
         if (myHurtBox != null)
             myHurtBox.Initialize(SocketClient.Instance.myUserId);
 
+        Invoke(nameof(EnablePlayerNetwork), 0.3f);
 
-        // 상대 플레이어는 EnemyPrefab (EnemyController)
+
         enemyPlayer = Instantiate(enemyPrefab, enemySpawn.position, Quaternion.identity);
-        int enemyDir = (SocketClient.Instance.side == "LEFT") ? -1 : 1;
-        enemyPlayer.transform.localScale = new Vector3(enemyDir, 1, 1);
 
         var enemyHurtBox = enemyPlayer.GetComponentInChildren<HurtBox>();
         if (enemyHurtBox != null)
@@ -74,6 +69,11 @@ public class GameManager : MonoBehaviour
         Invoke(nameof(EnableEnemyNetwork), 0.3f);
 
         SocketClient.Instance.Send(new BasePacket { type = "BATTLE_START" });
+    }
+
+    void EnablePlayerNetwork()
+    {
+        myPlayer.GetComponent<PlayerController>().EnableNetwork();
     }
 
     void EnableEnemyNetwork()

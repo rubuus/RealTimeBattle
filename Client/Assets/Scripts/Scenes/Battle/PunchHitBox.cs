@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PunchHitBox : MonoBehaviour
+public class PunchHitbox : MonoBehaviour
 {
     public int damage = 10;
     private bool hasHit = false;

@@ -9,6 +9,7 @@ public class EnemyController : MonoBehaviour
     private Vector2 networkTargetPos;
     private string networkTargetState;
     public bool isNetworkUpdatePending = false;
+    private float networkDir;
 
     private Vector2 smoothVel;
     [SerializeField] private float networkSmoothTime = 0.015f;
@@ -18,7 +19,7 @@ public class EnemyController : MonoBehaviour
     private Rigidbody2D rigid;
     private Animator anim;
 
-    [SerializeField] private PunchHitBox punchHitBox;
+    [SerializeField] private PunchHitbox punchHitbox;
     [SerializeField] private HurtBox hurtBox;
     private Vector2 originalHitboxPos;
 
@@ -29,7 +30,8 @@ public class EnemyController : MonoBehaviour
 
         rigid.bodyType = RigidbodyType2D.Kinematic;
         rigid.linearVelocity = Vector2.zero;
-        originalHitboxPos = punchHitBox.transform.localPosition;
+        networkDir = (SocketClient.Instance.side == "RIGHT") ? 1f : -1f;
+        originalHitboxPos = punchHitbox.transform.localPosition;
     }
 
     void Start()
@@ -37,21 +39,31 @@ public class EnemyController : MonoBehaviour
         hurtBox.Initialize(SocketClient.Instance.enemyUserId);
     }
 
-    private void Update()
+    void Update()
     {
         if (!canReceiveNetwork) return;
 
-        float dx = networkTargetPos.x - transform.position.x;
-        if (Mathf.Abs(dx) > 0.01f)
-        {
-            transform.localScale = new Vector2(dx > 0 ? 1 : -1, 1);
-        }
+        ApplyServerStateWithGuard();
+        ApplyNetworkPosition();
+        ApplyServerDirection();
+        SyncHitboxDirection();
+    }
 
-        punchHitBox.transform.localPosition = new Vector2(
-            originalHitboxPos.x * transform.localScale.x,
-            originalHitboxPos.y
-        );
+    public void ApplyServerDirection()
+    {
+        transform.localScale = new Vector2(networkDir, 1);
+    }
 
+    public void SyncHitboxDirection()
+    {
+        punchHitbox.transform.localPosition = new Vector2(
+                originalHitboxPos.x * networkDir,
+                originalHitboxPos.y
+            );
+    }
+
+    public void ApplyServerStateWithGuard()
+    {
         if (isNetworkUpdatePending)
         {
             PlayerState newState =
@@ -67,24 +79,29 @@ public class EnemyController : MonoBehaviour
             ChangeState(newState);
             isNetworkUpdatePending = false;
         }
+    }
 
-        if (networkTargetPos != Vector2.zero)
-        {
-            if (Vector2.Distance(transform.position, networkTargetPos) < 0.005f)
-                return;
+    public void ApplyServerState(Vector2 pos, string state, int dir)
+    {
+        networkTargetPos = pos;
+        networkTargetState = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
 
-            transform.position = Vector2.SmoothDamp(
-                transform.position,
-                networkTargetPos,
-                ref smoothVel,
-                networkSmoothTime
-            );
-
-        }
+    public void ApplyNetworkPosition()
+    {
+        transform.position = Vector2.SmoothDamp(
+            transform.position,
+            networkTargetPos,
+            ref smoothVel,
+            networkSmoothTime
+        );
     }
 
     void ChangeState(PlayerState newState)
     {
+        // 중복 전환 방지
         if (enemyState == newState)
             return;
 
@@ -122,23 +139,8 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    public void EnemyStateUpdate(Vector2 pos, string state)
-    {
-        if (!canReceiveNetwork) return;
-
-        networkTargetPos = pos;
-        networkTargetState = state;
-        isNetworkUpdatePending = true;
-    }
-
     public void EnableNetwork()
     {
         canReceiveNetwork = true;
-    }
-
-    public void OnHurt()
-    {
-        ChangeState(PlayerState.Hurt);
-        rigid.linearVelocity = Vector2.zero;
     }
 }

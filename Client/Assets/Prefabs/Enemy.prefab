@@ -232,7 +232,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -332,7 +332,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   isNetworkUpdatePending: 0
   networkSmoothTime: 0.02
-  punchHitBox: {fileID: 747958789305111346}
+  punchHitbox: {fileID: 747958789305111346}
   hurtBox: {fileID: 8883857970640553850}
 --- !u!1 &6439793159432640653
 GameObject:

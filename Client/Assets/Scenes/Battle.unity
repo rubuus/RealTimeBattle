@@ -537,8 +537,8 @@ MonoBehaviour:
   playerPrefab: {fileID: 4702911607469091163, guid: 64c748185145c9f4e97aef7f6e5bee75, type: 3}
   enemyPrefab: {fileID: 3833960917163554118, guid: b51bfb8d497676a479b867f523205e77, type: 3}
   timerText: {fileID: 1852788050}
-  myPlayer: {fileID: 0}
-  enemyPlayer: {fileID: 0}
+  myPlayer: {fileID: 4702911607469091163, guid: 64c748185145c9f4e97aef7f6e5bee75, type: 3}
+  enemyPlayer: {fileID: 3833960917163554118, guid: b51bfb8d497676a479b867f523205e77, type: 3}
 --- !u!4 &605527759
 Transform:
   m_ObjectHideFlags: 0
@@ -626,7 +626,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -6, y: -2}
+  m_AnchoredPosition: {x: -7, y: -2.5}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &928832312
@@ -1824,7 +1824,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 6, y: -2}
+  m_AnchoredPosition: {x: 7, y: -2.5}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1793189497

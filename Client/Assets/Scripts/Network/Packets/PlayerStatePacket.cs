@@ -1,10 +1,11 @@
 using System;
 
 [Serializable]
-public class PlayerMovePacket : BasePacket
+public class PlayerStatePacket : BasePacket
 {
-    public int id;
+    public int userId;
     public float x;
     public float y;
     public string state;
+    public int dir;
 }

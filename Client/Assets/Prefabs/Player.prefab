@@ -112,7 +112,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -136,13 +136,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8716fe9fac6eab744b500286ec8a64cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 6
-  jumpForce: 15
-  jumpCount: 2
-  hurtDuration: 0.05
-  hurtTimer: 0
-  isColliding: 0
-  punchHitBox: {fileID: 6388919396738224226}
+  networkSmoothTime: 0.015
+  punchHitbox: {fileID: 6388919396738224226}
   hurtBox: {fileID: 9052869820546432638}
 --- !u!95 &6015396263757039999
 Animator:
