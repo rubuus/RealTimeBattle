@@ -31,11 +31,9 @@ public class ServerPlayer
     public bool punchPressed;
 
     // 파라미터
-    public float moveSpeed = 8f;
-    public float jumpPower = 15f;
-    public float gravity = -30f;
-
-    float groundY = 0f;
+    public float moveSpeed = 14f;
+    public float jumpPower = 18f;
+    public float gravity = -60f;
     float prevY;
 
     // 점프/대쉬/펀치/피격 관련
@@ -92,7 +90,7 @@ public class ServerPlayer
         jumpCount = 2;
 
         dash.duration = 0.1f;
-        dash.speed = 20f;
+        dash.speed = 30f;
         dash.cooldown = 0.5f;
 
         punch.duration = 0.3f;
@@ -132,6 +130,8 @@ public class ServerPlayer
 
     void UpdatePosition(float dt)
     {
+        Platform sceneSize = new Platform {xMin = -9f, xMax = 9f, y = 5f};
+
         if (!onGround && 
         state != PlayerState.GroundDash &&
         state != PlayerState.AirDash)
@@ -139,8 +139,19 @@ public class ServerPlayer
             velocity.Y += gravity * dt;
         }
 
-        // 최종 위치 계산
         position += velocity * dt;
+
+        if (position.X > sceneSize.xMax)
+            position.X = sceneSize.xMax;
+        
+        if (position.X < sceneSize.xMin)
+            position.X = sceneSize.xMin;
+
+        if (position.Y > sceneSize.y)
+        {
+            position.Y = sceneSize.y;
+            velocity.Y = 0f;
+        }
     }
 
     void UpdateDirection()

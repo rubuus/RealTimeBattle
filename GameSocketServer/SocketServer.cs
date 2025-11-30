@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Diagnostics;
 
 public class SocketServer
 {
@@ -111,9 +112,12 @@ public class SocketServer
 
     private async Task TickLoop()
     {
-        const int TICK_RATE = 60; // 60 FPS
+        const int TICK_RATE = 120; // 60 FPS
         const int TICK_DELAY = 1000 / TICK_RATE;
         float dt = 1f / TICK_RATE;
+
+        var sw = new Stopwatch();
+        sw.Start();
 
         while (true)
         {
