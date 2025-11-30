@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public class SocketClient : MonoBehaviour
 {

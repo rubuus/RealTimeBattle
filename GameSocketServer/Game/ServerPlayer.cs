@@ -93,7 +93,7 @@ public class ServerPlayer
         dash.speed = 30f;
         dash.cooldown = 0.5f;
 
-        punch.duration = 0.3f;
+        punch.duration = 0.2f;
         punch.cooldown = 0.2f;
     }
 
@@ -266,7 +266,6 @@ public class ServerPlayer
     {
         punch.timer = punch.duration;
         punch.cooldownTimer = punch.cooldown;
-        punchPressed = false;
         state = PlayerState.Punch;
         velocity.X = 0f;
     }

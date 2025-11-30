@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
-using static UnityEngine.GraphicsBuffer;
 
 public class PlayerController : MonoBehaviour
 {
@@ -41,10 +40,6 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rigid;
     private Animator anim;
 
-    [SerializeField] private PunchHitbox punchHitbox;
-    [SerializeField] private HurtBox hurtBox;
-    private Vector2 originalHitboxPos;
-
     void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
@@ -53,12 +48,6 @@ public class PlayerController : MonoBehaviour
         rigid.bodyType = RigidbodyType2D.Kinematic;
         rigid.linearVelocity = Vector2.zero;
         networkDir = (SocketClient.Instance.side == "LEFT") ? 1f : -1f;
-        originalHitboxPos = punchHitbox.transform.localPosition;
-    }
-
-    void Start()
-    {
-        hurtBox.Initialize(SocketClient.Instance.myUserId);
     }
 
     void Update()
@@ -70,7 +59,6 @@ public class PlayerController : MonoBehaviour
         ApplyServerStateWithGuard();
         ApplyNetworkPosition();
         ApplyServerDirection();
-        SyncHitboxDirection();
         SendInput();
     }
 
@@ -104,14 +92,6 @@ public class PlayerController : MonoBehaviour
     public void ApplyServerDirection()
     {
         transform.localScale = new Vector2(networkDir, 1);
-    }
-
-    public void SyncHitboxDirection()
-    {
-        punchHitbox.transform.localPosition = new Vector2(
-                originalHitboxPos.x * networkDir,
-                originalHitboxPos.y
-            );
     }
 
     public void ApplyServerStateWithGuard()

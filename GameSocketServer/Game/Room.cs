@@ -21,6 +21,22 @@ public class Room
 
     private bool closed = false;
 
+    public struct Hitbox
+    {
+        public float x;     // 중심
+        public float y;     // 중심
+        public float halfW; // 플레이어 폭의 절반
+        public float halfH; // 플레이어 높이의 절반
+    }
+
+    public struct Hurtbox
+    {
+        public float x;     // 중심
+        public float y;     // 중심
+        public float halfW; // 플레이어 폭의 절반
+        public float halfH; // 플레이어 높이의 절반
+    }
+
     public Room(int id, ClientSession p1, ClientSession p2)
     {
         roomId = id;
@@ -59,6 +75,11 @@ public class Room
         sPlayer1.Update(dt);
         sPlayer2.Update(dt);
 
+        if (sPlayer1.state == PlayerState.Punch && sPlayer1.punchPressed)
+            Console.WriteLine(IsInPunchRange(sPlayer1, sPlayer2));
+        else if (sPlayer2.state == PlayerState.Punch && sPlayer2.punchPressed)
+            Console.WriteLine(IsInPunchRange(sPlayer2, sPlayer1));
+
         player1.Send(sPlayer1.ToPacket());
         player2.Send(sPlayer2.ToPacket());
         player1.Send(sPlayer2.ToPacket());
@@ -74,39 +95,31 @@ public class Room
             sPlayer2.ApplyInput(p);
     }
 
-
-    /*public void UpdatePlayerHP(HitPacket hit)
+    public bool IsInPunchRange(ServerPlayer attacker, ServerPlayer target)
     {
-        ClientSession target = null;
+        Hitbox hitbox;
+        Hurtbox hurtbox;
 
-        if (Player1.UserId == hit.hurtId)
-            target = Player1;
-        else if (Player2.UserId == hit.hurtId)
-            target = Player2;
+        hitbox.x = attacker.position.X + (0.3f * attacker.dir);
+        hitbox.y = attacker.position.Y;
+        hitbox.halfW = 0.3f;
+        hitbox.halfH = 0.7f;
 
-        if (target == null) return;
+        hurtbox.x = target.position.X;
+        hurtbox.y = target.position.Y;
+        hurtbox.halfW = 0.5f;
+        hurtbox.halfH = 1f;
 
-        target.currentHp -= hit.damage;
+        attacker.punchPressed = false;
+        
+        return Overlap(hitbox, hurtbox);
+    }
 
-        // DAMAGE 패킷 만들어서 양쪽에게 전송
-        var dmg = new DamagePacket
-        {
-            type = "TAKE_DAMAGE",
-            id = target.UserId,
-            amount = hit.damage,
-            currentHP = target.currentHp
-        };
-
-        Player1.Send(dmg);
-        Player2.Send(dmg);
-
-        // hp 변화하면 winner, loser 갱신
-        ClientSession winner = (target == Player1) ? Player2 : Player1;
-        ClientSession loser = target;
-
-        if (loser.currentHp <= 0)
-            SendGameResult(winner, loser);
-    }*/
+    public bool Overlap(Hitbox a, Hurtbox b)
+    {
+        return !(Math.Abs(a.x - b.x) > (a.halfW + b.halfW) ||
+                Math.Abs(a.y - b.y) > (a.halfH + b.halfH));
+    }
 
     public void SendGameResult(ClientSession winner, ClientSession loser)
     {
