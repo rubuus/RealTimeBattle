@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Text.Json;
 
 public class Room
 {
@@ -18,13 +17,7 @@ public class Room
     private int waitingAckCount = 2;
     private bool closed = false;
     private bool pendingClose = false;
-
-    public enum GameEndReason
-    {
-        Normal,     // HP 0 등 정상 종료
-        Disconnect  // 플레이어 탈주
-    }
-
+    public float gameTime = 100f;
 
     public struct Hitbox
     {
@@ -53,6 +46,8 @@ public class Room
 
         sPlayer1 = new ServerPlayer(userId: p1.userId, side: "LEFT", leftSpawn);
         sPlayer2 = new ServerPlayer(userId: p2.userId, side: "RIGHT", rightSpawn);
+
+        gameTime = 100f;
     }
 
     public void CheckMatch(ClientSession sender)
@@ -76,7 +71,10 @@ public class Room
         if (!gameStarted) return;
         if (!player1.battleReady || !player2.battleReady) return;
 
-        if (sPlayer1.currentHP <= 0 || sPlayer2.currentHP <= 0)
+        gameTime -= dt;
+        SendTimePacket();
+
+        if (gameTime <= 0f || sPlayer1.currentHP <= 0 || sPlayer2.currentHP <= 0)
         {
             player1.battleReady = false;
             player2.battleReady = false;
@@ -126,10 +124,10 @@ public class Room
         return Overlap(hitbox, hurtbox);
     }
 
-    public bool Overlap(Hitbox a, Hurtbox b)
+    public bool Overlap(Hitbox hit, Hurtbox hurt)
     {
-        return !(Math.Abs(a.x - b.x) > (a.halfW + b.halfW) ||
-                Math.Abs(a.y - b.y) > (a.halfH + b.halfH));
+        return !(Math.Abs(hit.x - hurt.x) > (hit.halfW + hurt.halfW) ||
+                Math.Abs(hit.y - hurt.y) > (hit.halfH + hurt.halfH));
     }
 
     public void CheckDamage()
@@ -178,6 +176,21 @@ public class Room
         player1.Send(sPlayer2.HurtPacket());
         player2.Send(sPlayer1.HurtPacket());
         player2.Send(sPlayer2.HurtPacket());
+    }
+
+    public void SendTimePacket()
+    {
+        player1.Send(new TimeSyncPacket
+        {
+           type = "GAME_TIME",
+           time = (int)Math.Ceiling(gameTime)
+        });
+
+        player2.Send(new TimeSyncPacket
+        {
+           type = "GAME_TIME",
+           time = (int)Math.Ceiling(gameTime)
+        });
     }
 
     public void SendGameResult()

@@ -33,6 +33,10 @@ public static class PacketRouter
                 HandleTakeDamage(msg);
                 break;
 
+            case PacketType.GAME_TIME:
+                HandleTime(msg);
+                break;
+
             case PacketType.GAME_WIN:
                 HandleGameWin();
                 break;
@@ -64,8 +68,8 @@ public static class PacketRouter
         MatchFoundPacket p = JsonUtility.FromJson<MatchFoundPacket>(msg);
 
         SocketClient.Instance.roomId = p.roomId;
-        SocketClient.Instance.myUserId = p.myUserId;
-        SocketClient.Instance.enemyUserId = p.enemyUserId;
+        SocketClient.Instance.myId = p.myId;
+        SocketClient.Instance.enemyId = p.enemyId;
         SocketClient.Instance.side = p.side;
 
         MatchButton.Instance.isMatching = false;
@@ -90,7 +94,7 @@ public static class PacketRouter
 
         PlayerStatePacket p = JsonUtility.FromJson<PlayerStatePacket>(msg);
 
-        if (p.userId == SocketClient.Instance.myUserId)
+        if (p.userId == SocketClient.Instance.myId)
         {
             // 내 캐릭터 업데이트
             var pc = GameManager.Instance.myPlayer.GetComponent<PlayerController>();
@@ -108,10 +112,17 @@ public static class PacketRouter
     {
         DamagePacket p = JsonUtility.FromJson<DamagePacket>(msg);
 
-        GameObject target = (p.hurtId == SocketClient.Instance.myUserId) ?
+        GameObject target = (p.hurtId == SocketClient.Instance.myId) ?
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, p.currentHP);
+    }
+
+    private static void HandleTime(string msg)
+    {
+        TimeSyncPacket p = JsonUtility.FromJson<TimeSyncPacket>(msg);
+
+        GameManager.Instance.timerText.text = p.time.ToString();
     }
 
     private static void HandleGameWin()

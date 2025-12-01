@@ -9,8 +9,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject enemyPrefab;
 
-    private float timer = 100f;
-    [SerializeField] private TMP_Text timerText;
+    public TMP_Text timerText;
 
     public static GameManager Instance;
 
@@ -21,24 +20,6 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         SpawnPlayers();
-    }
-
-    void Update()
-    {
-        RunTimer();
-    }
-
-    void RunTimer()
-    {
-        timer -= Time.deltaTime;
-
-        if (timerText != null)
-            timerText.text = Mathf.Ceil(timer).ToString();
-
-        if (timer <= 0f)
-        {
-            SceneManager.LoadScene("Result");
-        }
     }
 
     void SpawnPlayers()

@@ -11,7 +11,6 @@ public class MatchManager : MonoBehaviour
     [SerializeField] GameObject leftPlayer;
     [SerializeField] GameObject rightPlayer;
 
-
     private void Start()
     {
         StartCoroutine(UIActive());
@@ -21,8 +20,8 @@ public class MatchManager : MonoBehaviour
     private IEnumerator UIActive()
     {
         string side = SocketClient.Instance.side;
-        int myId = SocketClient.Instance.myUserId;
-        int enemyId = SocketClient.Instance.enemyUserId;
+        int myId = SocketClient.Instance.myId;
+        int enemyId = SocketClient.Instance.enemyId;
 
         TMP_Text myText = (side == "LEFT") ? leftText : rightText;
         TMP_Text enemyText = (side == "LEFT") ? rightText : leftText;

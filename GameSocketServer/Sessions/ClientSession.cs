@@ -20,7 +20,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     private StringBuilder recvBuffer = new StringBuilder();
     public DateTime lastPongTime = DateTime.Now;
 
-
     public async Task ReceiveLoop()
     {
         byte[] buffer = new byte[1024];

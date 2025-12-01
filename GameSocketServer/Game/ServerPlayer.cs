@@ -246,7 +246,7 @@ public class ServerPlayer
         dash.timer = dash.duration;
         dash.cooldownTimer = dash.cooldown;
         dashPressed = false;
-        // 공중/지상에 따라 상태 분리
+        
         if (onGround)
             state = PlayerState.GroundDash;
         else

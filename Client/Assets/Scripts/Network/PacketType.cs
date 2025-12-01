@@ -8,6 +8,7 @@ public enum PacketType
     LOAD_BATTLE,
     PLAYER_STATE,
     TAKE_DAMAGE,
+    GAME_TIME,
     GAME_WIN,
     GAME_LOSE,
     GAME_DRAW,

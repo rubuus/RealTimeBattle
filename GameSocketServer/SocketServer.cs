@@ -14,8 +14,6 @@ public class SocketServer
     private int _roomIdCounter = 1;
     private int _port;
 
-    private object _lock = new object();
-
     public SocketServer(int port)
     {
         _port = port;
@@ -36,6 +34,8 @@ public class SocketServer
         while (true)
         {
             var tcpClient = await _listener.AcceptTcpClientAsync();
+            tcpClient.NoDelay = true;
+            tcpClient.Client.NoDelay = true;
             var session = new ClientSession(clientId, tcpClient, this);
 
             _clients.Add(clientId, session);
@@ -95,8 +95,8 @@ public class SocketServer
         {
             type = "MATCH_FOUND",
             roomId = roomId,
-            myUserId = p1.userId,
-            enemyUserId = p2.userId,
+            myId = p1.userId,
+            enemyId = p2.userId,
             side = "LEFT",
         });
 
@@ -104,8 +104,8 @@ public class SocketServer
         {
             type = "MATCH_FOUND",
             roomId = roomId,
-            myUserId = p2.userId,
-            enemyUserId = p1.userId,
+            myId = p2.userId,
+            enemyId = p1.userId,
             side = "RIGHT",
         });
     }

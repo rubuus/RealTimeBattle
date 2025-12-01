@@ -13,16 +13,14 @@ public class SocketClient : MonoBehaviour
     private TcpClient client;
     private NetworkStream stream;
 
-    public Action OnMatchReady;
-
     private byte[] buffer = new byte[1024];
     private StringBuilder recvBuffer = new StringBuilder();
 
     public bool connected = false;
     public bool enemyDisconnected = false;
 
-    public int myUserId;
-    public int enemyUserId;
+    public int myId;
+    public int enemyId;
     public int roomId;
     public string side;
 
@@ -50,6 +48,8 @@ public class SocketClient : MonoBehaviour
         try
         {
             client = new TcpClient();
+            client.NoDelay = true;
+            client.Client.NoDelay = true;
             await client.ConnectAsync("127.0.0.1", 5000);  // 서버 주소
 
             stream = client.GetStream();

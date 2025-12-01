@@ -81,7 +81,7 @@ public class PlayerController : MonoBehaviour
         SocketClient.Instance.Send(new PlayerInputPacket()
         {
             type = "INPUT",
-            id = SocketClient.Instance.myUserId,
+            id = SocketClient.Instance.myId,
             move = moveInput,
             jump = jumpPressed,
             dash = dashPressed,
