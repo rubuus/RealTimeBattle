@@ -14,7 +14,19 @@ namespace api.Data
         {
 
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<BattleRecord>()
+                .HasOne(r => r.MyUser)
+                .WithMany()
+                .HasForeignKey(r => r.MyUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
         
         public DbSet<User> Users { get; set; }
+        public DbSet<BattleRecord> BattleRecords { get; set; }
     }
 }

@@ -12,7 +12,8 @@ public enum PanelType
     Account,
     ChangeNickname,
     DeleteAccount,
-    Match
+    Match,
+    Notice
 }
 
 [System.Serializable]

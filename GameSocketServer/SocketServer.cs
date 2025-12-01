@@ -121,7 +121,7 @@ public class SocketServer
 
     private async Task TickLoop()
     {
-        const int TICK_RATE = 120; // 60 FPS
+        const int TICK_RATE = 120; // 120 FPS
         const int TICK_DELAY = 1000 / TICK_RATE;
         float dt = 1f / TICK_RATE;
 

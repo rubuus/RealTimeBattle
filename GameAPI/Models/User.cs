@@ -18,7 +18,7 @@ namespace api.Models
         public DateTime CreatedTime { get; private set; } = DateTime.Now;
         public DateTime UpdatedTime { get; private set; } = DateTime.Now;
 
-        private User() { }
+        private User() {}
         public User(string accountId, string password, string nickname)
         {
             AccountId = accountId;
