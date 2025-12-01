@@ -70,11 +70,6 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                     break;
 
                 case "MATCH_START":
-                    if (userId == 0)
-                    {
-                        Console.WriteLine("[MATCH_START DENIED] userId not assigned yet");
-                        return;
-                    }
                     _server.AddToMatchQueue(this);
                     break;
                 

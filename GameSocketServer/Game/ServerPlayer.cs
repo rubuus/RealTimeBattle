@@ -31,9 +31,9 @@ public class ServerPlayer
     public bool punchPressed;
 
     // 파라미터
-    public float moveSpeed = 14f;
+    public float moveSpeed = 17f;
     public float jumpPower = 18f;
-    public float gravity = -60f;
+    public float gravity = -80f;
     float prevY;
 
     // 점프/대쉬/펀치/피격 관련
@@ -57,14 +57,13 @@ public class ServerPlayer
         public float cooldownTimer;
     }
 
-    public float hurtDuration = 0.25f;
+    public float hurtDuration = 0.2f;
     public float hurtTimer = 0f;
 
     public bool isInvincible = false;
     public float invincibleTimer = 0f;
 
-    // HP
-    public int HP = 100;
+    public int currentHP = 100;
 
     public Dash dash;
     public Punch punch;
@@ -72,11 +71,11 @@ public class ServerPlayer
     List<Platform> platforms = new List<Platform>
     {
         new Platform { xMin = -9f, xMax = 9f, y = -2.5f },
-        new Platform { xMin = -6.5f, xMax = -4.5f, y = 2.5f },
-        new Platform { xMin = -4f,  xMax = -2f, y = 0f },
-        new Platform { xMin = -0.5f,  xMax = 2f, y = 1.5f },
-        new Platform { xMin = 3f,  xMax = 5f, y = 3.5f },
-        new Platform { xMin = 4.5f,  xMax = 6.5f, y = -0.5f },
+        new Platform { xMin = -6.7f, xMax = -4.3f, y = 2.5f },
+        new Platform { xMin = -4.2f,  xMax = -1.8f, y = 0f },
+        new Platform { xMin = -0.7f,  xMax = 2.2f, y = 1.5f },
+        new Platform { xMin = 2.8f,  xMax = 5.2f, y = 3.5f },
+        new Platform { xMin = 4.3f,  xMax = 6.7f, y = -0.5f },
     };
 
     public ServerPlayer(int userId, string side, Vector2 spawnPosition)
@@ -94,7 +93,7 @@ public class ServerPlayer
         dash.cooldown = 0.5f;
 
         punch.duration = 0.2f;
-        punch.cooldown = 0.2f;
+        punch.cooldown = 0.4f;
     }
 
     // --- 입력 적용 (패킷 받을 때마다 호출) ---
@@ -156,6 +155,9 @@ public class ServerPlayer
 
     void UpdateDirection()
     {
+        if (state == PlayerState.Punch)
+            return;
+
         if (moveInput > 0.01f) dir = 1;
         else if (moveInput < -0.01f) dir = -1;
     }
@@ -284,8 +286,8 @@ public class ServerPlayer
         if (isInvincible)
             return;
 
-        HP -= damage;
-        if (HP < 0) HP = 0;
+        currentHP -= damage;
+        if (currentHP < 0) currentHP = 0;
 
         // 피격 시 경직 + 무적
         hurtTimer = hurtDuration;

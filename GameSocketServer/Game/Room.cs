@@ -75,15 +75,8 @@ public class Room
         sPlayer1.Update(dt);
         sPlayer2.Update(dt);
 
-        if (sPlayer1.state == PlayerState.Punch && sPlayer1.punchPressed)
-            Console.WriteLine(IsInPunchRange(sPlayer1, sPlayer2));
-        else if (sPlayer2.state == PlayerState.Punch && sPlayer2.punchPressed)
-            Console.WriteLine(IsInPunchRange(sPlayer2, sPlayer1));
-
-        player1.Send(sPlayer1.ToPacket());
-        player2.Send(sPlayer2.ToPacket());
-        player1.Send(sPlayer2.ToPacket());
-        player2.Send(sPlayer1.ToPacket());
+        CheckDamage();
+        SendStatePacketToClient();
     }
 
     public void OnInputPacket(ClientSession sender, PlayerInputPacket p)
@@ -93,6 +86,14 @@ public class Room
 
         else
             sPlayer2.ApplyInput(p);
+    }
+
+    public void SendStatePacketToClient()
+    {
+        player1.Send(sPlayer1.ToPacket());
+        player2.Send(sPlayer2.ToPacket());
+        player1.Send(sPlayer2.ToPacket());
+        player2.Send(sPlayer1.ToPacket());
     }
 
     public bool IsInPunchRange(ServerPlayer attacker, ServerPlayer target)
@@ -119,6 +120,44 @@ public class Room
     {
         return !(Math.Abs(a.x - b.x) > (a.halfW + b.halfW) ||
                 Math.Abs(a.y - b.y) > (a.halfH + b.halfH));
+    }
+
+    public void CheckDamage()
+    {
+        if (sPlayer1.state == PlayerState.Punch && sPlayer1.punchPressed)
+        {
+            if(IsInPunchRange(sPlayer1, sPlayer2))
+            {
+                sPlayer2.TakeDamage(10);
+                SendDamagePacketToClient();
+            }
+        }
+        else if (sPlayer2.state == PlayerState.Punch && sPlayer2.punchPressed)
+        {
+            if(IsInPunchRange(sPlayer2, sPlayer1))
+            {
+                sPlayer1.TakeDamage(10);
+                SendDamagePacketToClient();
+            }
+        }
+    }
+
+    public void SendDamagePacketToClient()
+    {
+        player1.Send(HurtPacket(sPlayer1.id, sPlayer1.currentHP));
+        player1.Send(HurtPacket(sPlayer2.id, sPlayer2.currentHP));
+        player2.Send(HurtPacket(sPlayer1.id, sPlayer1.currentHP));
+        player2.Send(HurtPacket(sPlayer2.id, sPlayer2.currentHP));
+    }
+
+    public DamagePacket HurtPacket(int id, int currentHP)
+    {
+        return new DamagePacket
+        {
+            type = "TAKE_DAMAGE",
+            hurtId = id,
+            currentHP = currentHP
+        };
     }
 
     public void SendGameResult(ClientSession winner, ClientSession loser)

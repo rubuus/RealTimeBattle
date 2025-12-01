@@ -99,7 +99,7 @@ public static class PacketRouter
     {
         DamagePacket p = JsonUtility.FromJson<DamagePacket>(msg);
 
-        GameObject target = (p.id == SocketClient.Instance.myUserId) ?
+        GameObject target = (p.hurtId == SocketClient.Instance.myUserId) ?
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, p.currentHP);
