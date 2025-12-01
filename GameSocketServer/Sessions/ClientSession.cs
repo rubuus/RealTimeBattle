@@ -9,19 +9,17 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public int userId { get; set; }
     public int roomId;
 
-    public Vector2 lastPos;
-    public string lastState = "Idle";
-    private bool disconnected = false;
-    public bool player1Ended = false;
-    public bool player2Ended = false;
+    public bool disconnected = false;
     public bool battleReady = false;
-    public int currentHp = 100;
+    public bool ackReceived = false;
 
     public Room? _room;
     private TcpClient _client = client;
     private NetworkStream _stream = client.GetStream();
     private SocketServer _server = server;
     private StringBuilder recvBuffer = new StringBuilder();
+    public DateTime lastPongTime = DateTime.Now;
+
 
     public async Task ReceiveLoop()
     {
@@ -29,6 +27,9 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
         
         while (true)
         {
+            if (_client.Client.Poll(0, SelectMode.SelectRead) && _client.Client.Available == 0)
+                break;
+
             int read = await _stream.ReadAsync(buffer, 0, buffer.Length);
             if (read <= 0) break;
 
@@ -88,19 +89,16 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
                         _room.OnInputPacket(this, p);
                     }
                     break;
-
-                /*case "HIT":
+                
+                case "RESULT_ACK":
                     {
-                        var p = JsonSerializer.Deserialize<HitPacket>(msg);
-                        _room.UpdatePlayerHP(p);
+                        var room = _room;
+                        room?.OnAckReceived(this);
                     }
-                    break;*/
-
-                case "GAME_END":
-                    battleReady = false;
-                    
-                    if (_room != null)
-                        _room.OnGameEnd(this);
+                    break;
+                
+                case "PONG":
+                    lastPongTime = DateTime.Now;
                     break;
 
                 default:
@@ -125,7 +123,7 @@ public class ClientSession(int id, TcpClient client, SocketServer server)
     public void Disconnect()
     {
         Console.WriteLine($"[DISCONNECT] {sessionId}");
-
+        if (disconnected) return;      // 🔥 두 번째 호출 방어
         disconnected = true;
 
         // 1) 스트림 먼저 닫기 (ReceiveLoop 강제 종료)

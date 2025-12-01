@@ -2,6 +2,7 @@ using UnityEngine;
 
 public enum PacketType
 {
+    PING,
     LOGIN,
     MATCH_FOUND,
     LOAD_BATTLE,
@@ -10,5 +11,6 @@ public enum PacketType
     GAME_WIN,
     GAME_LOSE,
     GAME_DRAW,
-    ENEMY_EXIT
+    ENEMY_EXIT,
+    ROOM_CLOSED
 }

@@ -281,7 +281,7 @@ public class ServerPlayer
     }
 
     // --- 피격 ---
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, float hurtVel)
     {
         if (isInvincible)
             return;
@@ -295,7 +295,7 @@ public class ServerPlayer
         isInvincible = true;
 
         state = PlayerState.Hurt;
-        velocity = Vector2.Zero;
+        velocity.X = hurtVel;
     }
 
     void UpdateHurt(float dt)
@@ -338,7 +338,7 @@ public class ServerPlayer
     }
 
     // --- 클라로 보낼 상태 패킷 생성 ---
-    public PlayerStatePacket ToPacket()
+    public PlayerStatePacket StatePacket()
     {
         return new PlayerStatePacket
         {
@@ -348,6 +348,16 @@ public class ServerPlayer
             y = position.Y,
             state = state.ToString(),
             dir = dir
+        };
+    }
+
+    public DamagePacket HurtPacket()
+    {
+        return new DamagePacket
+        {
+            type = "TAKE_DAMAGE",
+            hurtId = id,
+            currentHP = currentHP
         };
     }
 }

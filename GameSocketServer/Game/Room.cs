@@ -15,11 +15,16 @@ public class Room
     public bool p1Ready = false;
     public bool p2Ready = false;
     public bool gameStarted = false;
-
-    public bool p1Ended = false;
-    public bool p2Ended = false;
-
+    private int waitingAckCount = 2;
     private bool closed = false;
+    private bool pendingClose = false;
+
+    public enum GameEndReason
+    {
+        Normal,     // HP 0 등 정상 종료
+        Disconnect  // 플레이어 탈주
+    }
+
 
     public struct Hitbox
     {
@@ -69,14 +74,27 @@ public class Room
     public void Update(float dt)
     {
         if (!gameStarted) return;
-        if (player1 == null || player2 == null) return;
         if (!player1.battleReady || !player2.battleReady) return;
+
+        if (sPlayer1.currentHP <= 0 || sPlayer2.currentHP <= 0)
+        {
+            player1.battleReady = false;
+            player2.battleReady = false;
+            EndGame();
+            return;
+        }
 
         sPlayer1.Update(dt);
         sPlayer2.Update(dt);
 
         CheckDamage();
-        SendStatePacketToClient();
+        SendStatePacket();
+
+        if (pendingClose)
+        {
+            pendingClose = false;
+            SocketServer.Instance.CloseRoom(roomId);
+        }
     }
 
     public void OnInputPacket(ClientSession sender, PlayerInputPacket p)
@@ -86,14 +104,6 @@ public class Room
 
         else
             sPlayer2.ApplyInput(p);
-    }
-
-    public void SendStatePacketToClient()
-    {
-        player1.Send(sPlayer1.ToPacket());
-        player2.Send(sPlayer2.ToPacket());
-        player1.Send(sPlayer2.ToPacket());
-        player2.Send(sPlayer1.ToPacket());
     }
 
     public bool IsInPunchRange(ServerPlayer attacker, ServerPlayer target)
@@ -124,67 +134,94 @@ public class Room
 
     public void CheckDamage()
     {
+        // player1 -> player2 공격
         if (sPlayer1.state == PlayerState.Punch && sPlayer1.punchPressed)
         {
             if(IsInPunchRange(sPlayer1, sPlayer2))
             {
-                sPlayer2.TakeDamage(10);
-                SendDamagePacketToClient();
+                if (sPlayer1.position.X > sPlayer2.position.X && sPlayer2.dir < 0)
+                    sPlayer2.dir = 1;
+                else if (sPlayer1.position.X < sPlayer2.position.X && sPlayer2.dir > 0)
+                    sPlayer2.dir = -1;
+                
+                sPlayer2.TakeDamage(10, sPlayer1.dir * 1f);
+                SendDamagePacket();
             }
         }
+        // player2 -> player1 공격
         else if (sPlayer2.state == PlayerState.Punch && sPlayer2.punchPressed)
         {
             if(IsInPunchRange(sPlayer2, sPlayer1))
             {
-                sPlayer1.TakeDamage(10);
-                SendDamagePacketToClient();
+                if (sPlayer2.position.X > sPlayer1.position.X && sPlayer1.dir < 0)
+                    sPlayer1.dir = 1;
+                else if (sPlayer2.position.X < sPlayer1.position.X && sPlayer1.dir > 0)
+                    sPlayer1.dir = -1;
+
+                sPlayer1.TakeDamage(10, sPlayer2.dir * 1f);
+                SendDamagePacket();
             }
         }
     }
 
-    public void SendDamagePacketToClient()
+    public void SendStatePacket()
     {
-        player1.Send(HurtPacket(sPlayer1.id, sPlayer1.currentHP));
-        player1.Send(HurtPacket(sPlayer2.id, sPlayer2.currentHP));
-        player2.Send(HurtPacket(sPlayer1.id, sPlayer1.currentHP));
-        player2.Send(HurtPacket(sPlayer2.id, sPlayer2.currentHP));
+        player1.Send(sPlayer1.StatePacket());
+        player1.Send(sPlayer2.StatePacket());
+        player2.Send(sPlayer1.StatePacket());
+        player2.Send(sPlayer2.StatePacket());
     }
 
-    public DamagePacket HurtPacket(int id, int currentHP)
+    public void SendDamagePacket()
     {
-        return new DamagePacket
-        {
-            type = "TAKE_DAMAGE",
-            hurtId = id,
-            currentHP = currentHP
-        };
+        player1.Send(sPlayer1.HurtPacket());
+        player1.Send(sPlayer2.HurtPacket());
+        player2.Send(sPlayer1.HurtPacket());
+        player2.Send(sPlayer2.HurtPacket());
     }
 
-    public void SendGameResult(ClientSession winner, ClientSession loser)
+    public void SendGameResult()
     {
-        if (winner.currentHp != loser.currentHp)
+        if (sPlayer1.currentHP > sPlayer2.currentHP)
         {
-            winner.Send(new { type = "GAME_WIN" });
-            loser.Send(new { type = "GAME_LOSE" });
+            player1.Send(new { type = "GAME_WIN" });
+            player2.Send(new { type = "GAME_LOSE" });
+        }
+        else if (sPlayer1.currentHP < sPlayer2.currentHP)
+        {
+            player1.Send(new { type = "GAME_LOSE" });
+            player2.Send(new { type = "GAME_WIN" });
         }
         else
         {
-            winner.Send(new { type = "GAME_DRAW" });
-            loser.Send(new { type = "GAME_DRAW" });
+            player1.Send(new { type = "GAME_DRAW" });
+            player2.Send(new { type = "GAME_DRAW" });
         }
     }
 
-    public void OnGameEnd(ClientSession s)
+    public void OnAckReceived(ClientSession s)
     {
-        if (s == player1) p1Ended = true;
-        if (s == player2) p2Ended = true;
+        if (s.ackReceived) return;
+        s.ackReceived = true;
 
-        // 양쪽 다 정상적으로 끝남
-        if (p1Ended && p2Ended)
+        waitingAckCount--;
+
+        if (waitingAckCount == 0)
         {
-            gameStarted = false;
-            SocketServer.Instance.CloseRoom(roomId); 
+            player1.Send(new { type = "ROOM_CLOSED" });
+            player2.Send(new { type = "ROOM_CLOSED" });
+            pendingClose = true; 
         }
+    }
+
+    private void EndGame()
+    {
+        if (closed) return;
+        closed = true;
+
+        SendGameResult();
+
+        waitingAckCount = 2;
     }
 
     public void OnPlayerDisconnect(ClientSession s)
@@ -192,18 +229,12 @@ public class Room
         if (closed) return;
         closed = true;
 
-        if (!gameStarted || p1Ended || p2Ended)
-        {
-            SocketServer.Instance.CloseRoom(roomId);
-            return;
-        }
-
         // 비정상 종료(진짜 튕김)
-        ClientSession remaining = (s == player1) ? player2 : player1;
+        ClientSession winner = (s == player1) ? player2 : player1;
         
-        if (remaining != null)
-            remaining.Send(new { type = "ENEMY_EXIT" });
-
+        winner?.Send(new { type = "ENEMY_EXIT" });
+        winner?.Send(new { type = "ROOM_CLOSED" });
+        
         SocketServer.Instance.CloseRoom(roomId);
     }
 

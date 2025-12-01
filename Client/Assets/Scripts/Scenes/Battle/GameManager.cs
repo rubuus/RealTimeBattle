@@ -48,18 +48,10 @@ public class GameManager : MonoBehaviour
 
         myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
 
-        var myHurtBox = myPlayer.GetComponentInChildren<HurtBox>();
-        if (myHurtBox != null)
-            myHurtBox.Initialize(SocketClient.Instance.myUserId);
-
         Invoke(nameof(EnablePlayerNetwork), 0.3f);
 
 
         enemyPlayer = Instantiate(enemyPrefab, enemySpawn.position, Quaternion.identity);
-
-        var enemyHurtBox = enemyPlayer.GetComponentInChildren<HurtBox>();
-        if (enemyHurtBox != null)
-            enemyHurtBox.Initialize(SocketClient.Instance.enemyUserId);
 
 
         // HP 참고용

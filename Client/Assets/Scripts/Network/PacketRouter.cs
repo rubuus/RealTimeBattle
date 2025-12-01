@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -46,6 +47,14 @@ public static class PacketRouter
 
             case PacketType.ENEMY_EXIT:
                 HandleEnemyExit();
+                break;
+
+            case PacketType.ROOM_CLOSED:
+                SceneManager.LoadScene("Result");
+                break;
+
+            case PacketType.PING:
+                SocketClient.Instance.Send(new BasePacket { type = "PONG" });
                 break;
         }
     }
@@ -109,26 +118,25 @@ public static class PacketRouter
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Win";
-        SceneManager.LoadScene("Result");
+        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleGameLose()
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Lose";
-        SceneManager.LoadScene("Result");
+        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleGameDraw()
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Draw";
-        SceneManager.LoadScene("Result");
+        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleEnemyExit()
     {
         SocketClient.Instance.enemyDisconnected = true;
-        SceneManager.LoadScene("Result");
     }
 }

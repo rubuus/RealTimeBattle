@@ -9,7 +9,7 @@ public class Health : MonoBehaviour
 
     private void Awake()
     {
-        currentHp = maxHp;
+        currentHp = 100;
     }
 
     private void Start()

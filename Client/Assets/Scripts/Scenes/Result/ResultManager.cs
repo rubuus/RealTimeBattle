@@ -16,8 +16,6 @@ public class ResultManager : MonoBehaviour
     {
         yield return null; // 1프레임 대기 (씬 로드 안정화)
 
-        string serverResult = SocketClient.Instance.finalResult;
-
         string resultText = string.Empty;
 
         if (SocketClient.Instance.enemyDisconnected)
@@ -37,8 +35,6 @@ public class ResultManager : MonoBehaviour
         }
 
         resultMessage.text = resultText;
-
-        SocketClient.Instance.Send(new BasePacket { type = "GAME_END" });
 
         yield return new WaitForSeconds(3f);
 

@@ -14,6 +14,8 @@ public class SocketServer
     private int _roomIdCounter = 1;
     private int _port;
 
+    private object _lock = new object();
+
     public SocketServer(int port)
     {
         _port = port;
@@ -27,6 +29,7 @@ public class SocketServer
 
         // ★ TickLoop 시작 (서버 전체에서 딱 1개만)
         _ = TickLoop();
+        _ = HeartbeatLoop();
 
         int clientId = 1;
 
@@ -43,6 +46,22 @@ public class SocketServer
         }
     }
     
+    private async Task HeartbeatLoop()
+    {
+        while (true)
+        {
+            foreach (var session in _clients.Values)
+            {
+                try
+                {
+                    session.Send(new { type = "PING" });
+                }
+                catch { }
+            }
+
+            await Task.Delay(1000);
+        }
+    }
 
     // -----------------------
     // 매칭 큐
@@ -93,17 +112,11 @@ public class SocketServer
 
     public void CloseRoom(int roomId)
     {
-        if (_rooms.TryGetValue(roomId, out var room))
-        {
-            room.CloseRoom();
-            _rooms.Remove(roomId);
-            Console.WriteLine($"[ROOM] Room {roomId} Deleted");
-        }
-    }
+        if (!_rooms.TryGetValue(roomId, out var room)) return;
 
-    public Room GetRoom(int roomId)
-    {
-        return _rooms.TryGetValue(roomId, out var r) ? r : null;
+        room.CloseRoom();
+        _rooms.Remove(roomId);
+        Console.WriteLine($"[ROOM] Room {roomId} Deleted");
     }
 
     private async Task TickLoop()
@@ -112,15 +125,30 @@ public class SocketServer
         const int TICK_DELAY = 1000 / TICK_RATE;
         float dt = 1f / TICK_RATE;
 
-        var sw = new Stopwatch();
-        sw.Start();
-
         while (true)
         {
             foreach (var room in _rooms.Values)
                 room.Update(dt);
 
+            CheckHeartbeat();
             await Task.Delay(TICK_DELAY);
+        }
+    }
+
+    private void CheckHeartbeat()
+    {
+        DateTime now = DateTime.Now;
+
+        foreach (var session in _clients.Values.ToList())
+        {
+            if (session.disconnected)
+                continue;
+
+            if ((now - session.lastPongTime).TotalSeconds > 5)
+            {
+                Console.WriteLine($"[HEARTBEAT] Client {session.sessionId} timeout");
+                session.Disconnect();   // 🔥 강제로 끊어버림
+            }
         }
     }
 
