@@ -43,22 +43,22 @@ public class GameManager : MonoBehaviour
 
     void SpawnPlayers()
     {
-        Transform mySpawn = (SocketClient.Instance.side == "LEFT") ? leftSpawn : rightSpawn;
-        Transform enemySpawn = (SocketClient.Instance.side == "LEFT") ? rightSpawn : leftSpawn;
+        bool left = (SocketClient.Instance.side == "LEFT");
+        Transform mySpawn = left ? leftSpawn : rightSpawn;
+        Transform enemySpawn = left ? rightSpawn : leftSpawn;
 
         myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
-
-        Invoke(nameof(EnablePlayerNetwork), 0.3f);
-
+        myPlayer.transform.localScale = left ? new Vector3(1, 1, 1) : new Vector3(-1, 1, 1);
 
         enemyPlayer = Instantiate(enemyPrefab, enemySpawn.position, Quaternion.identity);
+        enemyPlayer.transform.localScale = left ? new Vector3(-1, 1, 1) : new Vector3(1, 1, 1);
 
+        Invoke(nameof(EnablePlayerNetwork), 0.3f);
+        Invoke(nameof(EnableEnemyNetwork), 0.3f);
 
         // HP 참고용
         var myHealth = myPlayer.GetComponent<Health>();
         var enemyHealth = enemyPlayer.GetComponent<Health>();
-
-        Invoke(nameof(EnableEnemyNetwork), 0.3f);
 
         SocketClient.Instance.Send(new BasePacket { type = "BATTLE_START" });
     }
