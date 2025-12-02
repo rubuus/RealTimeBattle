@@ -19,6 +19,7 @@ public class Room
     private bool closed = false;
     private bool pendingClose = false;
     public float gameTime = 100f;
+    private bool startedFirstFrameSent = false;
 
     public struct Hitbox
     {
@@ -71,6 +72,11 @@ public class Room
     {
         if (!gameStarted) return;
         if (!player1.battleReady || !player2.battleReady) return;
+        if (!startedFirstFrameSent)
+        {
+            startedFirstFrameSent = true;
+            return;
+        }
 
         gameTime -= dt;
         SendTimePacket();

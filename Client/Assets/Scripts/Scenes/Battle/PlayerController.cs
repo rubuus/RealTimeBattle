@@ -56,10 +56,13 @@ public class PlayerController : MonoBehaviour
 
         if (!canReceiveNetwork) return;
 
-        ApplyServerStateWithGuard();
-        ApplyNetworkPosition();
-        ApplyServerDirection();
-        SendInput();
+        if (isNetworkUpdatePending)
+        {
+            ApplyServerStateWithGuard();
+            ApplyNetworkPosition();
+            ApplyServerDirection();
+            SendInput();
+        }
     }
 
     void ReadInput()
@@ -96,21 +99,18 @@ public class PlayerController : MonoBehaviour
 
     public void ApplyServerStateWithGuard()
     {
-        if (isNetworkUpdatePending)
+        PlayerState newState =
+            (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
+
+
+        if (state == PlayerState.Punch && newState == PlayerState.Punch)
         {
-            PlayerState newState =
-                (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
-
-
-            if (state == PlayerState.Punch && newState == PlayerState.Punch)
-            {
-                isNetworkUpdatePending = false;
-                return;
-            }
-
-            ChangeState(newState);
             isNetworkUpdatePending = false;
+            return;
         }
+
+        ChangeState(newState);
+        isNetworkUpdatePending = false;
     }
 
     public void ApplyServerState(Vector2 pos, string state, int dir)

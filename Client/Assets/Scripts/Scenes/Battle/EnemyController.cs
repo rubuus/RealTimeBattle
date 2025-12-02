@@ -33,9 +33,12 @@ public class EnemyController : MonoBehaviour
     {
         if (!canReceiveNetwork) return;
 
-        ApplyServerStateWithGuard();
-        ApplyNetworkPosition();
-        ApplyServerDirection();
+        if (isNetworkUpdatePending) 
+        {
+            ApplyServerStateWithGuard();
+            ApplyNetworkPosition();
+            ApplyServerDirection();
+        } 
     }
 
     public void ApplyServerDirection()
@@ -45,21 +48,18 @@ public class EnemyController : MonoBehaviour
 
     public void ApplyServerStateWithGuard()
     {
-        if (isNetworkUpdatePending)
+        PlayerState newState =
+            (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
+
+
+        if (enemyState == PlayerState.Punch && newState == PlayerState.Punch)
         {
-            PlayerState newState =
-                (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
-
-
-            if (enemyState == PlayerState.Punch && newState == PlayerState.Punch)
-            {
-                isNetworkUpdatePending = false;
-                return;
-            }
-
-            ChangeState(newState);
             isNetworkUpdatePending = false;
+            return;
         }
+
+        ChangeState(newState);
+        isNetworkUpdatePending = false;
     }
 
     public void ApplyServerState(Vector2 pos, string state, int dir)
@@ -72,12 +72,12 @@ public class EnemyController : MonoBehaviour
 
     public void ApplyNetworkPosition()
     {
-        transform.position = Vector2.SmoothDamp(
-            transform.position,
-            networkTargetPos,
-            ref smoothVel,
-            networkSmoothTime
-        );
+            transform.position = Vector2.SmoothDamp(
+                transform.position,
+                networkTargetPos,
+                ref smoothVel,
+                networkSmoothTime
+            );
     }
 
     void ChangeState(PlayerState newState)
