@@ -2,7 +2,7 @@ namespace api.DTOs
 {
     public class BattleRecordResponse
     {
-        public int RecordId { get; set; } 
+        public int Id { get; set; } 
         public string Result { get; set; } = string.Empty;
         public DateTime FinishedTime { get; set; } 
         public int MyUserId { get; set; }

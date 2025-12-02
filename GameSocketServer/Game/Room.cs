@@ -1,4 +1,5 @@
 using System.Numerics;
+using api.DTOs;
 
 public class Room
 {
@@ -199,16 +200,19 @@ public class Room
         {
             player1.Send(new { type = "GAME_WIN" });
             player2.Send(new { type = "GAME_LOSE" });
+            _ = SaveRecordAsync(player1, player2, "WIN");
         }
         else if (sPlayer1.currentHP < sPlayer2.currentHP)
         {
             player1.Send(new { type = "GAME_LOSE" });
             player2.Send(new { type = "GAME_WIN" });
+            _ = SaveRecordAsync(player2, player1, "WIN");
         }
         else
         {
             player1.Send(new { type = "GAME_DRAW" });
             player2.Send(new { type = "GAME_DRAW" });
+            _ = SaveRecordAsync(player1, player2, "DRAW");
         }
     }
 
@@ -225,6 +229,23 @@ public class Room
             player2.Send(new { type = "ROOM_CLOSED" });
             pendingClose = true; 
         }
+    }
+
+    public async Task SaveRecordAsync(ClientSession winner, ClientSession loser, string result)
+    {
+        var req = new SaveRecordRequest
+        {
+            WinnerId = winner.userId,
+            LoserId = loser.userId,
+            Result = result
+        };
+
+        bool success = await ApiClient.Post("battle/save", req);
+
+        if (success)
+            Console.WriteLine("전적 저장됨");
+        else
+            Console.WriteLine("전적 저장 실패");
     }
 
     private void EndGame()
@@ -244,9 +265,11 @@ public class Room
 
         // 비정상 종료(진짜 튕김)
         ClientSession winner = (s == player1) ? player2 : player1;
+        ClientSession loser = (s == player1) ? player1 : player2;
         
         winner?.Send(new { type = "ENEMY_EXIT" });
         winner?.Send(new { type = "ROOM_CLOSED" });
+        _ = SaveRecordAsync(winner, loser, "WIN");
         
         SocketServer.Instance.CloseRoom(roomId);
     }

@@ -4,22 +4,23 @@ namespace api.Models
     {
         public int Id { get; private set; }
 
-        public int MyUserId { get; private set; }
-        public User MyUser { get; set; }
+        public int WinnerId { get; private set; }
+        public User WinnerUser { get; set; }
 
-        public int EnemyUserId { get; private set; }
+        public int LoserId { get; private set; }
+        public User LoserUser { get; set; }
 
         public string Result { get; private set; } = string.Empty;
         public DateTime FinishedTime { get; private set; }
 
         private BattleRecord() { }
 
-        public static BattleRecord Create(int myUserId, int enemyUserId, string result)
+        public static BattleRecord Create(int winner, int loser, string result)
         {
             return new BattleRecord
             {
-                MyUserId = myUserId,
-                EnemyUserId = enemyUserId,
+                WinnerId = winner,
+                LoserId = loser,
                 Result = result,
                 FinishedTime = DateTime.UtcNow
             };

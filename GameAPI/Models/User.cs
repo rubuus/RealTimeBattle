@@ -9,7 +9,7 @@ namespace api.Models
 {
     public class User
     {
-        public int Id { get; private set; }
+        public int Id { get; set; }
         public string State { get; private set; } = "exist";
         public string AccountId { get; private set; } = string.Empty;
         public string PasswordHash { get; private set; } = string.Empty;

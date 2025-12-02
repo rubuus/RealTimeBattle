@@ -20,9 +20,15 @@ namespace api.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<BattleRecord>()
-                .HasOne(r => r.MyUser)
+                .HasOne(r => r.WinnerUser)
                 .WithMany()
-                .HasForeignKey(r => r.MyUserId)
+                .HasForeignKey(r => r.WinnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BattleRecord>()
+                .HasOne(r => r.LoserUser)
+                .WithMany()
+                .HasForeignKey(r => r.LoserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
         

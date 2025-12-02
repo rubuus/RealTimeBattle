@@ -19,15 +19,15 @@ public class MatchManager : MonoBehaviour
 
     private IEnumerator UIActive()
     {
-        string side = SocketClient.Instance.side;
+        bool left = SocketClient.Instance.side == "LEFT";
         int myId = SocketClient.Instance.myId;
         int enemyId = SocketClient.Instance.enemyId;
 
-        TMP_Text myText = (side == "LEFT") ? leftText : rightText;
-        TMP_Text enemyText = (side == "LEFT") ? rightText : leftText;
+        TMP_Text myText = left ? leftText : rightText;
+        TMP_Text enemyText = left ? rightText : leftText;
 
-        GameObject myPlayer = (side == "LEFT") ? leftPlayer : rightPlayer;
-        GameObject enemyPlayer = (side == "LEFT") ? rightPlayer : leftPlayer;
+        GameObject myPlayer = left ? leftPlayer : rightPlayer;
+        GameObject enemyPlayer = left ? rightPlayer : leftPlayer;
         enemyPlayer.GetComponent<SpriteRenderer>().color = new Color(0f, 1f, 1f);
 
         yield return API.Instance.SendJsonRequest<object>(
