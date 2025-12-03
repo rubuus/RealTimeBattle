@@ -20,7 +20,7 @@ namespace api.Controllers
         [HttpPost("save")]
         public async Task<IActionResult> Save([FromBody] SaveRecordRequest req)
         {
-            var record = BattleRecord.Create(req.WinnerId, req.LoserId, req.Result);
+            var record = BattleRecord.Create(req.WinnerId, req.LoserId);
             _db.BattleRecords.Add(record);
             try
             {
@@ -56,7 +56,6 @@ namespace api.Controllers
             {
                 Id = r.Id,
                 WinnerId = r.WinnerId,
-                Result = r.Result,
                 FinishedTime = r.FinishedTime,
 
                 // EnemyUserId → User 테이블에서 닉네임 조회

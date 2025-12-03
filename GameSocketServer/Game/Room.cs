@@ -206,19 +206,19 @@ public class Room
         {
             player1.Send(new { type = "GAME_WIN" });
             player2.Send(new { type = "GAME_LOSE" });
-            _ = SaveRecordAsync(player1, player2, "WIN");
+            _ = SaveRecordAsync(player1, player2);
         }
         else if (sPlayer1.currentHP < sPlayer2.currentHP)
         {
             player1.Send(new { type = "GAME_LOSE" });
             player2.Send(new { type = "GAME_WIN" });
-            _ = SaveRecordAsync(player2, player1, "WIN");
+            _ = SaveRecordAsync(player2, player1);
         }
         else
         {
             player1.Send(new { type = "GAME_DRAW" });
             player2.Send(new { type = "GAME_DRAW" });
-            _ = SaveRecordAsync(player1, player2, "DRAW");
+            _ = SaveRecordAsync(player1, player2);
         }
     }
 
@@ -237,13 +237,12 @@ public class Room
         }
     }
 
-    public async Task SaveRecordAsync(ClientSession winner, ClientSession loser, string result)
+    public async Task SaveRecordAsync(ClientSession winner, ClientSession loser)
     {
         var req = new SaveRecordRequest
         {
             WinnerId = winner.userId,
-            LoserId = loser.userId,
-            Result = result
+            LoserId = loser.userId
         };
 
         bool success = await ApiClient.Post("battle/save", req);
@@ -275,7 +274,7 @@ public class Room
         
         winner?.Send(new { type = "ENEMY_EXIT" });
         winner?.Send(new { type = "ROOM_CLOSED" });
-        _ = SaveRecordAsync(winner, loser, "WIN");
+        _ = SaveRecordAsync(winner, loser);
         
         SocketServer.Instance.CloseRoom(roomId);
     }

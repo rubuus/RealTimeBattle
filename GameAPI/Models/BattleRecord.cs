@@ -10,18 +10,16 @@ namespace api.Models
         public int LoserId { get; private set; }
         public User LoserUser { get; set; }
 
-        public string Result { get; private set; } = string.Empty;
         public DateTime FinishedTime { get; private set; }
 
         private BattleRecord() { }
 
-        public static BattleRecord Create(int winner, int loser, string result)
+        public static BattleRecord Create(int winner, int loser)
         {
             return new BattleRecord
             {
                 WinnerId = winner,
                 LoserId = loser,
-                Result = result,
                 FinishedTime = DateTime.UtcNow
             };
         }

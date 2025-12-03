@@ -95,12 +95,14 @@ public class RecordPanel : MonoBehaviour
             if (win)
             {
                 recordText[i, 0].text = list[i].LoserNickname;
-                recordText[i, 1].text = list[i].Result;
+                recordText[i, 1].text = "WIN";
+                recordText[i, 1].color = Color.red;
             }
             else
             {
                 recordText[i, 0].text = list[i].WinnerNickname;
                 recordText[i, 1].text = "LOSE";
+                recordText[i, 1].color = Color.blue;
             }       
         }
     }
