@@ -5,8 +5,9 @@ namespace api.DTOs
         public int Id { get; set; } 
         public string Result { get; set; } = string.Empty;
         public DateTime FinishedTime { get; set; } 
-        public int MyUserId { get; set; }
-        public int EnemyUserId { get; set; } 
-        public string EnemyNickname { get; set; } = string.Empty;
+        public int WinnerId { get; set; }
+        public int LoserId { get; set; } 
+        public string WinnerNickname { get; set; } = string.Empty;
+        public string LoserNickname { get; set; } = string.Empty;
     }
 }

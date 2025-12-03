@@ -38,29 +38,39 @@ namespace api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetBattleRecord(int id)
+        public async Task<IActionResult> GetBattleRecord(int id, int page = 1, int pageSize = 3)
         {
             var user = await _db.Users.FindAsync(id);
 
             if (user == null)
                 return NotFound(new { Message = "User not found" });
 
+            int skip = (page - 1) * pageSize;
+
             var records = await _db.BattleRecords
-            .Where(r => r.WinnerId == id)
+            .Where(r => id == user.Id)
+            .OrderByDescending(r => r.FinishedTime)
+            .Skip(skip)
+            .Take(pageSize)
             .Select(r => new BattleRecordResponse
             {
-                MyUserId = r.Id,
+                Id = r.Id,
+                WinnerId = r.WinnerId,
                 Result = r.Result,
                 FinishedTime = r.FinishedTime,
 
                 // EnemyUserId → User 테이블에서 닉네임 조회
-                EnemyUserId = r.LoserId,
-                EnemyNickname = _db.Users
+                LoserId = r.LoserId,
+                WinnerNickname = _db.Users
+                    .Where(u => u.Id == r.WinnerId)
+                    .Select(u => u.Nickname)
+                    .FirstOrDefault() ?? "Unknown", // 만약 유저가 Soft Delete 되었거나 없으면
+                
+                LoserNickname = _db.Users
                     .Where(u => u.Id == r.LoserId)
                     .Select(u => u.Nickname)
                     .FirstOrDefault() ?? "Unknown" // 만약 유저가 Soft Delete 되었거나 없으면
             })
-            .OrderByDescending(r => r.FinishedTime)
             .ToListAsync();
 
             return Ok(records);
