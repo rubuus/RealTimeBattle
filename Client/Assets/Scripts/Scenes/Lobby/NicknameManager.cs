@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Security.Cryptography;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,11 +23,25 @@ public class NicknameManager : MonoBehaviour
         if (string.IsNullOrEmpty(nickname))
         {
             ShowError("Check Field");
+            return;
         }
         else if (nicknameField.text.Length > 9)
         {
             ShowError("8 Character Limit");
+            return;
         }
+
+        StartCoroutine(AuthManager.Instance.CheckDuplicateNickname(nickname, (isDuplicate, message) =>
+        {
+            if (isDuplicate)
+            {
+                ShowError(message);
+                return;
+            }
+
+        }));
+
+        StartCoroutine(ChangeNicknameRequest(nickname));
     }
 
     private void ShowError(string message)
@@ -33,5 +49,24 @@ public class NicknameManager : MonoBehaviour
         errorMessage.text = message;
         errorMessage.gameObject.SetActive(true);
         guideMessage.gameObject.SetActive(false);
+    }
+
+    private IEnumerator ChangeNicknameRequest(string nickname)
+    {
+        var req = new ChangeNicknameRequest
+        { 
+            Id = AuthManager.Instance.UserId,
+            Nickname = nickname 
+        };
+
+        yield return API.Instance.SendJsonRequest(
+            "users/change-nickname", "POST", req,
+            onSuccess: res => {
+                Application.Quit();
+            },
+            onError: err => {
+                Debug.Log(err);
+            }
+        );
     }
 }

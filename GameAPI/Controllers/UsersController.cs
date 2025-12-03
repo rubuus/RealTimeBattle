@@ -124,5 +124,20 @@ namespace api.Controllers
 
             return Ok(new { Message = "Account deleted successfully" });
         }
+
+        [HttpPost("change-nickname")]
+        public async Task<IActionResult> ChangeNickname([FromBody] ChangeNicknameRequest req)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == req.Id);
+
+            if (user == null)
+                return NotFound(new { Message = "User not found" });
+
+            user.ChangeNickname(req.Nickname);
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { Message = "change nickname successfully" });
+        }
     }
 }
