@@ -41,7 +41,7 @@ public class NicknameManager : MonoBehaviour
 
         }));
 
-        StartCoroutine(ChangeNicknameRequest(nickname));
+        StartCoroutine(AuthManager.Instance.ChangeNicknameRequest(nickname));
     }
 
     private void ShowError(string message)
@@ -49,24 +49,5 @@ public class NicknameManager : MonoBehaviour
         errorMessage.text = message;
         errorMessage.gameObject.SetActive(true);
         guideMessage.gameObject.SetActive(false);
-    }
-
-    private IEnumerator ChangeNicknameRequest(string nickname)
-    {
-        var req = new ChangeNicknameRequest
-        { 
-            Id = AuthManager.Instance.UserId,
-            Nickname = nickname 
-        };
-
-        yield return API.Instance.SendJsonRequest(
-            "users/change-nickname", "POST", req,
-            onSuccess: res => {
-                Application.Quit();
-            },
-            onError: err => {
-                Debug.Log(err);
-            }
-        );
     }
 }

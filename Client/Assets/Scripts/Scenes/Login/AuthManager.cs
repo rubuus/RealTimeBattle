@@ -117,4 +117,42 @@ public class AuthManager : MonoBehaviour
         );
     }
 
+    public IEnumerator ChangeNicknameRequest(string nickname)
+    {
+        var req = new ChangeNicknameRequest
+        {
+            Id = UserId,
+            Nickname = nickname,
+            AccessToken = AccessToken
+        };
+
+        yield return API.Instance.SendJsonRequest(
+            "users/change-nickname", "POST", req,
+            onSuccess: res => {
+                Application.Quit();
+            },
+            onError: err => {
+                Debug.Log(err);
+            }
+        );
+    }
+
+    public IEnumerator DeleteAccount()
+    {
+        var req = new DeleteAccountRequest
+        {
+            Id = UserId,
+            AccessToken = AccessToken
+        };
+
+        yield return API.Instance.SendJsonRequest(
+            "users/delete-account", "POST", req,
+            onSuccess: res => {
+                Application.Quit();
+            },
+            onError: err => {
+                Debug.Log(err);
+            }
+        );
+    }
 }

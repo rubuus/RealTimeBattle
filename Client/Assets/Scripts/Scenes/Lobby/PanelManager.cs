@@ -137,6 +137,6 @@ public class PanelManager : MonoBehaviour
 
     private void DeleteAccount()
     {
-        Application.Quit();
+        StartCoroutine(AuthManager.Instance.DeleteAccount());
     }
 }

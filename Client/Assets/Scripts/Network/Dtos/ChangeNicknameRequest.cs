@@ -5,4 +5,5 @@ public class ChangeNicknameRequest
 {
     public int Id;
     public string Nickname;
+    public string AccessToken;
 }

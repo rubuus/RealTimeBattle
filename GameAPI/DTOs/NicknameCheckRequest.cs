@@ -4,5 +4,4 @@ namespace api.DTOs
     { 
         public string Nickname { get; set; } = string.Empty;
     }
-
 }

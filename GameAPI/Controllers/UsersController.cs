@@ -67,7 +67,7 @@ namespace api.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequest req, [FromServices] JwtService jwtService)
         {
             var user = await _db.Users.SingleOrDefaultAsync(u => u.AccountId == req.AccountId);
-            if (user == null || !user.VerifyPassword(req.Password))
+            if (user == null || !user.VerifyPassword(req.Password) || user.State == "deleted")
                 return Unauthorized(new { Message = "Login Failed" });
 
             // ✅ 토큰 발급
@@ -107,17 +107,14 @@ namespace api.Controllers
             });
         }
 
-
+        [Authorize]
         [HttpPost("delete-account")]
-        public async Task<IActionResult> DeleteAccount([FromBody] DeleteRequest req)
+        public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest req)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.AccountId == req.AccountId);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == req.Id);
 
             if (user == null)
                 return NotFound(new { Message = "User not found" });
-
-            if (!user.VerifyPassword(req.Password))
-                return BadRequest(new { Message = "Incorrect password" });
 
             user.ChangeState("deleted");
             await _db.SaveChangesAsync();
@@ -125,6 +122,7 @@ namespace api.Controllers
             return Ok(new { Message = "Account deleted successfully" });
         }
 
+        [Authorize]
         [HttpPost("change-nickname")]
         public async Task<IActionResult> ChangeNickname([FromBody] ChangeNicknameRequest req)
         {
