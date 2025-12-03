@@ -1,9 +1,10 @@
 using UnityEngine;
 
 [System.Serializable]
-public class NicknameResponse
+public class ProfileResponse
 {
-    public int id;
-    public string accountId;
-    public string nickname;
+    public int Id;
+    public string AccountId;
+    public string Nickname;
+    public int ProfileImage;
 }

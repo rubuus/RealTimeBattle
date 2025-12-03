@@ -535,6 +535,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3217844394302069134, guid: 56a63b4218901d74fb7612e37508d159, type: 3}
+      propertyPath: images.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3217844394302069134, guid: 56a63b4218901d74fb7612e37508d159, type: 3}
+      propertyPath: 'images.Array.data[0]'
+      value: 
+      objectReference: {fileID: -1810433126243158619, guid: 2db8102108577764a8869745053f41e2, type: 3}
+    - target: {fileID: 3217844394302069134, guid: 56a63b4218901d74fb7612e37508d159, type: 3}
+      propertyPath: 'images.Array.data[1]'
+      value: 
+      objectReference: {fileID: -6087783761486554633, guid: 677350580b25b35498d3d49023706b2b, type: 3}
+    - target: {fileID: 3217844394302069134, guid: 56a63b4218901d74fb7612e37508d159, type: 3}
+      propertyPath: 'images.Array.data[2]'
+      value: 
+      objectReference: {fileID: -247438186850713554, guid: 969618a0dc5c5314384e14664c40636a, type: 3}
     - target: {fileID: 6796314055177359739, guid: 56a63b4218901d74fb7612e37508d159, type: 3}
       propertyPath: m_LocalPosition.x
       value: 960

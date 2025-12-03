@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
@@ -11,6 +12,7 @@ public class AuthManager : MonoBehaviour
     public int UserId { get; private set; }
     public string Nickname { get; private set; }
     public string AccessToken { get; private set; }
+    public int ProfileImage { get; private set; }
 
     private void Awake()
     {
@@ -26,13 +28,13 @@ public class AuthManager : MonoBehaviour
 
     public IEnumerator CheckDuplicateAccount(string accountId, System.Action<bool, string> onDone)
     {
-        var req = new AccountCheckRequest { accountId = accountId };
+        var req = new AccountCheckRequest { AccountId = accountId };
 
         yield return API.Instance.SendJsonRequest(
             "users/check-account", "POST", req,
             onSuccess: res => {
-                var parsed = JsonUtility.FromJson<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.isDuplicate, parsed.message);
+                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
             },
             onError: err => {
                 onDone?.Invoke(true, "Request Failed");
@@ -42,13 +44,13 @@ public class AuthManager : MonoBehaviour
 
     public IEnumerator CheckDuplicateNickname(string nickname, System.Action<bool, string> onDone)
     {
-        var req = new NicknameCheckRequest { nickname = nickname };
+        var req = new NicknameCheckRequest { Nickname = nickname };
 
         yield return API.Instance.SendJsonRequest(
             "users/check-nickname", "POST", req,
             onSuccess: res => {
-                var parsed = JsonUtility.FromJson<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.isDuplicate, parsed.message);
+                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
             },
             onError: err => {
                 onDone?.Invoke(true, "Request Failed"); // 실패 시 보수적으로 막기
@@ -61,9 +63,9 @@ public class AuthManager : MonoBehaviour
     {
         var signUpData = new RegisterRequest
         {
-            accountId = accountId,
-            password = password,
-            nickname = nickname
+            AccountId = accountId,
+            Password = password,
+            Nickname = nickname
         };
 
         yield return API.Instance.SendJsonRequest(
@@ -72,8 +74,8 @@ public class AuthManager : MonoBehaviour
             signUpData,
             onSuccess: res =>
             {
-                var response = JsonUtility.FromJson<RegisterResponse>(res);
-                Debug.Log($"회원가입 성공: {response.message} (UserId: {response.userId})");
+                var response = JsonConvert.DeserializeObject<RegisterResponse>(res);
+                Debug.Log($"회원가입 성공: {response.Message} (UserId: {response.UserId})");
             },
             onError: err =>
             {
@@ -87,21 +89,22 @@ public class AuthManager : MonoBehaviour
     {
         var loginData = new LoginRequest
         {
-            accountId = accountId,
-            password = password
+            AccountId = accountId,
+            Password = password
         };
 
         yield return API.Instance.SendJsonRequest(
             "users/login", "POST", loginData,
             onSuccess: res =>
             {
-                var response = JsonUtility.FromJson<LoginResponse>(res);
+                var response = JsonConvert.DeserializeObject<LoginResponse>(res);
 
-                if (!string.IsNullOrEmpty(response.accessToken))
+                if (!string.IsNullOrEmpty(response.AccessToken))
                 {
-                    UserId = response.userId;
-                    Nickname = response.nickname;
-                    AccessToken = response.accessToken;
+                    UserId = response.UserId;
+                    Nickname = response.Nickname;
+                    AccessToken = response.AccessToken;
+                    ProfileImage = response.ProfileImage;
 
                     onResult?.Invoke(true); // 성공
                 }
@@ -121,7 +124,6 @@ public class AuthManager : MonoBehaviour
     {
         var req = new ChangeNicknameRequest
         {
-            Id = UserId,
             Nickname = nickname,
             AccessToken = AccessToken
         };
@@ -141,7 +143,6 @@ public class AuthManager : MonoBehaviour
     {
         var req = new DeleteAccountRequest
         {
-            Id = UserId,
             AccessToken = AccessToken
         };
 
@@ -149,6 +150,25 @@ public class AuthManager : MonoBehaviour
             "users/delete-account", "POST", req,
             onSuccess: res => {
                 Application.Quit();
+            },
+            onError: err => {
+                Debug.Log(err);
+            }
+        );
+    }
+
+    public IEnumerator ChangeProfileImage(int idx)
+    {
+        var req = new ChangeProfileImageRequest
+        {
+            ProfileImage = idx,
+            AccessToken = AccessToken
+        };
+
+        yield return API.Instance.SendJsonRequest(
+            "users/profile-image", "POST", req,
+            onSuccess: res => {
+                ProfileImage = req.ProfileImage;
             },
             onError: err => {
                 Debug.Log(err);

@@ -2,5 +2,5 @@
 [System.Serializable]
 public class AccountCheckRequest
 {
-    public string accountId;
+    public string AccountId;
 }

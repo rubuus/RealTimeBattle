@@ -17,6 +17,7 @@ namespace api.Models
         public string Nickname { get; private set; } = string.Empty;
         public DateTime CreatedTime { get; private set; } = DateTime.Now;
         public DateTime UpdatedTime { get; private set; } = DateTime.Now;
+        public int ProfileImage { get; set; } = 0;
 
         private User() {}
         public User(string accountId, string password, string nickname)
@@ -49,6 +50,11 @@ namespace api.Models
 
             Nickname = newNickname;
             UpdateTimestamp();
+        }
+
+        public void ChangeProfileImage(int idx)
+        {
+            ProfileImage = idx;
         }
 
         public void UpdateTimestamp()

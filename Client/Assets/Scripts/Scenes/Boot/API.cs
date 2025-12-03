@@ -3,6 +3,7 @@ using UnityEngine.Networking;
 using System.Collections;
 using System.Text;
 using System;
+using Newtonsoft.Json;
 
 public class API : MonoBehaviour
 {
@@ -29,7 +30,7 @@ public class API : MonoBehaviour
     Action<string> onSuccess,
     Action<string> onError)
     {
-        string json = JsonUtility.ToJson(data);
+        string json = JsonConvert.SerializeObject(data);
         var req = new UnityWebRequest($"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}", method);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
 

@@ -1,6 +1,6 @@
 [System.Serializable]
 public class RegisterResponse
 {
-    public int userId;
-    public string message;
+    public int UserId;
+    public string Message;
 }

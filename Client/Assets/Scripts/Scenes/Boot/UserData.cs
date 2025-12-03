@@ -1,12 +1,11 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class UserData : MonoBehaviour
 {
     public static UserData Instance { get; private set; }
-
-    public int UserId { get; private set; }
-    public string Nickname { get; private set; }
-    public string Token { get; private set; }
+    public List<Sprite> images = new List<Sprite>();
 
     private void Awake()
     {
@@ -19,19 +18,5 @@ public class UserData : MonoBehaviour
         {
             Destroy(gameObject);
         }
-    }
-
-    public void SaveUserInfo(int userId, string nickname, string token = "")
-    {
-        UserId = userId;
-        Nickname = nickname;
-        Token = token;
-    }
-
-    public void Clear()
-    {
-        UserId = 0;
-        Nickname = string.Empty;
-        Token = string.Empty;
     }
 }

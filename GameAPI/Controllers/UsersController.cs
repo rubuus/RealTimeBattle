@@ -72,23 +72,15 @@ namespace api.Controllers
 
             // ✅ 토큰 발급
             var token = jwtService.GenerateToken(user);
-
+            
             return Ok(new LoginResponse
             {
                 Message = "로그인 성공",
                 UserId = user.Id,
                 Nickname = user.Nickname,
-                AccessToken = token
+                AccessToken = token,
+                ProfileImage = user.ProfileImage
             });
-        }
-
-        [Authorize]
-        [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile()
-        {
-            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier) 
-                            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-            return Ok(new { AccountId = accountId });
         }
 
         [HttpGet("{id}")]
@@ -99,11 +91,12 @@ namespace api.Controllers
             if (user == null)
                 return NotFound(new { Message = "User not found" });
 
-            return Ok(new NicknameResponse
+            return Ok(new ProfileResponse
             {
                 Id = user.Id,
                 AccountId = user.AccountId,
-                Nickname = user.Nickname
+                Nickname = user.Nickname,
+                ProfileImage = user.ProfileImage
             });
         }
 
@@ -111,7 +104,8 @@ namespace api.Controllers
         [HttpPost("delete-account")]
         public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest req)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == req.Id);
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var user = await _db.Users.FindAsync(userId);
 
             if (user == null)
                 return NotFound(new { Message = "User not found" });
@@ -126,7 +120,8 @@ namespace api.Controllers
         [HttpPost("change-nickname")]
         public async Task<IActionResult> ChangeNickname([FromBody] ChangeNicknameRequest req)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == req.Id);
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var user = await _db.Users.FindAsync(userId);
 
             if (user == null)
                 return NotFound(new { Message = "User not found" });
@@ -136,6 +131,22 @@ namespace api.Controllers
             await _db.SaveChangesAsync();
 
             return Ok(new { Message = "change nickname successfully" });
+        }
+
+        [Authorize]
+        [HttpPost("profile-image")]
+        public async Task<IActionResult> ChangeProfileImage([FromBody] ChangeProfileImageRequest req)
+        {
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var user = await _db.Users.FindAsync(userId);
+
+            if (user == null)
+                return NotFound(new { Message = "User not found" });
+
+            user.ChangeProfileImage(req.ProfileImage);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { Message = "Change Profile Image successfully" });
         }
     }
 }

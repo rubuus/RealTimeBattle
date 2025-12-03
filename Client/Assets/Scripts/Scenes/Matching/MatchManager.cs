@@ -1,11 +1,15 @@
+using Newtonsoft.Json;
 using System.Collections;
 using System.Xml.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MatchManager : MonoBehaviour
 {
+    [SerializeField] Image leftImage;
+    [SerializeField] Image rightImage;
     [SerializeField] TMP_Text leftText;
     [SerializeField] TMP_Text rightText;
     [SerializeField] GameObject leftPlayer;
@@ -13,45 +17,56 @@ public class MatchManager : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(UIActive());
+        UIActive();
         StartCoroutine(SceneLoader.Instance.LoadBattle());
     }
 
-    private IEnumerator UIActive()
+    private void UIActive()
     {
         bool left = SocketClient.Instance.side == "LEFT";
-        int myId = SocketClient.Instance.myId;
-        int enemyId = SocketClient.Instance.enemyId;
+
+        Image myImage = left ? leftImage : rightImage;
+        Image enemyImage = left ? rightImage : leftImage;
 
         TMP_Text myText = left ? leftText : rightText;
         TMP_Text enemyText = left ? rightText : leftText;
 
-        GameObject myPlayer = left ? leftPlayer : rightPlayer;
         GameObject enemyPlayer = left ? rightPlayer : leftPlayer;
         enemyPlayer.GetComponent<SpriteRenderer>().color = new Color(0f, 1f, 1f);
 
-        yield return API.Instance.SendJsonRequest<object>(
-            endpoint: $"users/{myId}",
-            method: "GET",
-            data: null,
-            onSuccess: res => {
-                var user = JsonUtility.FromJson<NicknameResponse>(res);
-                myText.text = user.nickname;
-            },
-            onError: err => Debug.LogError(err)
-        );
-
-        yield return API.Instance.SendJsonRequest<object>(
-            endpoint: $"users/{enemyId}",
-            method: "GET",
-            data: null,
-            onSuccess: res => {
-                var user = JsonUtility.FromJson<NicknameResponse>(res);
-                enemyText.text = user.nickname;
-            },
-            onError: err => Debug.LogError(err)
-        );
+        StartCoroutine(GetMyProfile(myImage, myText));
+        StartCoroutine(GetEnemyProfile(enemyImage, enemyText));
 
         SocketClient.Instance.Send(new BasePacket { type = "BATTLE_READY" });
+    }
+
+    private IEnumerator GetMyProfile(Image image, TMP_Text text)
+    {
+        yield return API.Instance.SendJsonRequest<object>(
+            endpoint: $"users/{SocketClient.Instance.myId}",
+            method: "GET",
+            data: null,
+            onSuccess: res => {
+                var user = JsonConvert.DeserializeObject<ProfileResponse>(res);
+                text.text = user.Nickname;
+                image.sprite = UserData.Instance.images[user.ProfileImage];
+            },
+            onError: err => Debug.LogError(err)
+        );
+    }
+
+    private IEnumerator GetEnemyProfile(Image image, TMP_Text text)
+    {
+        yield return API.Instance.SendJsonRequest<object>(
+            endpoint: $"users/{SocketClient.Instance.enemyId}",
+            method: "GET",
+            data: null,
+            onSuccess: res => {
+                var user = JsonConvert.DeserializeObject<ProfileResponse>(res);
+                text.text = user.Nickname;
+                image.sprite = UserData.Instance.images[user.ProfileImage];
+            },
+            onError: err => Debug.LogError(err)
+        );
     }
 }
