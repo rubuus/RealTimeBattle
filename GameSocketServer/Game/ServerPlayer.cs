@@ -119,7 +119,7 @@ public class ServerPlayer
 
     void UpdateBaseState()
     {
-         if (!onGround)
+        if (!onGround)
             state = PlayerState.Jump;
         else if (Math.Abs(moveInput) > 0.01f)
             state = PlayerState.Run;
