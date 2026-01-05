@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include <memory>
+#include "PlayerInputPacket.h"
 
 class Server;
 class ClientSession;
@@ -8,15 +9,34 @@ class ServerPlayer;
 
 struct TimeSyncPacket;
 struct SaveRecordRequest;
+struct PlayerInputPacket;
+
+struct Hitbox
+{
+    float x;
+    float y;
+    float halfW;
+    float halfH;
+};
+
+struct Hurtbox
+{
+    float x;
+    float y;
+    float halfW;
+    float halfH;
+};
 
 class Room {
 public:
-    Room(int id, ClientSession& player1, ClientSession& player2);
-	
-	void Update();
+    Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool);
+    ~Room();
+
+    void CheckMatch(ClientSession& sender);
+	void Update(float dt);
 	void OnInputPacket(ClientSession& sender, PlayerInputPacket& p);
 	bool IsInPunchRange(ServerPlayer& attacker, ServerPlayer& target);
-	bool Overlap(Hitbox& hit, Hurtbox& hurt);
+    bool Overlap(Hitbox& hit, Hurtbox& hurt);
 	void CheckDamage();
     void EndGame(); 
     void SendStatePacket();
@@ -24,16 +44,15 @@ public:
     void SendTimePacket();
     void SendGameResult();
     void OnAckReceived(ClientSession& s);
-    void SaveRecordAsync(ClientSession& winner, ClientSession& loser);
-    void OnPlayerDisconnect(ClientSession& s);
+    void SaveRecordAsync(ClientSession* winner, ClientSession* loser);
+    void OnPlayerDisconnect(ClientSession* s);
 	void CloseRoom();
-
-private:
-    void CheckMatch(ClientSession& sender);
     TimeSyncPacket TimeSync();
 
+private:
+    ThreadPool& threadPool;
+
     int roomId;
-    Server* server;
     ClientSession* p1;
     ClientSession* p2;
     std::unique_ptr<ServerPlayer> sp1;
@@ -50,20 +69,4 @@ private:
     bool pendingClose = false;
     float gameTime = 100.0f;
     bool startedFirstFrameSent = false;
-};
-
-struct Hitbox
-{
-    float x;
-    float y;
-    float halfW;
-    float halfH;
-};
-
-struct Hurtbox
-{
-    float x;
-    float y;
-    float halfW;
-    float halfH;
 };

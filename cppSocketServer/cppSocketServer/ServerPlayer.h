@@ -5,7 +5,7 @@
 #include "PlayerStatePacket.h"
 #include "DamagePacket.h"
 
-struct Platform;
+class Platform;
 struct PlayerInputPacket;
 struct PlayerStatePacket;
 struct DamagePacket;
@@ -41,31 +41,34 @@ struct Punch
 class ServerPlayer
 {
 public:
-	ServerPlayer(int playerId, std::string playerSide, std::pair<float, float> spawnPosition);
+	ServerPlayer(int32_t playerId, 
+        uint8_t playerSide, 
+        const std::pair<float, float>& spawnPosition
+        );
 
     void ApplyInput(const PlayerInputPacket& p);
 	void Update(float dt);
     void TakeDamage(int damage, float hurtVel);
-    PlayerStatePacket StatePacket();
-	DamagePacket HurtPacket();
+    PlayerStatePacket StatePacket() const;
+	DamagePacket HurtPacket() const;
 
 	PlayerState GetState() const { return state; }
 	void SetState(PlayerState s) { state = s; }
 
 	int GetDir() const { return dir; }
-    int SetDir(int d) { dir = d; }
+    void SetDir(int8_t d) { dir = d; }
 
 	bool GetOnGround() const { return onGround; }
-    bool SetOnGround(bool b) { onGround = b; }
+    void SetOnGround(bool b) { onGround = b; }
 
 	bool GetJumpPressed() const { return jumpPressed; }
-    bool SetJumpPressed(bool b) { jumpPressed = b; }
+    void SetJumpPressed(bool b) { jumpPressed = b; }
 
 	bool GetDashPressed() const { return dashPressed; }
-    bool SetDashPressed(bool b) { dashPressed = b; }
+    void SetDashPressed(bool b) { dashPressed = b; }
 
 	bool GetPunchPressed() const { return punchPressed; }
-    bool SetPunchPressed(bool b) { punchPressed = b; }
+    void SetPunchPressed(bool b) { punchPressed = b; }
 	
 	std::pair<float, float> GetPosition() const { return position; }
     void SetPosition(std::pair<float, float> pos) { position = pos; }
@@ -92,7 +95,7 @@ private:
     void CheckOnGround();
 
     int32_t id;
-    std::string side;
+    uint8_t side;
     std::pair<float, float> position;
     std::pair<float, float> velocity = { 0.0, 0.0 };
     int8_t dir;
@@ -134,5 +137,3 @@ private:
         { 4.3f, 6.7f, -0.5f }
     };
 };
-
-

@@ -123,27 +123,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApiClient.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="PacketRouter.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="ClientSession.cpp" />
     <ClCompile Include="ServerPlayer.cpp" />
+    <ClCompile Include="ThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApiClient.h" />
     <ClInclude Include="DamagePacket.h" />
     <ClInclude Include="LoginPacket.h" />
+    <ClInclude Include="MatchFoundPacket.h" />
     <ClInclude Include="PacketHeader.h" />
-    <ClInclude Include="PacketRouter.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="PlayerInputPacket.h" />
     <ClInclude Include="PlayerStatePacket.h" />
-    <ClInclude Include="Protocol.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="SaveRecordRequest.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="ServerPlayer.h" />
     <ClInclude Include="ClientSession.h" />
+    <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="TimeSyncPacket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

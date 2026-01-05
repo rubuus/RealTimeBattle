@@ -4,11 +4,11 @@
 #include <cmath>
 #include <string>
 
-ServerPlayer::ServerPlayer(int playerId, std::string playerSide, std::pair<float, float> spawnPosition)
+ServerPlayer::ServerPlayer(int32_t playerId, uint8_t playerSide, const std::pair<float, float>& spawnPosition)
 	: id(playerId),
 	side(playerSide),
 	position(spawnPosition),
-	dir(playerSide == "LEFT" ? 1 : -1),
+	dir(playerSide == 0 ? 1 : -1),
 	prevY(spawnPosition.second)
 {
 	dash.duration = 0.1f;
@@ -53,8 +53,8 @@ void ServerPlayer::UpdateDirection() {
 	if (state == PlayerState::Punch)
 		return;
 
-	if (moveInput > 0.01f) dir = 1;
-	else if (moveInput < -0.01f) dir = -1;
+	if (moveInput > 0.01f) SetDir(1);
+	else if (moveInput < -0.01f) SetDir(-1);
 }
 
 void ServerPlayer::UpdateBaseState() {
@@ -242,7 +242,7 @@ void ServerPlayer::CheckOnGround() {
 	}
 }
 
-PlayerStatePacket ServerPlayer::StatePacket()
+PlayerStatePacket ServerPlayer::StatePacket() const
 {
 	return PlayerStatePacket {
 		id,
@@ -253,7 +253,7 @@ PlayerStatePacket ServerPlayer::StatePacket()
 	};
 }
 
-DamagePacket ServerPlayer::HurtPacket()
+DamagePacket ServerPlayer::HurtPacket() const
 {
 	return DamagePacket {
 		id,
