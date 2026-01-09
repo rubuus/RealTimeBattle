@@ -1,5 +1,7 @@
-using System;
+﻿using System;
+using System.Text;
 using UnityEngine;
+using UnityEngine.Rendering;
 using static PlayerController;
 
 public class EnemyController : MonoBehaviour
@@ -8,11 +10,12 @@ public class EnemyController : MonoBehaviour
 
     private Vector2 networkTargetPos;
     private string networkTargetState;
+    private byte networkTargetStateByte;
     public bool isNetworkUpdatePending = false;
     private float networkDir;
 
     private Vector2 smoothVel;
-    [SerializeField] private float networkSmoothTime = 0.015f;
+    [SerializeField] private float networkSmoothTime = 0.03f;
 
     private bool canReceiveNetwork = false;
 
@@ -26,6 +29,7 @@ public class EnemyController : MonoBehaviour
 
         rigid.bodyType = RigidbodyType2D.Kinematic;
         rigid.linearVelocity = Vector2.zero;
+        smoothVel = Vector2.zero;
         networkDir = (SocketClient.Instance.side == "RIGHT") ? 1f : -1f;
     }
 
@@ -36,9 +40,11 @@ public class EnemyController : MonoBehaviour
         if (isNetworkUpdatePending) 
         {
             ApplyServerStateWithGuard();
-            ApplyNetworkPosition();
-            ApplyServerDirection();
-        } 
+            isNetworkUpdatePending = false;
+        }
+
+        ApplyNetworkPosition();
+        ApplyServerDirection();
     }
 
     public void ApplyServerDirection()
@@ -48,11 +54,17 @@ public class EnemyController : MonoBehaviour
 
     public void ApplyServerStateWithGuard()
     {
-        PlayerState newState =
-            (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
+        if (!TryResolvePlayerState(out var newState))
+        {
+            Debug.LogWarning(
+                $"Invalid state. byte={networkTargetStateByte}, string={networkTargetState}");
+            isNetworkUpdatePending = false;
+            return;
+        }
 
-
-        if (enemyState == PlayerState.Punch && newState == PlayerState.Punch)
+        // 🔒 Punch 가드 (한 번만!)
+        if (enemyState == PlayerState.Punch &&
+            newState == PlayerState.Punch)
         {
             isNetworkUpdatePending = false;
             return;
@@ -62,10 +74,19 @@ public class EnemyController : MonoBehaviour
         isNetworkUpdatePending = false;
     }
 
+
     public void ApplyServerState(Vector2 pos, string state, int dir)
     {
         networkTargetPos = pos;
         networkTargetState = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
+
+    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
+    {
+        networkTargetPos = pos;
+        networkTargetStateByte = state;
         networkDir = dir;
         isNetworkUpdatePending = true;
     }
@@ -82,7 +103,7 @@ public class EnemyController : MonoBehaviour
 
     void ChangeState(PlayerState newState)
     {
-        // �ߺ� ��ȯ ����
+        // 중복 전환 방지
         if (enemyState == newState)
             return;
 
@@ -123,5 +144,32 @@ public class EnemyController : MonoBehaviour
     public void EnableNetwork()
     {
         canReceiveNetwork = true;
+    }
+
+    private bool TryResolvePlayerState(
+    out PlayerState resolvedState)
+    {
+        // C++ 서버 (byte)
+        if (SocketClient.Instance.useCppServer)
+        {
+            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
+            {
+                resolvedState = (PlayerState)networkTargetStateByte;
+                return true;
+            }
+        }
+        // C# 서버 (string)
+        else
+        {
+            if (!string.IsNullOrEmpty(networkTargetState) &&
+                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            {
+                resolvedState = parsed;
+                return true;
+            }
+        }
+
+        resolvedState = default;
+        return false;
     }
 }

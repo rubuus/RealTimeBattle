@@ -58,7 +58,7 @@ public static class PacketRouter
                 break;
 
             case PacketType.PING:
-                SocketClient.Instance.Send(new BasePacket { type = "PONG" });
+                _ = SocketClient.Instance.Send(new BasePacket { type = "PONG" });
                 break;
         }
     }
@@ -129,21 +129,21 @@ public static class PacketRouter
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Win";
-        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleGameLose()
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Lose";
-        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleGameDraw()
     {
         SocketClient.Instance.enemyDisconnected = false;
         SocketClient.Instance.finalResult = "Draw";
-        SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.Send(new BasePacket { type = "RESULT_ACK" });
     }
 
     private static void HandleEnemyExit()

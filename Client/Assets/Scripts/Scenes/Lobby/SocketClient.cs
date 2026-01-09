@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -18,6 +19,7 @@ public class SocketClient : MonoBehaviour
 
     public bool connected = false;
     public bool enemyDisconnected = false;
+    public bool useCppServer = false;
 
     public int myId;
     public int enemyId;
@@ -40,7 +42,7 @@ public class SocketClient : MonoBehaviour
 
     async void Start()
     {
-        await Connect();
+        await CppConnect();
     }
 
     public async Task Connect()
@@ -54,11 +56,12 @@ public class SocketClient : MonoBehaviour
 
             stream = client.GetStream();
             connected = true;
+            useCppServer = false;
             Debug.Log("Connected to server!");
 
             _ = ReceiveLoop();
 
-            Send(new LoginPacket
+            _= Send(new LoginPacket
             {
                 type = "LOGIN",
                 userId = AuthManager.Instance.UserId
@@ -70,7 +73,32 @@ public class SocketClient : MonoBehaviour
         }
     }
 
-    public async void Send(object obj)
+    public async Task CppConnect()
+    {
+        try
+        {
+            client = new TcpClient();
+            client.NoDelay = true;
+            client.Client.NoDelay = true;
+            await client.ConnectAsync("127.0.0.1", 7777);  // 서버 주소
+
+            stream = client.GetStream();
+            connected = true;
+            useCppServer = true;
+            Debug.Log("Connected to server!");
+
+            _ = ReceiveLoopCpp();
+
+            OnLogin();
+
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Connection failed: " + ex.Message);
+        }
+    }
+
+    public async Task Send(object obj)
     {
         if (!connected) return;
 
@@ -78,6 +106,57 @@ public class SocketClient : MonoBehaviour
         byte[] data = Encoding.UTF8.GetBytes(json + "\n");
         await stream.WriteAsync(data, 0, data.Length);
     }
+
+    public async Task SendHeaderOnlyAsync(C2S_PacketType type)
+    {
+        PacketHeader header = new PacketHeader
+        {
+            type = (ushort)type,
+            size = PacketHeader.Size
+        };
+
+        byte[] buffer = new byte[PacketHeader.Size];
+        MemoryMarshal.Write(buffer.AsSpan(), ref header);
+
+        await SendAsync(buffer);
+    }
+
+    public async Task SendAsync(ReadOnlyMemory<byte> packet)
+    {
+        if (!connected) return;
+
+        await stream.WriteAsync(packet);
+    }
+
+    public void OnLogin()
+    {
+        CppLoginPacket loginPacket = new CppLoginPacket
+        {
+            userId = AuthManager.Instance.UserId
+        };
+
+        ReadOnlySpan<byte> body =
+            MemoryMarshal.AsBytes(
+                MemoryMarshal.CreateReadOnlySpan(ref loginPacket, 1)
+            );
+
+        PacketHeader header = new PacketHeader
+        {
+            type = (ushort)C2S_PacketType.LOGIN,
+            size = (ushort)(PacketHeader.Size + body.Length)
+        };
+
+        byte[] buffer = new byte[header.size];
+
+        // header
+        MemoryMarshal.Write(buffer.AsSpan(0, PacketHeader.Size), ref header);
+
+        // body
+        body.CopyTo(buffer.AsSpan(PacketHeader.Size));
+
+        _ = SendAsync(buffer);
+    }
+
 
     private async Task ReceiveLoop()
     {
@@ -115,6 +194,74 @@ public class SocketClient : MonoBehaviour
                 break;
             }
         }
+    }
+
+    private async Task ReceiveLoopCpp()
+    {
+        byte[] headerBuf = new byte[PacketHeader.Size];
+
+        while (connected)
+        {
+            try
+            {
+                if (!await ReadExactAsync(headerBuf, PacketHeader.Size))
+                {
+                    Debug.Log("Server disconnected (header).");
+                    break;
+                }
+
+                PacketHeader header =
+                    MemoryMarshal.Read<PacketHeader>(headerBuf);
+
+                int bodySize = header.size - PacketHeader.Size;
+                if (bodySize < 0 || bodySize > 4096)
+                {
+                    Debug.LogError($"Invalid bodySize={bodySize}");
+                    break;
+                }
+
+                byte[] body = null;
+                if (bodySize > 0)
+                {
+                    body = new byte[bodySize];
+                    if (!await ReadExactAsync(body, bodySize))
+                    {
+                        Debug.Log("Server disconnected (body).");
+                        break;
+                    }
+                }
+
+                CppPacketRouter.Route(header.type, body);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("ReceiveLoopCpp Exception: " + e);
+                connected = false;
+                break;
+            }
+        }
+    }
+
+
+    private async Task<bool> ReadExactAsync(byte[] buffer, int size)
+    {
+        int received = 0;
+
+        while (received < size)
+        {
+            int read = await stream.ReadAsync(
+                buffer,
+                received,
+                size - received
+            );
+
+            if (read <= 0)
+                return false; // disconnected
+
+            received += read;
+        }
+
+        return true;
     }
 
     public void Disconnect()

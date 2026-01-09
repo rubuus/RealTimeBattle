@@ -22,10 +22,13 @@ public class MatchButton : MonoBehaviour
 
         if (!SocketClient.Instance.connected)
         {
-            await SocketClient.Instance.Connect(); // await로 바꿔서 순서 보장
+            await SocketClient.Instance.CppConnect(); // await로 바꿔서 순서 보장
         }
 
-        SocketClient.Instance.Send(new BasePacket { type = "MATCH_START" });
+        if (SocketClient.Instance.useCppServer)
+            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.MATCH_START);
+        else
+            _ = SocketClient.Instance.Send(new BasePacket { type = "MATCH_START" });
 
         Debug.Log("MATCH_START sent");
     }

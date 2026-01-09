@@ -47,7 +47,7 @@ public:
         );
 
     void ApplyInput(const PlayerInputPacket& p);
-	void Update(float dt);
+	void Update();
     void TakeDamage(int damage, float hurtVel);
     PlayerStatePacket StatePacket() const;
 	DamagePacket HurtPacket() const;
@@ -69,6 +69,9 @@ public:
 
 	bool GetPunchPressed() const { return punchPressed; }
     void SetPunchPressed(bool b) { punchPressed = b; }
+
+	bool HasPunchChecked() const { return punchChecked; }
+	void SetPunchChecked(bool b) { punchChecked = b; }
 	
 	std::pair<float, float> GetPosition() const { return position; }
     void SetPosition(std::pair<float, float> pos) { position = pos; }
@@ -80,19 +83,21 @@ public:
     void SetCurrentHP(int hp) { currentHP = hp; }
 
 private:
-    void UpdatePosition(float dt);
+    void UpdatePosition();
     void UpdateDirection();
     void UpdateBaseState();
-    void UpdateTimer(float dt);
-    void UpdateStateMachine(float dt);
+    void UpdateTimer();
+    void UpdateStateMachine();
     void UpdateActionTriggers();
-    void UpdateMove(float dt);
+    void UpdateMove();
     void StartDash();
-    void UpdateDash(float dt);
+    void UpdateDash();
     void StartPunch();
-    void UpdatePunch(float dt);
-    void UpdateHurt(float dt);
+    void UpdatePunch();
+    void UpdateHurt();
     void CheckOnGround();
+
+    float FIXED_STEP = 1 / 60;
 
     int32_t id;
     uint8_t side;
@@ -116,6 +121,8 @@ private:
     // 점프/대쉬/펀치/피격 관련
     bool onGround = false;
     int jumpCount = 2;
+
+    bool punchChecked = false;
 
     float hurtDuration = 0.2f;
     float hurtTimer = 0.0f;

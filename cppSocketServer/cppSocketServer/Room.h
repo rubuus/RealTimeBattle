@@ -2,6 +2,8 @@
 #include <utility>
 #include <memory>
 #include "PlayerInputPacket.h"
+#include "ConcurrentQueue.h"
+#include <iostream>
 
 class Server;
 class ClientSession;
@@ -13,19 +15,20 @@ struct PlayerInputPacket;
 
 struct Hitbox
 {
-    float x;
-    float y;
-    float halfW;
-    float halfH;
+    float x = 0.0f;
+    float y = 0.0f;
+    float halfW = 0.0f;
+    float halfH = 0.0f;
 };
 
 struct Hurtbox
 {
-    float x;
-    float y;
-    float halfW;
-    float halfH;
+    float x = 0.0f;
+    float y = 0.0f;
+    float halfW = 0.0f;
+    float halfH = 0.0f;
 };
+
 
 class Room {
 public:
@@ -34,10 +37,14 @@ public:
 
     void CheckMatch(ClientSession& sender);
 	void Update(float dt);
-	void OnInputPacket(ClientSession& sender, PlayerInputPacket& p);
+    void BroadcastState();
+	void BroadcastTime();
+	void BroadcastDamage();
+
+    bool CheckDamage(ServerPlayer& attacker, ServerPlayer& target);
 	bool IsInPunchRange(ServerPlayer& attacker, ServerPlayer& target);
     bool Overlap(Hitbox& hit, Hurtbox& hurt);
-	void CheckDamage();
+    void UpdateDamage();
     void EndGame(); 
     void SendStatePacket();
     void SendDamagePacket();
@@ -47,7 +54,22 @@ public:
     void SaveRecordAsync(ClientSession* winner, ClientSession* loser);
     void OnPlayerDisconnect(ClientSession* s);
 	void CloseRoom();
+	bool IsCloseRequested() const { return closeRequested; }
+	bool IsClosed() const { return closed.load(); }
+    int Id() const { return roomId; }
     TimeSyncPacket TimeSync();
+
+	bool GetPendingTime() const { return pendingTime; }
+	void SetPendingTime(bool b) { pendingTime = b; }
+
+	bool GetPendingState() const { return pendingState; }
+	void SetPendingState(bool b) { pendingState = b; }
+
+	bool GetPendingDamage() const { return pendingDamage; }
+	void SetPendingDamage(bool b) { pendingDamage = b; }
+
+	bool GetPendingEndGame() const { return pendingEndGame; }
+	void SetPendingEndGame(bool b) { pendingEndGame = b; }
 
 private:
     ThreadPool& threadPool;
@@ -65,8 +87,17 @@ private:
     bool p2Ready = false;
     bool gameStarted = false;
     int waitingAckCount = 2;
-    bool closed = false;
+    std::atomic<bool> closed{ false };
     bool pendingClose = false;
+	bool closeRequested = false;
     float gameTime = 100.0f;
+	float stateSendAcc = 0.0f;
+	float timeSendAcc = 0.0f;
     bool startedFirstFrameSent = false;
+
+	bool pendingTime = false;
+    bool pendingState = false;
+	bool damageHappened = false;
+	bool pendingDamage = false;
+	bool pendingEndGame = false;
 };

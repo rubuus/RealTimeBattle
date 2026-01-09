@@ -8,7 +8,7 @@ enum class C2S_PacketType : uint16_t{
 	BATTLE_START = 3,
 	INPUT = 4,
 	RESULT_ACK = 5,
-	PONG = 6
+	PING = 6
 };
 
 enum class S2C_PacketType : uint16_t {
@@ -22,7 +22,7 @@ enum class S2C_PacketType : uint16_t {
 	GAME_DRAW = 7,
 	ENEMY_EXIT = 8,
 	ROOM_CLOSED = 9,
-	PING = 10
+	PONG = 10
 };
 
 #pragma pack(push, 1)

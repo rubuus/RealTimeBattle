@@ -37,7 +37,10 @@ public class MatchManager : MonoBehaviour
         StartCoroutine(GetMyProfile(myImage, myText));
         StartCoroutine(GetEnemyProfile(enemyImage, enemyText));
 
-        SocketClient.Instance.Send(new BasePacket { type = "BATTLE_READY" });
+        if (SocketClient.Instance.useCppServer)
+            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.BATTLE_READY);
+        else
+            _ = SocketClient.Instance.Send(new BasePacket { type = "BATTLE_READY" });
     }
 
     private IEnumerator GetMyProfile(Image image, TMP_Text text)

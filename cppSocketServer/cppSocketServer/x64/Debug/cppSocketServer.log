@@ -1,5 +1,7 @@
 ﻿  ClientSession.cpp
+  Main.cpp
   Room.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\numbers(11): warning STL4038: The contents of <numbers> are available only with C++20 or later.
 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244: 'initializing': conversion from '_Ty' to '_Ty1', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         with
 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         [
@@ -12,7 +14,7 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.3520
   (compiling source file 'Room.cpp')
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16):
       the template instantiation context (the oldest one first) is
-          C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.h(100,40):
+          C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.h(105,40):
           see reference to function template instantiation 'std::pair<float,float>::pair<double,double,0>(_Other1 &&,_Other2 &&) noexcept' being compiled
           with
           [

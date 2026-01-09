@@ -92,5 +92,8 @@
     <ClInclude Include="MatchFoundPacket.h">
       <Filter>Header Files\Packets</Filter>
     </ClInclude>
+    <ClInclude Include="ConcurrentQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

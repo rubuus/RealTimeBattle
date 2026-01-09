@@ -12,11 +12,6 @@ ClientSession::ClientSession(SOCKET s, int id)
     ZeroMemory(&recvOvEx.ov, sizeof(OVERLAPPED));
 }
 
-ClientSession::~ClientSession()
-{
-    Disconnect();
-}
-
 void ClientSession::PostRecv()
 {
     if (IsDisconnected())
@@ -184,52 +179,48 @@ void ClientSession::HandlePacket(char* packet, int packetSize)
     case C2S_PacketType::LOGIN:
     {
         auto* loginPacket = reinterpret_cast<LoginPacket*>(body);
-		SetUserId(loginPacket->userId);
-        std::cout << "[ClientSession] User " << loginPacket->userId << " logged in (Session " << sessionId << ")\n";
+        SetUserId(loginPacket->userId);
 	    break;
     }
     case C2S_PacketType::MATCH_START:
     {
-        Server::Instance().AddToMatchQueue(sessionId);
+        Server::Instance().AddToMatchList(GetSessionId());
         break;
     }
     case C2S_PacketType::BATTLE_READY:
     {
         if (room)
-        {
             room->CheckMatch(*this);
-        }
+        break;
     }
     case C2S_PacketType::BATTLE_START:
     {
         if (room)
-        {
-            room->OnAckReceived(*this);
-        }
+            battleReady = true;
         break;
     }
     case C2S_PacketType::INPUT:
     {
-        if (room)
+        if (room && battleReady && bodySize >= sizeof(PlayerInputPacket))
         {
-            auto* inputPacket = reinterpret_cast<PlayerInputPacket*>(body);
-            room->OnInputPacket(*this, *inputPacket);
+            hasInput.store(false, std::memory_order_relaxed); // 🔒 잠금 효과
+            memcpy(&latestInput, body, sizeof(PlayerInputPacket));
+            hasInput.store(true, std::memory_order_release);
         }
         break;
     }
     case C2S_PacketType::RESULT_ACK:
     {
         if (room)
-        {
             room->OnAckReceived(*this);
-        }
         break;
 	}
-    case C2S_PacketType::PONG:
+    case C2S_PacketType::PING:
     {
-		SetLastRecvTime();
+        SetLastRecvTime();
         break;
     }
+
     default:
         std::cout << "[ClientSession] Unknown packet type: " << header->type << "\n";
         break;

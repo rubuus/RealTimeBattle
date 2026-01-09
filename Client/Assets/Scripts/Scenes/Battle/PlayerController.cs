@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
-    public enum PlayerState
+    public enum PlayerState : byte
     {
         Idle,
         Run,
@@ -29,9 +30,10 @@ public class PlayerController : MonoBehaviour
     // --- 서버에서 받은 권위 좌표/상태 ---
     private Vector2 networkTargetPos;
     private string networkTargetState;
+    private byte networkTargetStateByte;
     private bool isNetworkUpdatePending = false;
     private float networkDir;
-    [SerializeField] private float networkSmoothTime = 0.015f;
+    [SerializeField] private float networkSmoothTime = 0.03f;
 
     private Vector2 smoothVel;
 
@@ -47,6 +49,7 @@ public class PlayerController : MonoBehaviour
 
         rigid.bodyType = RigidbodyType2D.Kinematic;
         rigid.linearVelocity = Vector2.zero;
+        smoothVel = Vector2.zero;
         networkDir = (SocketClient.Instance.side == "LEFT") ? 1f : -1f;
     }
 
@@ -59,10 +62,12 @@ public class PlayerController : MonoBehaviour
         if (isNetworkUpdatePending)
         {
             ApplyServerStateWithGuard();
-            ApplyNetworkPosition();
-            ApplyServerDirection();
-            SendInput();
+            isNetworkUpdatePending = false;
         }
+
+        ApplyNetworkPosition();
+        ApplyServerDirection();
+        SendInput();
     }
 
     void ReadInput()
@@ -81,7 +86,15 @@ public class PlayerController : MonoBehaviour
 
     private void SendInput()
     {
-        SocketClient.Instance.Send(new PlayerInputPacket()
+        if (SocketClient.Instance.useCppServer)
+            SendInput_CppBinary();
+        else
+            SendInput_CSharpDTO();
+    }
+
+    private void SendInput_CSharpDTO()
+    {
+        _ = SocketClient.Instance.Send(new PlayerInputPacket()
         {
             type = "INPUT",
             id = SocketClient.Instance.myId,
@@ -92,6 +105,40 @@ public class PlayerController : MonoBehaviour
         });
     }
 
+    private void SendInput_CppBinary()
+    {
+        var bodyStruct = new CppPlayerInputPacket
+        {
+            id = SocketClient.Instance.myId,
+            move = moveInput,
+            jump = jumpPressed ? (byte)1 : (byte)0,
+            dash = dashPressed ? (byte)1 : (byte)0,
+            punch = punchPressed ? (byte)1 : (byte)0
+        };
+
+        // 🔥 body → bytes (복사 없이)
+        ReadOnlySpan<byte> body =
+            MemoryMarshal.AsBytes(
+                MemoryMarshal.CreateReadOnlySpan(ref bodyStruct, 1)
+            );
+
+        PacketHeader header = new PacketHeader
+        {
+            type = (ushort)C2S_PacketType.INPUT,
+            size = (ushort)(PacketHeader.Size + body.Length)
+        };
+
+        byte[] buffer = new byte[header.size];
+
+        // 1) 헤더 복사
+        MemoryMarshal.Write(buffer.AsSpan(0, PacketHeader.Size), ref header);
+
+        // 2) 바디 복사
+        body.CopyTo(buffer.AsSpan(PacketHeader.Size));
+
+        _ = SocketClient.Instance.SendAsync(buffer);
+    }
+
     public void ApplyServerDirection()
     {
         transform.localScale = new Vector2(networkDir, 1);
@@ -99,11 +146,16 @@ public class PlayerController : MonoBehaviour
 
     public void ApplyServerStateWithGuard()
     {
-        PlayerState newState =
-            (PlayerState)Enum.Parse(typeof(PlayerState), networkTargetState);
+        if (!TryResolvePlayerState(out var newState))
+        {
+            Debug.LogWarning(
+                $"Invalid state. byte={networkTargetStateByte}, string={networkTargetState}");
+            isNetworkUpdatePending = false;
+            return;
+        }
 
-
-        if (state == PlayerState.Punch && newState == PlayerState.Punch)
+        if (state == PlayerState.Punch &&
+            newState == PlayerState.Punch)
         {
             isNetworkUpdatePending = false;
             return;
@@ -117,6 +169,14 @@ public class PlayerController : MonoBehaviour
     {
         networkTargetPos = pos;
         networkTargetState = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
+
+    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
+    {
+        networkTargetPos = pos;
+        networkTargetStateByte = state;
         networkDir = dir;
         isNetworkUpdatePending = true;
     }
@@ -174,5 +234,32 @@ public class PlayerController : MonoBehaviour
     public void EnableNetwork()
     {
         canReceiveNetwork = true;
+    }
+
+    private bool TryResolvePlayerState(
+    out PlayerState resolvedState)
+    {
+        // C++ 서버 (byte)
+        if (SocketClient.Instance.useCppServer)
+        {
+            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
+            {
+                resolvedState = (PlayerState)networkTargetStateByte;
+                return true;
+            }
+        }
+        // C# 서버 (string)
+        else
+        {
+            if (!string.IsNullOrEmpty(networkTargetState) &&
+                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            {
+                resolvedState = parsed;
+                return true;
+            }
+        }
+
+        resolvedState = default;
+        return false;
     }
 }

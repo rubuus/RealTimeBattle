@@ -13,6 +13,9 @@ public class API : MonoBehaviour
 
     private void Awake()
     {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 120;
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject); // 중복 생성 방지

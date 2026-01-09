@@ -1,28 +1,39 @@
 #include "Server.h"
 #include <thread>
 #include <iostream>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
+
+// 자동 소멸 : 윈도우 타이머 해상도 설정
+struct TimerResolutionGuard {
+    explicit TimerResolutionGuard(UINT ms) : ms(ms) { timeBeginPeriod(ms); }
+    ~TimerResolutionGuard() { timeEndPeriod(ms); }
+    UINT ms;
+};
 
 int main()
 {
+    TimerResolutionGuard timer(1);
+
     constexpr int PORT = 7777;
 
     try
     {
         Server& server = Server::Instance();
 
-        // 서버 시작 (listen + IOCP + accept)
         server.StartServer(PORT);
 
-        // Tick / Heartbeat는 보통 별도 스레드
+        std::thread acceptThread(&Server::AcceptLoop, &server);
         std::thread tickThread(&Server::TickLoop, &server);
         std::thread heartbeatThread(&Server::HeartbeatLoop, &server);
 
+        acceptThread.join();
         tickThread.join();
         heartbeatThread.join();
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Fatal error: " << e.what() << std::endl;
+        std::cerr << "Fatal error: " << e.what() << '\n';
     }
 
     return 0;

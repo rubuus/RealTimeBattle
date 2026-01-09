@@ -41,7 +41,10 @@ public class GameManager : MonoBehaviour
         var myHealth = myPlayer.GetComponent<Health>();
         var enemyHealth = enemyPlayer.GetComponent<Health>();
 
-        SocketClient.Instance.Send(new BasePacket { type = "BATTLE_START" });
+        if (SocketClient.Instance.useCppServer)
+            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.BATTLE_START);
+        else
+            _ = SocketClient.Instance.Send(new BasePacket { type = "BATTLE_START" });
     }
 
     void EnablePlayerNetwork()
