@@ -45,6 +45,12 @@
     <ClCompile Include="ThreadPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PacketRouter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientSession.h">
@@ -92,7 +98,13 @@
     <ClInclude Include="MatchFoundPacket.h">
       <Filter>Header Files\Packets</Filter>
     </ClInclude>
-    <ClInclude Include="ConcurrentQueue.h">
+    <ClInclude Include="PacketRouter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Network.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

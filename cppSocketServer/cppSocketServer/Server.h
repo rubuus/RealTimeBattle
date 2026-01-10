@@ -27,8 +27,16 @@ public:
 	void CloseRoom(int id);
 	void RemoveClient(ClientSession* s);
 
+	// Network에서 꺼내쓰는용
+	ClientSession* FindSession(int sid) 
+	{ 
+		auto it = clients.find(sid);
+		return (it == clients.end()) ? nullptr : it->second.get();
+	};
+
 private:
-	ThreadPool threadPool{ 4 };
+	ThreadPool threadPool{ 4 }; // 내부 로직용 스레드 풀
+
 	int _port;
 	int _roomIdCounter = 1;
 

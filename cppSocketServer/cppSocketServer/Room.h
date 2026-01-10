@@ -1,17 +1,15 @@
-#pragma once
+﻿#pragma once
 #include <utility>
 #include <memory>
-#include "PlayerInputPacket.h"
-#include "ConcurrentQueue.h"
-#include <iostream>
+#include <unordered_map>
+#include "ClientSession.h"
+#include "ThreadPool.h"
+#include "RoomEvent.h"
 
-class Server;
 class ClientSession;
 class ServerPlayer;
 
-struct TimeSyncPacket;
 struct SaveRecordRequest;
-struct PlayerInputPacket;
 
 struct Hitbox
 {
@@ -29,50 +27,46 @@ struct Hurtbox
     float halfH = 0.0f;
 };
 
-
 class Room {
 public:
     Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool);
-    ~Room();
 
-    void CheckMatch(ClientSession& sender);
-	void Update(float dt);
-    void BroadcastState();
-	void BroadcastTime();
-	void BroadcastDamage();
+    void EnqueueEvent(const RoomEvent& ev);
+    void Update(double dt);
+    void CloseRoom();
 
+private:
+    void EmitOutEvent(const RoomOutEvent& ev);
+    void ProcessEvents();
+    
+    void CheckMatch(const RoomEvent& re);
+    void OnInput(const RoomEvent& re);
+	void ServerPlayerUpdate();
+
+    void EmitStateUpdate();
+	void EmitTimeUpdate();
+    void EmitDamageUpdate();
+
+	// 타격 판정 관련
     bool CheckDamage(ServerPlayer& attacker, ServerPlayer& target);
 	bool IsInPunchRange(ServerPlayer& attacker, ServerPlayer& target);
     bool Overlap(Hitbox& hit, Hurtbox& hurt);
-    void UpdateDamage();
-    void EndGame(); 
-    void SendStatePacket();
-    void SendDamagePacket();
-    void SendTimePacket();
-    void SendGameResult();
-    void OnAckReceived(ClientSession& s);
+    
+	// 게임 종료 처리
+    void EndGame();
+    void EmitGameResult();
+    void BeginCloseAckPhase();
+    void OnAckReceived(const RoomEvent& re);
+    void OnPlayerDisconnect(const RoomEvent& re);
+
+    // 전적 저장
     void SaveRecordAsync(ClientSession* winner, ClientSession* loser);
-    void OnPlayerDisconnect(ClientSession* s);
-	void CloseRoom();
-	bool IsCloseRequested() const { return closeRequested; }
-	bool IsClosed() const { return closed.load(); }
-    int Id() const { return roomId; }
-    TimeSyncPacket TimeSync();
-
-	bool GetPendingTime() const { return pendingTime; }
-	void SetPendingTime(bool b) { pendingTime = b; }
-
-	bool GetPendingState() const { return pendingState; }
-	void SetPendingState(bool b) { pendingState = b; }
-
-	bool GetPendingDamage() const { return pendingDamage; }
-	void SetPendingDamage(bool b) { pendingDamage = b; }
-
-	bool GetPendingEndGame() const { return pendingEndGame; }
-	void SetPendingEndGame(bool b) { pendingEndGame = b; }
-
+	
 private:
     ThreadPool& threadPool;
+    std::queue<RoomEvent> eventQueue;
+    std::mutex eventMutex;
+    std::queue<RoomOutEvent> outEvents;
 
     int roomId;
     ClientSession* p1;
@@ -86,18 +80,13 @@ private:
     bool p1Ready = false;
     bool p2Ready = false;
     bool gameStarted = false;
-    int waitingAckCount = 2;
-    std::atomic<bool> closed{ false };
-    bool pendingClose = false;
-	bool closeRequested = false;
-    float gameTime = 100.0f;
-	float stateSendAcc = 0.0f;
-	float timeSendAcc = 0.0f;
-    bool startedFirstFrameSent = false;
 
-	bool pendingTime = false;
-    bool pendingState = false;
-	bool damageHappened = false;
-	bool pendingDamage = false;
-	bool pendingEndGame = false;
+    double gameTime = 100.0f;
+    double stateSendAcc = 0.0f;
+    double timeSendAcc = 0.0f;
+
+	std::unordered_map<int, bool> ackReceivedMap;
+    int waitingAckCount = 2;
+
+    std::atomic<bool> closed{ false };
 };

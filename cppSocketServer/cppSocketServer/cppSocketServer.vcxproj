@@ -102,6 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +126,8 @@
   <ItemGroup>
     <ClCompile Include="ApiClient.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Network.cpp" />
+    <ClCompile Include="PacketRouter.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="ClientSession.cpp" />
@@ -134,14 +137,16 @@
   <ItemGroup>
     <ClInclude Include="ApiClient.h" />
     <ClInclude Include="DamagePacket.h" />
-    <ClInclude Include="ConcurrentQueue.h" />
     <ClInclude Include="LoginPacket.h" />
     <ClInclude Include="MatchFoundPacket.h" />
+    <ClInclude Include="Network.h" />
     <ClInclude Include="PacketHeader.h" />
+    <ClInclude Include="PacketRouter.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="PlayerInputPacket.h" />
     <ClInclude Include="PlayerStatePacket.h" />
     <ClInclude Include="Room.h" />
+    <ClInclude Include="RoomEvent.h" />
     <ClInclude Include="SaveRecordRequest.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="ServerPlayer.h" />

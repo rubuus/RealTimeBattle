@@ -10,11 +10,10 @@
 class ThreadPool
 {
 public:
-    explicit ThreadPool(size_t threadCount);
+    explicit ThreadPool(size_t threadCount); // 변환 방지 생성자
     ~ThreadPool();
 
-    // 작업 추가
-    void Enqueue(std::function<void()> job);
+    bool Enqueue(std::function<void()> job);
 
 private:
     void WorkerLoop();

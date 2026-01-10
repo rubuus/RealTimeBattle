@@ -4,6 +4,7 @@
 #include "Server.h"
 #include "Room.h"
 #include "LoginPacket.h"
+#include "PacketRouter.h"
 
 ClientSession::ClientSession(SOCKET s, int id)
     : socket(s), sessionId(id)
@@ -143,6 +144,10 @@ void ClientSession::SendPacketInternal(
     }
 }
 
+void ClientSession::OnPacket(const ParsedPacket& pkt)
+{
+    PacketRouter::Instance().Route(*this, pkt);
+}
 
 void ClientSession::Disconnect() {
     if (disconnected.exchange(true))
@@ -157,72 +162,15 @@ void ClientSession::Disconnect() {
         socket = INVALID_SOCKET;
     }
 
-    // 2) 룸 정리
+    // 2) 룸 정리 이벤트 넘김
     if (room)
     {
-        room->OnPlayerDisconnect(this);
-        room = nullptr;
+        room->EnqueueEvent(RoomEvent{
+            RoomEventType::Disconnect,
+            sessionId
+            });
     }
 
     // 3) 클라이언트 목록 제거
     Server::Instance().RemoveClient(this);
-}
-
-void ClientSession::HandlePacket(char* packet, int packetSize)
-{
-    auto* header = reinterpret_cast<PacketHeader*>(packet);
-    char* body = packet + sizeof(PacketHeader);
-    int bodySize = packetSize - sizeof(PacketHeader);
-
-    switch (static_cast<C2S_PacketType>(header->type))
-    {
-    case C2S_PacketType::LOGIN:
-    {
-        auto* loginPacket = reinterpret_cast<LoginPacket*>(body);
-        SetUserId(loginPacket->userId);
-	    break;
-    }
-    case C2S_PacketType::MATCH_START:
-    {
-        Server::Instance().AddToMatchList(GetSessionId());
-        break;
-    }
-    case C2S_PacketType::BATTLE_READY:
-    {
-        if (room)
-            room->CheckMatch(*this);
-        break;
-    }
-    case C2S_PacketType::BATTLE_START:
-    {
-        if (room)
-            battleReady = true;
-        break;
-    }
-    case C2S_PacketType::INPUT:
-    {
-        if (room && battleReady && bodySize >= sizeof(PlayerInputPacket))
-        {
-            hasInput.store(false, std::memory_order_relaxed); // 🔒 잠금 효과
-            memcpy(&latestInput, body, sizeof(PlayerInputPacket));
-            hasInput.store(true, std::memory_order_release);
-        }
-        break;
-    }
-    case C2S_PacketType::RESULT_ACK:
-    {
-        if (room)
-            room->OnAckReceived(*this);
-        break;
-	}
-    case C2S_PacketType::PING:
-    {
-        SetLastRecvTime();
-        break;
-    }
-
-    default:
-        std::cout << "[ClientSession] Unknown packet type: " << header->type << "\n";
-        break;
-    }
 }

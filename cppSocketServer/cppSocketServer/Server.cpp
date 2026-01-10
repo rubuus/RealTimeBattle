@@ -173,9 +173,9 @@ void Server::TickLoop()
 {
     using clock = std::chrono::steady_clock;
 
-    constexpr int TICK_RATE = 60;
+    constexpr int TICK_RATE = 60; // 60fps
     const auto tickDur = std::chrono::microseconds(1000000 / TICK_RATE);
-    const float dt = 1.0f / TICK_RATE;
+	const double dt = 1.0f / TICK_RATE; // double로 정밀도 향상
 
     auto nextTick = clock::now();
 
@@ -197,12 +197,12 @@ void Server::TickLoop()
                 snapshot.push_back(pair.second.get());
         }
 
+		// room 업데이트
         for (auto* room : snapshot)
         {
-            if (room->IsClosed()) continue;
+            if (room) continue;
 
-            room->Update(dt);          // 단일 스레드 권장
-            room->FlushSendBuffers();  // 한 Tick에 한 번
+            room->Update(dt);
         }
 
         nextTick += tickDur;
