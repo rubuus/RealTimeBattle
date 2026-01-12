@@ -1,13 +1,14 @@
-﻿#include "Server.h"
-#include "ClientSession.h"
-#include "Room.h"
-#include "MatchFoundPacket.h"
-#include <thread>
+﻿#include <thread>
 #include <iostream>
 #include <chrono>
 #include <winsock2.h>
 #include <windows.h> 
 #include <threads.h>
+#include "Server.h"
+#include "ClientSession.h"
+#include "Room.h"
+#include "MatchFoundPacket.h"
+#include "PacketHeader.h"
 
 Server& Server::Instance()
 {
@@ -161,10 +162,18 @@ void Server::WorkerLoop()
 		// 비동기 I/O에서 Recv 또는 Send 구분 처리
         auto* ovEx = reinterpret_cast<OverlappedEx*>(ov);
 
-        if (ovEx->type == IOType::Recv)
+        if (ovEx->type == IOType::Recv) 
+        {
+            auto* ctx = reinterpret_cast<RecvContext*>(ovEx);
             session->OnRecv(bytes);
+            delete ctx;
+        }
         else
+        {
+            auto* ctx = reinterpret_cast<SendContext*>(ovEx);
             session->OnSend(bytes);
+            delete ctx;
+        }
     }
 }
 

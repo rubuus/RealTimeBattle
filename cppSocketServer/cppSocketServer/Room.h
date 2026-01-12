@@ -2,12 +2,13 @@
 #include <utility>
 #include <memory>
 #include <unordered_map>
-#include "ClientSession.h"
-#include "ThreadPool.h"
-#include "RoomEvent.h"
 
 class ClientSession;
 class ServerPlayer;
+class ThreadPool;
+
+struct RoomEvent;
+struct RoomOutEvent;
 
 struct SaveRecordRequest;
 

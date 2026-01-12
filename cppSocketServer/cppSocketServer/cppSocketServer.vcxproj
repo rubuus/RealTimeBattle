@@ -145,6 +145,7 @@
     <ClInclude Include="Platform.h" />
     <ClInclude Include="PlayerInputPacket.h" />
     <ClInclude Include="PlayerStatePacket.h" />
+    <ClInclude Include="PlayerStruct.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="RoomEvent.h" />
     <ClInclude Include="SaveRecordRequest.h" />

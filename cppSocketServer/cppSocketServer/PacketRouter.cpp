@@ -1,9 +1,10 @@
-﻿#include "PacketRouter.h"
+﻿#include <iostream>
+#include "PacketRouter.h"
 #include "PacketHeader.h"
-#include <iostream>
 #include "LoginPacket.h"
 #include "Server.h"
 #include "Room.h"
+#include "RoomEvent.h"
 
 PacketRouter& PacketRouter::Instance()
 {
@@ -44,13 +45,14 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
             break;
 
         default:
-            std::cout << "[ClientSession] Unknown packet type: " << pkt.type << "\n";
+            s.Disconnect();
             break;
     }
 }
 
 void PacketRouter::HandleLogin(ClientSession& s, const char* body, uint16_t bodySize)
 {
+    // 바디 사이즈 체크
     if (bodySize < sizeof(LoginPacket))
         return;
 
@@ -66,7 +68,7 @@ void PacketRouter::HandleMatchStart(ClientSession& s)
     Server::Instance().AddToMatchList(s.GetSessionId());
 };
 
-void PacketRouter::HandleBattleReady(ClientSession& s) 
+void PacketRouter::HandleBattleReady(ClientSession& s)
 {
     Room* room = s.GetRoom();
     if (!room) return;
@@ -92,11 +94,12 @@ void PacketRouter::HandleBattleStart(ClientSession& s)
 
 void PacketRouter::HandleInput(ClientSession& s, const char* body, uint16_t bodySize)
 {
+    // 바디 사이즈 체크
+    if (bodySize < sizeof(PlayerInputPacket))
+        return;
+
     Room* room = s.GetRoom();
     if (!room) return;
-
-    if (bodySize < sizeof(PlayerInputPacket))
-		return;
 
     // 패킷에 직접 접근하지 않고, 안전하게 memcpy 사용
     PlayerInputPacket input;

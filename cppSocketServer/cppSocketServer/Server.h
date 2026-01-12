@@ -3,8 +3,9 @@
 #include <list>
 #include <unordered_map>
 #include <WinSock2.h>
-#include "ThreadPool.h"
 #include <MSWSock.h>
+#include "ThreadPool.h"
+#include "Network.h"
 
 class ClientSession;
 class Room;
@@ -46,6 +47,8 @@ private:
 	HANDLE iocpHandle = nullptr;
 	std::vector<std::thread> workers;
 	std::vector<std::thread> threads;
+
+	Network net;
 
 	std::atomic<int> nextClientId{ 1 };
 

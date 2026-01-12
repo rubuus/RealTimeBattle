@@ -4,7 +4,7 @@
 class ClientSession;
 
 struct ParsedPacket {
-    uint16_t type;
+	uint16_t type;
     const char* body;
     uint16_t bodySize;
 };

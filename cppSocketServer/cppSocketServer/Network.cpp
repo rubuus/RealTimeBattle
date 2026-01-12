@@ -1,6 +1,8 @@
 #include "Network.h"
 #include "Server.h"
 #include "ClientSession.h"
+#include "RoomEvent.h"
+#include "PacketHeader.h"
 
 void Network::Dispatch(const RoomOutEvent& ev)
 {

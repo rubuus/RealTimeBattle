@@ -2,107 +2,71 @@
 #include <string>
 #include <vector>
 #include "Platform.h"
-#include "PlayerStatePacket.h"
-#include "DamagePacket.h"
 
 class Platform;
 struct PlayerInputPacket;
 struct PlayerStatePacket;
 struct DamagePacket;
-
-enum class PlayerState : uint8_t
-{
-    Idle = 0,
-    Run = 1,
-    Jump = 2,
-    GroundDash = 3,
-    AirDash = 4,
-    Punch = 5,
-    Hurt = 6
-};
-
-struct Dash
-{
-    float duration;
-    float speed;
-    float timer;
-    float cooldown;
-    float cooldownTimer;
-};
-
-struct Punch
-{
-    float duration;
-    float timer;
-    float cooldown;
-    float cooldownTimer;
-};
+struct PlayerStruct;
 
 class ServerPlayer
 {
 public:
 	ServerPlayer(int32_t playerId, 
         uint8_t playerSide, 
-        const std::pair<float, float>& spawnPosition
+        Vector2 spawnPosition
         );
 
     void ApplyInput(const PlayerInputPacket& p);
 	void Update();
     void TakeDamage(int damage, float hurtVel);
+
+    // 패킷 생성
     PlayerStatePacket StatePacket() const;
 	DamagePacket HurtPacket() const;
 
 	PlayerState GetState() const { return state; }
 	void SetState(PlayerState s) { state = s; }
 
+    Vector2 GetPosition() const { return position; }
+    void SetPosition(Vector2 v) { position = v; }
+
 	int GetDir() const { return dir; }
     void SetDir(int8_t d) { dir = d; }
 
-	bool GetOnGround() const { return onGround; }
-    void SetOnGround(bool b) { onGround = b; }
-
-	bool GetJumpPressed() const { return jumpPressed; }
-    void SetJumpPressed(bool b) { jumpPressed = b; }
-
-	bool GetDashPressed() const { return dashPressed; }
-    void SetDashPressed(bool b) { dashPressed = b; }
-
-	bool GetPunchPressed() const { return punchPressed; }
-    void SetPunchPressed(bool b) { punchPressed = b; }
-
-	bool HasPunchChecked() const { return punchChecked; }
-	void SetPunchChecked(bool b) { punchChecked = b; }
-	
-	std::pair<float, float> GetPosition() const { return position; }
-    void SetPosition(std::pair<float, float> pos) { position = pos; }
-    
-    std::pair<float, float> GetVelocity() const { return velocity; }
-    void SetVelocity(std::pair<float, float> vel) { velocity = vel; }
+    bool HasPunchChecked() { return punchChecked; }
+    void SetPunchChecked(bool b) { punchChecked = b; }
 	
 	int GetCurrentHP() const { return currentHP; }
     void SetCurrentHP(int hp) { currentHP = hp; }
 
 private:
-    void UpdatePosition();
-    void UpdateDirection();
-    void UpdateBaseState();
+    // 업데이트 내부 함수
     void UpdateTimer();
     void UpdateStateMachine();
     void UpdateActionTriggers();
+    void UpdatePosition();
+    void CheckOnGround();
+    void UpdateDirection();
+    
+    // State 변경 및 반영
     void UpdateMove();
     void StartDash();
     void UpdateDash();
     void StartPunch();
     void UpdatePunch();
     void UpdateHurt();
-    void CheckOnGround();
+    
+    // 기본 State 반영
+    void UpdateBaseState();
 
+private:
     float FIXED_STEP = 1 / 60;
 
     int32_t id;
     uint8_t side;
-    std::pair<float, float> position;
-    std::pair<float, float> velocity = { 0.0, 0.0 };
+    Vector2 position;
+    Vector2 velocity = { 0.0, 0.0 };
     int8_t dir;
     PlayerState state = PlayerState::Idle;
 
@@ -130,10 +94,12 @@ private:
     bool isInvincible = false;
     float invincibleTimer = 0.0f;
 
-    int currentHP = 100;
+    int32_t currentHP = 100;
 
     Dash dash;
     Punch punch;
+
+    Platform sceneSize{ -9.0f, 9.0f, 5.0f };
 
     std::vector<Platform> platforms = {
         { -9.0f, 9.0f, -2.5f },

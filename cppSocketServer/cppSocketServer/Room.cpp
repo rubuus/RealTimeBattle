@@ -5,9 +5,12 @@
 #include "ClientSession.h"
 #include "Room.h"
 #include "ServerPlayer.h"
-#include "SaveRecordRequest.h"
 #include "ApiClient.h"
+#include "SaveRecordRequest.h"
 #include "MatchFoundPacket.h"
+#include "RoomEvent.h"
+#include "ThreadPool.h"
+#include "PlayerStruct.h"
 
 Room::Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool)
     : roomId(id), p1(player1), p2(player2), threadPool(pool)
@@ -195,9 +198,9 @@ bool Room::CheckDamage(ServerPlayer& attacker, ServerPlayer& target)
         return false;
 
 	// 피격 방향 설정
-    if (attacker.GetPosition().first > target.GetPosition().first && target.GetDir() < 0)
+    if (attacker.GetPosition().x > target.GetPosition().x && target.GetDir() < 0)
         target.SetDir(1);
-    else if (attacker.GetPosition().first < target.GetPosition().first && target.GetDir() > 0)
+    else if (attacker.GetPosition().x < target.GetPosition().x && target.GetDir() > 0)
         target.SetDir(-1);
 
     target.TakeDamage(10, attacker.GetDir() * 1.0f);
@@ -211,13 +214,13 @@ bool Room::IsInPunchRange(ServerPlayer& attacker, ServerPlayer& target)
     Hitbox hitbox;
     Hurtbox hurtbox;
 
-    hitbox.x = attacker.GetPosition().first + (0.3f * attacker.GetDir());
-    hitbox.y = attacker.GetPosition().second;
+    hitbox.x = attacker.GetPosition().x + (0.3f * attacker.GetDir());
+    hitbox.y = attacker.GetPosition().y;
     hitbox.halfW = 0.3f;
     hitbox.halfH = 0.7f;
 
-    hurtbox.x = target.GetPosition().first;
-    hurtbox.y = target.GetPosition().second;
+    hurtbox.x = target.GetPosition().x;
+    hurtbox.y = target.GetPosition().y;
     hurtbox.halfW = 0.5f;
     hurtbox.halfH = 1.0f;
 

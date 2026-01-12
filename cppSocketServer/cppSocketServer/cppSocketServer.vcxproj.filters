@@ -107,5 +107,8 @@
     <ClInclude Include="RoomEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PlayerStruct.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

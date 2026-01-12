@@ -1,5 +1,6 @@
 #pragma once
-#include "RoomEvent.h"
+
+class RoomOutEvent;
 
 class Network 
 {

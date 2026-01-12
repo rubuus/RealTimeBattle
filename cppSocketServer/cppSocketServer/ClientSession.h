@@ -2,12 +2,18 @@
 #include <chrono>
 #include <atomic>
 #include <vector>
-#include "PacketHeader.h"
-#include "PlayerInputPacket.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "PlayerInputPacket.h"
 #include "PacketRouter.h"
 #pragma comment(lib, "ws2_32.lib")
+
+class Room;
+class PacketRouter;
+struct PacketHeader;
+struct PlayerInputPacket;
+enum class S2C_PacketType : uint16_t;
+enum class C2S_PacketType : uint16_t;
 
 constexpr int RECV_BUFFER_SIZE = 8192;
 
@@ -18,17 +24,17 @@ struct OverlappedEx {
     IOType type;
 };
 
-struct SendContext {
+struct RecvContext {
     OverlappedEx ovEx{};
     WSABUF wsaBuf{};
     std::vector<char> data;
 };
 
-class Room;
-struct PacketHeader;
-struct PlayerInputPacket;
-enum class S2C_PacketType : uint16_t;
-enum class C2S_PacketType : uint16_t;
+struct SendContext {
+    OverlappedEx ovEx{};
+    WSABUF wsaBuf{};
+    std::vector<char> data;
+};
 
 class ClientSession {
 
@@ -36,7 +42,8 @@ public:
     ClientSession(SOCKET s, int id);
 
     void PostRecv();
-    void OnRecv(int bytes);
+    void OnRecv(DWORD bytes);
+    void OnSend(DWORD bytes);
 
     // 헤더만 있을 경우
     void SendPacket(S2C_PacketType type);
@@ -68,10 +75,6 @@ public:
     void SetReady(bool b) { battleReady = b; }
     
 	bool IsDisconnected() const { return disconnected.load(); }
-	void SetDisconnected(bool b) { disconnected.store(b); }
-
-	bool HasAckReceived() const { return ackReceived; }
-	void SetAckReceived(bool b) { ackReceived = b; }
 
 	std::chrono::steady_clock::time_point GetLastRecvTime() const { return lastRecvTime; }
     void SetLastRecvTime() { lastRecvTime = std::chrono::steady_clock::now(); }
@@ -85,15 +88,12 @@ private:
     SOCKET socket = INVALID_SOCKET; // 연결 객체
 	Room* room = nullptr; // 소속된 방
 
-    WSABUF recvWsaBuf{};
-    OverlappedEx recvOvEx{};
-
     char recvBuffer[RECV_BUFFER_SIZE];
-    int recvBytes = 0;
+    int32_t recvBytes = 0;
 
-    int sessionId;
-    int userId;
-    int roomId;
+    int32_t sessionId;
+    int32_t userId;
+    int32_t roomId;
 
     std::atomic<bool> hasInput = false;
     PlayerInputPacket latestInput;
