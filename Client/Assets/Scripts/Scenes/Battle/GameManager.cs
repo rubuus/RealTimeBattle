@@ -4,8 +4,6 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private Transform leftSpawn;
-    [SerializeField] private Transform rightSpawn;
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject enemyPrefab;
 
@@ -15,45 +13,31 @@ public class GameManager : MonoBehaviour
 
     public GameObject myPlayer;
     public GameObject enemyPlayer;
+    public int myPlayerId = 0;
+    public int enemyPlayerId = 0;
 
     private void Awake()
     {
         Instance = this;
+
+        if (SocketClient.Instance.useCppServer)
+            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.BATTLE_START);
+
         SpawnPlayers();
     }
 
     void SpawnPlayers()
     {
         bool left = (SocketClient.Instance.side == "LEFT");
-        Transform mySpawn = left ? leftSpawn : rightSpawn;
-        Transform enemySpawn = left ? rightSpawn : leftSpawn;
 
-        myPlayer = Instantiate(playerPrefab, mySpawn.position, Quaternion.identity);
+        myPlayer = Instantiate(playerPrefab, Vector2.zero, Quaternion.identity);
         myPlayer.transform.localScale = left ? new Vector3(1, 1, 1) : new Vector3(-1, 1, 1);
 
-        enemyPlayer = Instantiate(enemyPrefab, enemySpawn.position, Quaternion.identity);
+        enemyPlayer = Instantiate(enemyPrefab, Vector2.zero, Quaternion.identity);
         enemyPlayer.transform.localScale = left ? new Vector3(-1, 1, 1) : new Vector3(1, 1, 1);
-
-        Invoke(nameof(EnablePlayerNetwork), 0.3f);
-        Invoke(nameof(EnableEnemyNetwork), 0.3f);
 
         // HP 참고용
         var myHealth = myPlayer.GetComponent<Health>();
         var enemyHealth = enemyPlayer.GetComponent<Health>();
-
-        if (SocketClient.Instance.useCppServer)
-            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.BATTLE_START);
-        else
-            _ = SocketClient.Instance.Send(new BasePacket { type = "BATTLE_START" });
-    }
-
-    void EnablePlayerNetwork()
-    {
-        myPlayer.GetComponent<PlayerController>().EnableNetwork();
-    }
-
-    void EnableEnemyNetwork()
-    {
-        enemyPlayer.GetComponent<EnemyController>().EnableNetwork();
     }
 }

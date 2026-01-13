@@ -18,6 +18,7 @@ enum class RoomEventType : uint8_t
 enum class RoomOutEventType : uint8_t
 {
     LoadBattle,
+    PlayerSpawn,
 	StateUpdate,
 	TimeUpdate,
     Attack,

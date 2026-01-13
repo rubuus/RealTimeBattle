@@ -11,22 +11,23 @@ public class SocketClient : MonoBehaviour
 {
     public static SocketClient Instance;
 
+    public bool connected = false;
+    public bool enemyDisconnected = false;
+    public bool useCppServer = false;
+
+    public int myUserId;
+    public int mySessionId;
+    public int enemyUserId;
+    public int enemySessionId;
+    public int roomId;
+    public string side;
+    public string finalResult = "DRAW";
+
     private TcpClient client;
     private NetworkStream stream;
 
     private byte[] buffer = new byte[1024];
     private StringBuilder recvBuffer = new StringBuilder();
-
-    public bool connected = false;
-    public bool enemyDisconnected = false;
-    public bool useCppServer = false;
-
-    public int myId;
-    public int enemyId;
-    public int roomId;
-    public string side;
-
-    public string finalResult = "DRAW";
 
     private void Awake()
     {

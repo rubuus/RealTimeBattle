@@ -1,7 +1,12 @@
 ﻿#pragma once
 #include <utility>
 #include <memory>
+#include <queue>
 #include <unordered_map>
+#include <mutex>
+#include "RoomEvent.h"
+#include "ServerPlayer.h"
+#include "Network.h"
 
 class ClientSession;
 class ServerPlayer;
@@ -9,7 +14,6 @@ class ThreadPool;
 
 struct RoomEvent;
 struct RoomOutEvent;
-
 struct SaveRecordRequest;
 
 struct Hitbox
@@ -38,11 +42,13 @@ public:
 
 private:
     void EmitOutEvent(const RoomOutEvent& ev);
-    void ProcessEvents();
+    void InputEvents();
+    void OutEvents();
     
     void CheckMatch(const RoomEvent& re);
+    void PlayerSpawn(const RoomEvent& re);
     void OnInput(const RoomEvent& re);
-	void ServerPlayerUpdate();
+	void ServerPlayerUpdate(double dt);
 
     void EmitStateUpdate();
 	void EmitTimeUpdate();
@@ -68,6 +74,8 @@ private:
     std::queue<RoomEvent> eventQueue;
     std::mutex eventMutex;
     std::queue<RoomOutEvent> outEvents;
+    std::mutex outEventMutex;
+    Network net;
 
     int roomId;
     ClientSession* p1;
@@ -75,12 +83,13 @@ private:
     std::unique_ptr<ServerPlayer> sp1;
     std::unique_ptr<ServerPlayer> sp2;
 
-    std::pair<float, float> leftSpawn;
-    std::pair<float, float> rightSpawn;
+    Vector2 leftSpawn;
+    Vector2 rightSpawn;
 
     bool p1Ready = false;
     bool p2Ready = false;
     bool gameStarted = false;
+    bool battleStarted = false;
 
     double gameTime = 100.0f;
     double stateSendAcc = 0.0f;

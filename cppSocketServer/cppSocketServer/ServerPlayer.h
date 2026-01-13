@@ -2,28 +2,35 @@
 #include <string>
 #include <vector>
 #include "Platform.h"
+#include "PlayerStruct.h"
 
 class Platform;
 struct PlayerInputPacket;
 struct PlayerStatePacket;
 struct DamagePacket;
-struct PlayerStruct;
+struct Vector2;
+
+enum class PlayerState : uint8_t;
 
 class ServerPlayer
 {
 public:
-	ServerPlayer(int32_t playerId, 
+	ServerPlayer(
+        int32_t playerId, 
         uint8_t playerSide, 
         Vector2 spawnPosition
         );
 
     void ApplyInput(const PlayerInputPacket& p);
-	void Update();
+	void Update(double dt);
     void TakeDamage(int damage, float hurtVel);
 
     // 패킷 생성
     PlayerStatePacket StatePacket() const;
 	DamagePacket HurtPacket() const;
+
+    bool IsStateDirty() { return stateDirty; }
+    void ClearStateDirty() { stateDirty = false; }
 
 	PlayerState GetState() const { return state; }
 	void SetState(PlayerState s) { state = s; }
@@ -61,26 +68,28 @@ private:
     void UpdateBaseState();
 
 private:
-    float FIXED_STEP = 1 / 60;
+    double FIXED_STEP;
 
     int32_t id;
     uint8_t side;
     Vector2 position;
-    Vector2 velocity = { 0.0, 0.0 };
+    Vector2 velocity = { 0.0f, 0.0f };
     int8_t dir;
     PlayerState state = PlayerState::Idle;
 
     // 입력 (한 틱 동안 유지)
+    bool stateDirty = false;
     float moveInput = 0.0f;
     bool jumpPressed = false;
     bool dashPressed = false;
     bool punchPressed = false;
 
     // 파라미터
-    float moveSpeed = 17.0f;
+    float moveSpeed = 12.0f;
     float jumpPower = 18.0f;
     float gravity = -80.0f;
     float prevY;
+    float prevX;
 
     // 점프/대쉬/펀치/피격 관련
     bool onGround = false;
@@ -92,14 +101,14 @@ private:
     float hurtTimer = 0.0f;
 
     bool isInvincible = false;
-    float invincibleTimer = 0.0f;
+    double invincibleTimer = 1.5f;
 
     int32_t currentHP = 100;
 
     Dash dash;
     Punch punch;
 
-    Platform sceneSize{ -9.0f, 9.0f, 5.0f };
+    Platform sceneSize = { -9.0f, 9.0f, 5.0f };
 
     std::vector<Platform> platforms = {
         { -9.0f, 9.0f, -2.5f },

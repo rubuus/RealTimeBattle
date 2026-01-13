@@ -1,39 +1,16 @@
 ﻿  ClientSession.cpp
-  Main.cpp
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ClientSession.cpp(108,22): warning C4267: '-=': conversion from 'size_t' to 'int32_t', possible loss of data
+  PacketRouter.cpp
   Room.cpp
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\numbers(11): warning STL4038: The contents of <numbers> are available only with C++20 or later.
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244: 'initializing': conversion from '_Ty' to '_Ty1', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         with
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         [
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:             _Ty=double
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         ]
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         and
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         [
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:             _Ty1=float
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16): warning C4244:         ]
-  (compiling source file 'Room.cpp')
-      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,16):
-      the template instantiation context (the oldest one first) is
-          C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.h(105,40):
-          see reference to function template instantiation 'std::pair<float,float>::pair<double,double,0>(_Other1 &&,_Other2 &&) noexcept' being compiled
-          with
-          [
-              _Other1=double,
-              _Other2=double
-          ]
-  
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: 'initializing': conversion from '_Ty' to '_Ty2', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=double
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ]
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ]
-  (compiling source file 'Room.cpp')
-  
   Server.cpp
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\Server.cpp(59,23): warning C4018: '<': signed/unsigned mismatch
+  ServerPlayer.cpp
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(139,25): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(142,27): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(143,27): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(228,16): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(244,17): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(269,15): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
   Generating Code...
   cppSocketServer.vcxproj -> C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\x64\Debug\cppSocketServer.exe
   'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는

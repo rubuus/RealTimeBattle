@@ -68,8 +68,8 @@ public static class PacketRouter
         MatchFoundPacket p = JsonUtility.FromJson<MatchFoundPacket>(msg);
 
         SocketClient.Instance.roomId = p.roomId;
-        SocketClient.Instance.myId = p.myId;
-        SocketClient.Instance.enemyId = p.enemyId;
+        SocketClient.Instance.mySessionId = p.mySessionId;
+        SocketClient.Instance.enemySessionId = p.enemySessionId;
         SocketClient.Instance.side = p.side;
 
         MatchButton.Instance.isMatching = false;
@@ -94,7 +94,7 @@ public static class PacketRouter
 
         PlayerStatePacket p = JsonUtility.FromJson<PlayerStatePacket>(msg);
 
-        if (p.userId == SocketClient.Instance.myId)
+        if (p.userId == SocketClient.Instance.myUserId)
         {
             // 내 캐릭터 업데이트
             var pc = GameManager.Instance.myPlayer.GetComponent<PlayerController>();
@@ -112,7 +112,7 @@ public static class PacketRouter
     {
         DamagePacket p = JsonUtility.FromJson<DamagePacket>(msg);
 
-        GameObject target = (p.hurtId == SocketClient.Instance.myId) ?
+        GameObject target = (p.hurtId == SocketClient.Instance.myUserId) ?
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, p.currentHP);

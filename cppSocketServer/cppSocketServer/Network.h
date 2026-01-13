@@ -1,6 +1,6 @@
 #pragma once
 
-class RoomOutEvent;
+struct RoomOutEvent;
 
 class Network 
 {
@@ -9,6 +9,7 @@ public:
 
 private:
 	void BroadcastReadyRoom(const RoomOutEvent& ev);
+	void BroadcastSpawn(const RoomOutEvent& ev);
 	void BroadcastState(const RoomOutEvent& ev);
 	void BroadcastDamage(const RoomOutEvent& ev);
 	void BroadcastTime(const RoomOutEvent& ev);

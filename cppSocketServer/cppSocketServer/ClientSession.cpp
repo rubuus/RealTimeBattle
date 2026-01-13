@@ -8,8 +8,12 @@
 #include "PacketRouter.h"
 #include "LoginPacket.h"
 
-ClientSession::ClientSession(SOCKET s, int id)
-    : socket(s), sessionId(id)
+ClientSession::ClientSession(SOCKET s, int id) : 
+    socket(s), 
+    sessionId(id), 
+    recvBytes(0),
+    disconnected(false),
+    lastRecvTime(std::chrono::steady_clock::now())
 {
 }
 
@@ -17,6 +21,12 @@ void ClientSession::PostRecv()
 {
     if (IsDisconnected())
         return;
+
+    if (recvBytes >= RECV_BUFFER_SIZE)
+    {
+        Disconnect("recv buffer overflow / no space");
+        return;
+    }
 
     auto* ctx = new RecvContext();
     ctx->ovEx.type = IOType::Recv;
@@ -28,6 +38,8 @@ void ClientSession::PostRecv()
     // 버퍼 오버플로우 방지
     ctx->wsaBuf.len = RECV_BUFFER_SIZE - recvBytes;
 
+    DWORD flag = 0;
+
     // WSARecv는 WSABUF가 가리키는 메모리를 커널이 참조
     // IOCP에 완료 패킷 올라감
     int ret = WSARecv(
@@ -35,7 +47,7 @@ void ClientSession::PostRecv()
         &ctx->wsaBuf,
         1,
         nullptr,
-        0,
+        &flag,
         &ctx->ovEx.ov,
         nullptr
     );
@@ -48,18 +60,13 @@ void ClientSession::PostRecv()
         if (WSAGetLastError() != WSA_IO_PENDING)
         {
             delete ctx;
-            Disconnect();
+            Disconnect("PostRecv error");
         }
     }
 }
 
 void ClientSession::OnRecv(DWORD bytes)
 {
-    if (bytes == 0) {
-        Disconnect();
-        return;
-    }
-
     SetLastRecvTime();
 
     recvBytes += bytes;
@@ -75,7 +82,7 @@ void ClientSession::OnRecv(DWORD bytes)
 
         // size 검증 (깨진 스트림 및 악성 코드)
         if (header->size < sizeof(PacketHeader) || header->size > RECV_BUFFER_SIZE) {
-            Disconnect();
+            Disconnect("body size out");
             return;
         }
 
@@ -166,7 +173,7 @@ void ClientSession::SendPacketInternal(
         if (WSAGetLastError() != WSA_IO_PENDING)
         {
             delete ctx;
-            Disconnect();
+            Disconnect("WSASend error");
         }
     }
 }
@@ -182,12 +189,12 @@ void ClientSession::OnPacket(const ParsedPacket& pkt)
     PacketRouter::Instance().Route(*this, pkt);
 }
 
-void ClientSession::Disconnect() {
+void ClientSession::Disconnect(const char* why) {
 
     if (disconnected.exchange(true))
         return;
 
-    std::cout << "[ClientSession] Session " << sessionId << " disconnected.\n";
+    std::cout << "[ClientSession] Session " << sessionId << " disconnected. why=" << why << "\n";
 
     // 1. 통신 끊고 소켓 해제
     if (socket != INVALID_SOCKET)

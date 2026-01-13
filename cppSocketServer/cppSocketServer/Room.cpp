@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include "ClientSession.h"
 #include "Room.h"
+#include "Network.h"
 #include "ServerPlayer.h"
 #include "ApiClient.h"
 #include "SaveRecordRequest.h"
@@ -15,8 +16,8 @@
 Room::Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool)
     : roomId(id), p1(player1), p2(player2), threadPool(pool)
 {
-    leftSpawn = { -7.0f, -2.3f };
-    rightSpawn = { 7.0f, -2.3f };
+    Vector2 leftSpawn = { -7.0f, -2.5f };
+    Vector2 rightSpawn = { 7.0f, -2.5f };
 
     sp1 = std::make_unique<ServerPlayer>(
         p1->GetUserId(),
@@ -41,11 +42,12 @@ void Room::EnqueueEvent(const RoomEvent& ev)
 // Network/IO 스레드로 전달되는 이벤트 enqueue
 void Room::EmitOutEvent(const RoomOutEvent& ev)
 {
+    std::lock_guard<std::mutex> lock(outEventMutex);
     outEvents.push(ev);
 }
 
 // 이벤트 큐 처리 (룸 업데이트 스레드에서 호출)
-void Room::ProcessEvents()
+void Room::InputEvents()
 {
     while (!eventQueue.empty())
     {
@@ -57,6 +59,10 @@ void Room::ProcessEvents()
             case RoomEventType::BattleReady:
                 CheckMatch(ev);
 			    break;
+
+            case RoomEventType::BattleStart:
+                PlayerSpawn(ev);
+                break;
 
             case RoomEventType::PlayerInput:
 				OnInput(ev);
@@ -76,17 +82,32 @@ void Room::ProcessEvents()
     }
 }
 
+// 이벤트 큐 처리 (룸 업데이트 스레드에서 호출)
+void Room::OutEvents()
+{
+    while (!outEvents.empty())
+    {
+        auto ev = outEvents.front();
+        outEvents.pop();
+
+        net.Dispatch(ev);
+    }
+}
+
 void Room::Update(double dt)
 {
-    if (!gameStarted) return;
-    if (!p1 || !p2) return;
+    InputEvents();
+
+    if (!gameStarted) return;   // 매치 안됐으면 return
+    if (!p1 || !p2) return;     // 세션 1명이라도 없으면 return
+    if (!battleStarted) return; // 배틀씬 아니면 return
 
     gameTime -= dt;
 
-    ServerPlayerUpdate();
+    ServerPlayerUpdate(dt);
 
     stateSendAcc += dt;
-    if (stateSendAcc >= 0.033f)
+    if (stateSendAcc >= 0.033)
         EmitStateUpdate();
 
     timeSendAcc += dt;
@@ -95,12 +116,16 @@ void Room::Update(double dt)
 
     EmitDamageUpdate();
 
+    OutEvents();
+
     if (gameTime <= 0.0f || sp1->GetCurrentHP() <= 0 || sp2->GetCurrentHP() <= 0)
         EndGame();
 }
 
 void Room::CheckMatch(const RoomEvent& re)
 {
+    if (gameStarted) return;
+
 	auto p1sid = p1->GetSessionId();
     auto p2sid = p2->GetSessionId();
 
@@ -119,6 +144,20 @@ void Room::CheckMatch(const RoomEvent& re)
     }
 }
 
+void Room::PlayerSpawn(const RoomEvent& re)
+{
+    battleStarted = true;
+
+    int p1sid = p1->GetSessionId();
+    int p2sid = p2->GetSessionId();
+
+    auto s1 = sp1->StatePacket();
+    auto s2 = sp2->StatePacket();
+
+    EmitOutEvent({ RoomOutEventType::PlayerSpawn, p1sid, UpdateStatePayload{ s1, s2 } });
+    EmitOutEvent({ RoomOutEventType::PlayerSpawn, p2sid, UpdateStatePayload{ s1, s2 } });
+}
+
 // Player로직에 Input 값 넘겨주기
 void Room::OnInput(const RoomEvent& re)
 {
@@ -128,15 +167,18 @@ void Room::OnInput(const RoomEvent& re)
         sp2->ApplyInput(re.input);
 }
 
-void Room::ServerPlayerUpdate() 
+void Room::ServerPlayerUpdate(double dt) 
 {
-    sp1->Update();
-    sp2->Update();
+    sp1->Update(dt);
+    sp2->Update(dt);
 }
 
 void Room::EmitStateUpdate()
 {
-	stateSendAcc = 0.0f;
+    stateSendAcc = 0.0f;
+
+    if (!sp1->IsStateDirty() && !sp2->IsStateDirty())
+        return;
 
     int p1sid = p1->GetSessionId();
     int p2sid = p2->GetSessionId();
@@ -146,11 +188,14 @@ void Room::EmitStateUpdate()
 
     EmitOutEvent({ RoomOutEventType::StateUpdate, p1sid, UpdateStatePayload{ s1, s2 } });
     EmitOutEvent({ RoomOutEventType::StateUpdate, p2sid, UpdateStatePayload{ s1, s2 } });
+
+    sp1->ClearStateDirty();
+    sp2->ClearStateDirty();
 }
 
 void Room::EmitTimeUpdate()
 {
-    timeSendAcc = 0.0f;
+    timeSendAcc -= 1.0f;
 
     int p1sid = p1->GetSessionId();
     int p2sid = p2->GetSessionId();
@@ -166,16 +211,15 @@ void Room::EmitDamageUpdate() {
     int p1sid = p1->GetSessionId();
     int p2sid = p2->GetSessionId();
 
-    auto d1 = sp1->HurtPacket();
-    auto d2 = sp2->HurtPacket();
-
     if (CheckDamage(*sp1, *sp2)) 
     {
+        auto d2 = sp2->HurtPacket();
         EmitOutEvent({ RoomOutEventType::Attack, p1sid, UpdateHurtPayload { d2 } });
         EmitOutEvent({ RoomOutEventType::Attack, p2sid, UpdateHurtPayload { d2 } });
     }
     else if (CheckDamage(*sp2, *sp1))
     {
+        auto d1 = sp1->HurtPacket();
         EmitOutEvent({ RoomOutEventType::Attack, p1sid, UpdateHurtPayload { d1 } });
 		EmitOutEvent({ RoomOutEventType::Attack, p2sid, UpdateHurtPayload { d1 } });
     }
@@ -220,9 +264,9 @@ bool Room::IsInPunchRange(ServerPlayer& attacker, ServerPlayer& target)
     hitbox.halfH = 0.7f;
 
     hurtbox.x = target.GetPosition().x;
-    hurtbox.y = target.GetPosition().y;
+    hurtbox.y = target.GetPosition().y + 0.5f;
     hurtbox.halfW = 0.5f;
-    hurtbox.halfH = 1.0f;
+    hurtbox.halfH = 0.5f;
 
     return Overlap(hitbox, hurtbox);
 }

@@ -1,4 +1,4 @@
-#include <vector>
+ï»¿#include <vector>
 #include <cmath>
 #include <string>
 #include <algorithm>
@@ -8,50 +8,73 @@
 #include "DamagePacket.h"
 #include "PlayerStruct.h"
 #include "ServerPlayer.h"
+#include <iostream>
 
 ServerPlayer::ServerPlayer(int32_t playerId, uint8_t playerSide, Vector2 spawnPosition)
 	: id(playerId),
 	side(playerSide),
 	position(spawnPosition),
 	dir(playerSide == 0 ? 1 : -1),
+	prevX(spawnPosition.x),
 	prevY(spawnPosition.y)
 {
-	dash.duration = 0.1f;
-	dash.speed = 30.0f;
-	dash.cooldown = 0.5f;
+	dash.duration = 0.2f;
+	dash.speed = 20.0f;
+	dash.cooldown = 1.0f;
 
-	punch.duration = 0.2f;
-	punch.cooldown = 0.4f;
+	punch.duration = 0.4f;
+	punch.cooldown = 0.8f;
 }
 
 void ServerPlayer::ApplyInput(const PlayerInputPacket& p) {
-	moveInput = std::clamp(p.move, -1.0f, 1.0f);
-	jumpPressed = p.jump == 1 ? true : false;
-	dashPressed = p.dash == 1 ? true : false;
-	punchPressed = p.punch == 1 ? true : false;
+	float newMove = std::clamp(p.move, -1.0f, 1.0f);
+	moveInput = newMove;
+
+	if (p.jump == 1) jumpPressed = true;
+	if (p.dash == 1) dashPressed = true;
+	if (p.punch == 1) punchPressed = true;
 }
 
-// ÇÃ·¹ÀÌ¾î ¾÷µ¥ÀÌÆ®
-void ServerPlayer::Update() {
-	UpdateTimer();			// dash/punch ÄğÅ¸ÀÓ ¹× ÇÇ°İ ¹«Àû ½Ã°£ °»½Å
-	UpdateStateMachine();	// ÇöÀç »óÅÂ ¹İ¿µ
-	UpdatePosition();		// ÁÂÇ¥ °»½Å
-	CheckOnGround();		// OnGround Ã¼Å©
-	UpdateDirection();		// ¹æÇâ °»½Å
+// í”Œë ˆì´ì–´ ì—…ë°ì´íŠ¸
+void ServerPlayer::Update(double dt) {
+	FIXED_STEP = dt;
+	PlayerState oldState = state; // ì—…ë°ì´íŠ¸ ì „ ìƒíƒœ ì €ì¥
+	int8_t oldDir = dir;
 
+	UpdateTimer();			// dash/punch ì¿¨íƒ€ì„ ë° í”¼ê²© ë¬´ì  ì‹œê°„ ê°±ì‹ 
+	UpdateStateMachine();	// í˜„ì¬ ìƒíƒœ ë°˜ì˜
+	UpdatePosition();		// ì¢Œí‘œ ê°±ì‹ 
+	CheckOnGround();		// OnGround ì²´í¬
+	UpdateDirection();		// ë°©í–¥ ê°±ì‹ 
+
+	// Jitter ê°’ë³´ë‹¤ í¬ê±°ë‚˜ ì´ì „ ìƒíƒœ/ë°©í–¥ê³¼ ë‹¤ë¥´ë©´ true (ì‹¤ì œë¡œ ì›€ì§ì„)
+	if (std::abs(position.x - prevX) > 0.001f ||
+		std::abs(position.y - prevY) > 0.001f ||
+		oldState != state ||
+		oldDir != dir)
+	{
+		stateDirty = true;
+	}
+
+	// ì§€ì†ì‹œê°„/ì¿¨íƒ€ì„ ì¤‘ ì„ ì…ë ¥ ë°©ì§€
+	jumpPressed = false;
+	dashPressed = false;
+	punchPressed = false;
+
+	prevX = position.x;
 	prevY = position.y;
 }
 
 void ServerPlayer::UpdateTimer() {
-	if (dash.cooldownTimer > 0.0f) 
-		dash.cooldownTimer = std::max(0.0f, dash.cooldownTimer - FIXED_STEP);
+	if (dash.cooldownTimer > 0.0f)
+		dash.cooldownTimer -= FIXED_STEP;
 	
 	if (punch.cooldownTimer > 0.0f)
-		punch.cooldownTimer = std::max(0.0f, punch.cooldownTimer - FIXED_STEP);
+		punch.cooldownTimer -= FIXED_STEP;
 
 	if (invincibleTimer > 0.0f)
 	{
-		invincibleTimer = std::max(0.0f, punch.cooldownTimer - FIXED_STEP);
+		invincibleTimer -= FIXED_STEP;
 
 		if (invincibleTimer <= 0.0f)
 			isInvincible = false;
@@ -60,10 +83,10 @@ void ServerPlayer::UpdateTimer() {
 
 void ServerPlayer::UpdateStateMachine() {
 
-	// ¾×¼Ç Æ®¸®°Å ¹ßµ¿ Ã¼Å©
+	// ì•¡ì…˜ íŠ¸ë¦¬ê±° ë°œë™ ì²´í¬
 	UpdateActionTriggers();
 
-	// »óÅÂº° Ã³¸®
+	// ìƒíƒœë³„ ì²˜ë¦¬
 	switch (state)
 	{
 	case PlayerState::Hurt:
@@ -85,7 +108,7 @@ void ServerPlayer::UpdateStateMachine() {
 	}
 }
 
-// BaseState ½Ã, Dash or Punch ÀÔ·Â È®ÀÎ
+// BaseState ì‹œ, Dash or Punch ì…ë ¥ í™•ì¸
 void ServerPlayer::UpdateActionTriggers()
 {
 	if (state == PlayerState::Idle ||
@@ -108,7 +131,7 @@ void ServerPlayer::UpdateActionTriggers()
 
 void ServerPlayer::UpdatePosition() {
 
-	// °øÁß + ´ë½¬ ¾Æ´Ò ½Ã, ³«ÇÏ
+	// ê³µì¤‘ + ëŒ€ì‰¬ ì•„ë‹ ì‹œ, ë‚™í•˜
 	if (!onGround &&
 		state != PlayerState::GroundDash &&
 		state != PlayerState::AirDash)
@@ -119,14 +142,14 @@ void ServerPlayer::UpdatePosition() {
 	position.x += velocity.x * FIXED_STEP;
 	position.y += velocity.y * FIXED_STEP;
 
-	// ¸Ê width ³Ñ¾î°¡´Â°Å ¹æÁö
+	// ë§µ width ë„˜ì–´ê°€ëŠ”ê±° ë°©ì§€
 	if (position.x > sceneSize.maxX)
 		position.x = sceneSize.maxX;
 
 	if (position.x < sceneSize.minX)
 		position.x = sceneSize.minX;
 
-	// ¸Ê height ³Ñ¾î°¡´Â°Å ¹æÁö
+	// ë§µ height ë„˜ì–´ê°€ëŠ”ê±° ë°©ì§€
 	if (position.y > sceneSize.Y)
 	{
 		position.y = sceneSize.Y;
@@ -134,7 +157,7 @@ void ServerPlayer::UpdatePosition() {
 	}
 }
 
-// ¹ßÆÇ ¹× ¶¥ Ã¼Å©
+// ë°œíŒ ë° ë•… ì²´í¬
 void ServerPlayer::CheckOnGround() {
 	float groundY = 0.0f;
 	bool grounded = false;
@@ -144,7 +167,7 @@ void ServerPlayer::CheckOnGround() {
 		if (position.x >= p.minX &&
 			position.x <= p.maxX &&
 			position.y <= p.Y &&
-			prevY >= p.Y)   // À§¿¡¼­ ³»·Á¿À´Â °æ¿ì¿¡¸¸ ÂøÁö
+			prevY >= p.Y)   // ìœ„ì—ì„œ ë‚´ë ¤ì˜¤ëŠ” ê²½ìš°ì—ë§Œ ì°©ì§€
 		{
 			groundY = p.Y;
 			grounded = true;
@@ -163,7 +186,7 @@ void ServerPlayer::CheckOnGround() {
 }
 
 void ServerPlayer::UpdateDirection() {
-	// punch ÁßÀÏ¶§´Â ¹æÇâ ¸ø ¹Ù²Ş
+	// punch ì¤‘ì¼ë•ŒëŠ” ë°©í–¥ ëª» ë°”ê¿ˆ
 	if (state == PlayerState::Punch)
 		return;
 
@@ -173,16 +196,16 @@ void ServerPlayer::UpdateDirection() {
 
 void ServerPlayer::UpdateMove()
 {
-	// ¼öÆò ÀÌµ¿
-	velocity.x = moveInput * moveSpeed;
+	// ìˆ˜í‰ ì´ë™: ì…ë ¥ì´ ìˆìœ¼ë©´ ì†ë„ ë¶€ì—¬, ì—†ìœ¼ë©´ ì •ì§€
+	if (std::abs(moveInput) > 0.01f)
+		velocity.x = moveInput * moveSpeed;
+	else velocity.x = 0.0f;
 
-	// Á¡ÇÁ
 	if (jumpPressed && jumpCount > 0)
 	{
-
-		jumpPressed = false;
 		velocity.y = jumpPower;
 		jumpCount--;
+		jumpPressed = false;
 	}
 
 	UpdateBaseState();
@@ -225,19 +248,19 @@ void ServerPlayer::UpdatePunch() {
 }
 
 void ServerPlayer::TakeDamage(int damage, float hurtVel) {
-	// ÀÌ¹Ì ¹«Àû »óÅÂ¸é ³¡³»±â
+	// ì´ë¯¸ ë¬´ì  ìƒíƒœë©´ ëë‚´ê¸°
 	if (isInvincible)
 		return;
 
 	currentHP -= damage;
 	if (currentHP < 0) currentHP = 0;
 
-	// ÇÇ°İ ½Ã °æÁ÷ + ¹«Àû
+	// í”¼ê²© ì‹œ ê²½ì§ + ë¬´ì 
 	hurtTimer = hurtDuration;
-	invincibleTimer = hurtDuration;
+	invincibleTimer = 1.5f;
 	isInvincible = true;
 
-	// ÇÇ°İ ½Ã µÚ·Î ¹Ğ¸²
+	// í”¼ê²© ì‹œ ë’¤ë¡œ ë°€ë¦¼
 	state = PlayerState::Hurt;
 	velocity.x = hurtVel;
 }
@@ -249,7 +272,7 @@ void ServerPlayer::UpdateHurt() {
 		UpdateBaseState();
 }
 
-// ±âº» »óÅÂ ¾÷µ¥ÀÌÆ®
+// ê¸°ë³¸ ìƒíƒœ ì—…ë°ì´íŠ¸
 void ServerPlayer::UpdateBaseState() {
 	if (!onGround)
 		state = PlayerState::Jump;

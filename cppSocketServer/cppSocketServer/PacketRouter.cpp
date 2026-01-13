@@ -29,7 +29,7 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
             break;
 
         case C2S_PacketType::BATTLE_START:
-		    HandleBattleStart(s);
+            HandleBattleStart(s);
             break;
 
         case C2S_PacketType::INPUT:
@@ -45,7 +45,7 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
             break;
 
         default:
-            s.Disconnect();
+            s.Disconnect("Not Found Packet Header");
             break;
     }
 }

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Network.h"
 #include "Server.h"
 #include "ClientSession.h"
@@ -10,6 +11,10 @@ void Network::Dispatch(const RoomOutEvent& ev)
 	{
 		case RoomOutEventType::LoadBattle:
 			BroadcastReadyRoom(ev);
+			break;
+
+		case RoomOutEventType::PlayerSpawn:
+			BroadcastSpawn(ev);
 			break;
 
 		case RoomOutEventType::StateUpdate:
@@ -45,6 +50,15 @@ void Network::BroadcastReadyRoom(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	s->SendPacket(S2C_PacketType::LOAD_BATTLE);
+}
+
+void Network::BroadcastSpawn(const RoomOutEvent& ev)
+{
+	auto* s = Server::Instance().FindSession(ev.sessionId);
+	auto& payload = std::get<UpdateStatePayload>(ev.payload);
+
+	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p1);
+	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p2);
 }
 
 void Network::BroadcastState(const RoomOutEvent& ev)

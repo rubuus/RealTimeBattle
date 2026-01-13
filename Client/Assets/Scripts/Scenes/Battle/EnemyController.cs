@@ -17,8 +17,6 @@ public class EnemyController : MonoBehaviour
     private Vector2 smoothVel;
     [SerializeField] private float networkSmoothTime = 0.03f;
 
-    private bool canReceiveNetwork = false;
-
     private Rigidbody2D rigid;
     private Animator anim;
 
@@ -35,8 +33,6 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        if (!canReceiveNetwork) return;
-
         if (isNetworkUpdatePending) 
         {
             ApplyServerStateWithGuard();
@@ -139,11 +135,6 @@ public class EnemyController : MonoBehaviour
                 anim.Play("Hurt");
                 break;
         }
-    }
-
-    public void EnableNetwork()
-    {
-        canReceiveNetwork = true;
     }
 
     private bool TryResolvePlayerState(

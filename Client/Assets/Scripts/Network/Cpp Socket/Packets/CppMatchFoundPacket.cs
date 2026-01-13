@@ -6,7 +6,9 @@ using UnityEngine;
 public struct CppMatchFoundPacket
 {
     public int roomId;
-    public int myId;
-    public int enemyId;
+    public int myUserId;
+    public int mySessionId;
+    public int enemyUserId;
+    public int enemySessionId;
     public sbyte side;
 }

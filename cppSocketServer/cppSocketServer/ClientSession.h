@@ -11,6 +11,7 @@
 class Room;
 class PacketRouter;
 struct PacketHeader;
+struct ParsedPacket;
 struct PlayerInputPacket;
 enum class S2C_PacketType : uint16_t;
 enum class C2S_PacketType : uint16_t;
@@ -57,7 +58,7 @@ public:
 
 	void OnPacket(const ParsedPacket& pkt);
     
-    void Disconnect();
+    void Disconnect(const char* why);
 
     SOCKET GetSocket() const { return socket; }
     int GetSessionId() const { return sessionId; }
@@ -89,7 +90,7 @@ private:
 	Room* room = nullptr; // 家加等 规
 
     char recvBuffer[RECV_BUFFER_SIZE];
-    int32_t recvBytes = 0;
+    int32_t recvBytes;
 
     int32_t sessionId;
     int32_t userId;
@@ -101,5 +102,5 @@ private:
     std::atomic<bool> disconnected = false;
     bool battleReady = false;
     bool ackReceived = false;
-    std::chrono::steady_clock::time_point lastRecvTime = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point lastRecvTime;
 };

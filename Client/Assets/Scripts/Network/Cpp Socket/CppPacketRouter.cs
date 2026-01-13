@@ -3,6 +3,7 @@ using System.Collections;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static UnityEngine.GraphicsBuffer;
 
 public static class CppPacketRouter
 {
@@ -32,7 +33,6 @@ public static class CppPacketRouter
 
             case S2C_PacketType.TAKE_DAMAGE:
                 {
-                    Debug.Log("Received TAKE_DAMAGE packet");
                     var pkt = MemoryMarshal.Read<CppDamagePacket>(body);
                     HandleTakeDamage(pkt);
                 }
@@ -70,7 +70,7 @@ public static class CppPacketRouter
                 break;
 
             default:
-                Console.WriteLine($"[WARN] Unknown packet type: {packetType}");
+                Debug.Log($"[WARN] Unknown packet type: {packetType}");
                 break;
         }
     }
@@ -78,8 +78,10 @@ public static class CppPacketRouter
     private static void HandleMatchFound(CppMatchFoundPacket pkt)
     {
         SocketClient.Instance.roomId = pkt.roomId;
-        SocketClient.Instance.myId = pkt.myId;
-        SocketClient.Instance.enemyId = pkt.enemyId;
+        SocketClient.Instance.myUserId = pkt.myUserId;
+        SocketClient.Instance.mySessionId = pkt.mySessionId;
+        SocketClient.Instance.enemySessionId = pkt.enemySessionId;
+        SocketClient.Instance.enemyUserId = pkt.enemyUserId;
         SocketClient.Instance.side = (pkt.side == 0) ? "LEFT" : "RIGHT" ;
 
         MatchButton.Instance.isMatching = false;
@@ -91,6 +93,7 @@ public static class CppPacketRouter
     {
         SocketClient.Instance.enemyDisconnected = false;
         SceneLoader.Instance.LoadBattle();
+        _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.BATTLE_READY);
     }
 
     private static void HandleState(CppPlayerStatePacket pkt)
@@ -102,7 +105,7 @@ public static class CppPacketRouter
             return;
         }
 
-        if (pkt.userId == SocketClient.Instance.myId)
+        if (pkt.playerId == SocketClient.Instance.myUserId)
         {
             // 내 캐릭터 업데이트
             var pc = GameManager.Instance.myPlayer.GetComponent<PlayerController>();
@@ -118,7 +121,7 @@ public static class CppPacketRouter
 
     private static void HandleTakeDamage(CppDamagePacket pkt)
     {
-        GameObject target = (pkt.hurtId == SocketClient.Instance.myId) ?
+        GameObject target = (pkt.hurtId == SocketClient.Instance.myUserId) ?
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
         SocketClient.Instance.UpdateHP(target, pkt.currentHP);

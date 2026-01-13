@@ -20,6 +20,8 @@ public class PlayerController : MonoBehaviour
     }
 
     private PlayerState state = PlayerState.Idle;
+    private float sendTimer = 0f;
+    const float SEND_INTERVAL = 0.05f;
 
     // --- 입력값 (로컬에서만 사용) ---
     private float moveInput;
@@ -36,8 +38,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float networkSmoothTime = 0.03f;
 
     private Vector2 smoothVel;
-
-    private bool canReceiveNetwork = false;
 
     private Rigidbody2D rigid;
     private Animator anim;
@@ -57,8 +57,6 @@ public class PlayerController : MonoBehaviour
     {
         ReadInput();
 
-        if (!canReceiveNetwork) return;
-
         if (isNetworkUpdatePending)
         {
             ApplyServerStateWithGuard();
@@ -67,7 +65,15 @@ public class PlayerController : MonoBehaviour
 
         ApplyNetworkPosition();
         ApplyServerDirection();
-        SendInput();
+
+        sendTimer += Time.unscaledDeltaTime;
+
+        while (sendTimer >= SEND_INTERVAL)
+        {
+            sendTimer -= SEND_INTERVAL;
+
+            SendInput();
+        }
     }
 
     void ReadInput()
@@ -79,9 +85,9 @@ public class PlayerController : MonoBehaviour
         else
             moveInput = 0;
 
-        jumpPressed = Input.GetKeyDown(KeyCode.C);
-        dashPressed = Input.GetKeyDown(KeyCode.X);
-        punchPressed = Input.GetKeyDown(KeyCode.Z);
+        if(Input.GetKeyDown(KeyCode.C)) jumpPressed = true;
+        if (Input.GetKeyDown(KeyCode.X)) dashPressed = true;
+        if (Input.GetKeyDown(KeyCode.Z)) punchPressed = true;
     }
 
     private void SendInput()
@@ -90,6 +96,10 @@ public class PlayerController : MonoBehaviour
             SendInput_CppBinary();
         else
             SendInput_CSharpDTO();
+
+        jumpPressed = false;
+        dashPressed = false;
+        punchPressed = false;
     }
 
     private void SendInput_CSharpDTO()
@@ -97,7 +107,7 @@ public class PlayerController : MonoBehaviour
         _ = SocketClient.Instance.Send(new PlayerInputPacket()
         {
             type = "INPUT",
-            id = SocketClient.Instance.myId,
+            id = SocketClient.Instance.myUserId,
             move = moveInput,
             jump = jumpPressed,
             dash = dashPressed,
@@ -109,7 +119,7 @@ public class PlayerController : MonoBehaviour
     {
         var bodyStruct = new CppPlayerInputPacket
         {
-            id = SocketClient.Instance.myId,
+            id = SocketClient.Instance.myUserId,
             move = moveInput,
             jump = jumpPressed ? (byte)1 : (byte)0,
             dash = dashPressed ? (byte)1 : (byte)0,
@@ -193,6 +203,7 @@ public class PlayerController : MonoBehaviour
 
     void ChangeState(PlayerState newState)
     {
+        Debug.Log($"ChangeState: {state} -> {newState}");
         // 중복 전환 방지
         if (state == newState)
             return;
@@ -229,11 +240,6 @@ public class PlayerController : MonoBehaviour
                 anim.Play("Hurt");
                 break;
         }
-    }
-
-    public void EnableNetwork()
-    {
-        canReceiveNetwork = true;
     }
 
     private bool TryResolvePlayerState(

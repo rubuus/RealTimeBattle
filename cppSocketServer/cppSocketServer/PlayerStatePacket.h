@@ -2,7 +2,7 @@
 #pragma pack(push, 1)
 struct PlayerStatePacket
 {
-    int32_t userId;
+    int32_t playerId;
     float x;
     float y;
     uint8_t state;

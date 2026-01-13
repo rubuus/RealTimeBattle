@@ -35,7 +35,7 @@ struct Dash
     float speed;
     float timer;
     float cooldown;
-    float cooldownTimer;
+    double cooldownTimer;
 };
 
 struct Punch
@@ -43,5 +43,5 @@ struct Punch
     float duration;
     float timer;
     float cooldown;
-    float cooldownTimer;
+    double cooldownTimer;
 };

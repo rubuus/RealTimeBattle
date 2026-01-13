@@ -121,6 +121,8 @@ void Server::AcceptLoop()
 
         std::cout << "[Server] Client " << clientId << " Connected\n";
 
+        // 수신시간 갱신
+        sessionPtr->SetLastRecvTime();
 		// lock 해제 후 첫 수신 요청
         if (sessionPtr) sessionPtr->PostRecv();
     }
@@ -149,19 +151,39 @@ void Server::WorkerLoop()
         ClientSession* session = reinterpret_cast<ClientSession*>(key);
 
         // null 체크
-        if (!session)
+        if (!session || !ov)
             continue;
         
-        // 오류 발생 또는 상대방이 연결을 정상 종료(bytes == 0)
-        if (!ok || bytes == 0)
+        // 비동기 I/O에서 Recv 또는 Send 구분 처리
+        auto* ovEx = reinterpret_cast<OverlappedEx*>(ov);
+
+        // 오류 발생
+        if (!ok)
         {
-            session->Disconnect();
+            session->Disconnect("GQCS !ok");
+
+            if (ovEx->type == IOType::Recv) delete reinterpret_cast<RecvContext*>(ovEx);
+            else if (ovEx->type == IOType::Send) delete reinterpret_cast<SendContext*>(ovEx);
             continue;
         }
 
-		// 비동기 I/O에서 Recv 또는 Send 구분 처리
-        auto* ovEx = reinterpret_cast<OverlappedEx*>(ov);
+        // 연결 끊긴 상태면 컨텍스트 해제
+        if (session->IsDisconnected())
+        {
+            if (ovEx->type == IOType::Recv) delete reinterpret_cast<RecvContext*>(ovEx);
+            else delete reinterpret_cast<SendContext*>(ovEx);
+            continue;
+        }
 
+        // 정상 종료
+        if (ovEx->type == IOType::Recv && bytes == 0) 
+        {
+            delete reinterpret_cast<RecvContext*>(ovEx);
+            session->Disconnect("Recv bytes==0");
+            continue;
+        }
+
+        // 세션에 이벤트 넘겨줌
         if (ovEx->type == IOType::Recv) 
         {
             auto* ctx = reinterpret_cast<RecvContext*>(ovEx);
@@ -209,8 +231,6 @@ void Server::TickLoop()
 		// room 업데이트
         for (auto* room : snapshot)
         {
-            if (room) continue;
-
             room->Update(dt);
         }
 
@@ -255,7 +275,7 @@ void Server::HeartbeatLoop()
         for (auto s : timeoutList)
         {
             std::cout << "Session timed out\n";
-            s->Disconnect();
+            s->Disconnect("Heartbeat timeout");
         }
 
         // 살아있는 세션에 heartbeat 응답(PONG) 전송
@@ -365,8 +385,8 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 }
 
 void Server::NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2) {
-    p1->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p1->GetUserId(), p2->GetUserId(), Side::Left));
-    p2->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p1->GetUserId(), Side::Right));
+    p1->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p1->GetUserId(), p1->GetSessionId(), p2->GetUserId(), p2->GetSessionId(), Side::Left));
+    p2->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
 }
 
 void Server::CloseRoom(int id) {
@@ -419,7 +439,7 @@ void Server::RemoveClient(ClientSession* s)
     // 락 밖에서 정리
     if (dying)
     {
-        dying->Disconnect();
+        dying->Disconnect("room clear");
     }
 
     std::cout << "[Server] Client " << sid << " Removed and Resource Cleaned\n";

@@ -46,7 +46,7 @@ public class MatchManager : MonoBehaviour
     private IEnumerator GetMyProfile(Image image, TMP_Text text)
     {
         yield return API.Instance.SendJsonRequest<object>(
-            endpoint: $"users/{SocketClient.Instance.myId}",
+            endpoint: $"users/{SocketClient.Instance.myUserId}",
             method: "GET",
             data: null,
             onSuccess: res => {
@@ -61,7 +61,7 @@ public class MatchManager : MonoBehaviour
     private IEnumerator GetEnemyProfile(Image image, TMP_Text text)
     {
         yield return API.Instance.SendJsonRequest<object>(
-            endpoint: $"users/{SocketClient.Instance.enemyId}",
+            endpoint: $"users/{SocketClient.Instance.enemyUserId}",
             method: "GET",
             data: null,
             onSuccess: res => {
