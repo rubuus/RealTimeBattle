@@ -78,27 +78,29 @@ void ClientSession::OnRecv(DWORD bytes)
         if (recvBytes - offset < (int)sizeof(PacketHeader))
             break;
 
-        auto* header = reinterpret_cast<PacketHeader*>(recvBuffer + offset);
+        PacketHeader header;
+        memcpy(&header, recvBuffer + offset, sizeof(PacketHeader));
+
 
         // size 검증 (깨진 스트림 및 악성 코드)
-        if (header->size < sizeof(PacketHeader) || header->size > RECV_BUFFER_SIZE) {
+        if (header.size < sizeof(PacketHeader) || header.size > RECV_BUFFER_SIZE) {
             Disconnect("body size out");
             return;
         }
 
         // 바디가 전체 안 왔으면 PostRecv
-        if (recvBytes - offset < header->size)
+        if (recvBytes - offset < header.size)
             break;
 
         ParsedPacket pkt {
-            header->type,
+            header.type,
             recvBuffer + offset + sizeof(PacketHeader),
-            static_cast<uint16_t>(header->size - sizeof(PacketHeader))
+            static_cast<uint16_t>(header.size - sizeof(PacketHeader))
         };
 
         OnPacket(pkt);
 
-        offset += header->size;
+        offset += header.size;
     }
 
     // 처리한 패킷 사이즈는 제거 및 메모리 위치 이동
@@ -108,7 +110,8 @@ void ClientSession::OnRecv(DWORD bytes)
         recvBytes -= offset;
     }
 
-    PostRecv();
+    if (!IsDisconnected())
+        PostRecv();
 }
 
 void ClientSession::SendPacket(S2C_PacketType type)
@@ -212,7 +215,4 @@ void ClientSession::Disconnect(const char* why) {
             sessionId
             });
     }
-
-    // 3. 클라이언트 목록 제거
-    Server::Instance().RemoveClient(this);
 }

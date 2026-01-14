@@ -159,20 +159,11 @@ public class AuthManager : MonoBehaviour
 
     public IEnumerator ChangeProfileImage(int idx)
     {
-        var req = new ChangeProfileImageRequest
-        {
-            ProfileImage = idx,
-            AccessToken = AccessToken
-        };
-
         yield return API.Instance.SendJsonRequest(
-            "users/profile-image", "POST", req,
-            onSuccess: res => {
-                ProfileImage = req.ProfileImage;
-            },
-            onError: err => {
-                Debug.Log(err);
-            }
+            "users/profile-image", 
+            UnityWebRequest.kHttpVerbPOST,
+            new ChangeProfileImageRequest { ProfileImage = idx },
+            onError: Debug.Log
         );
     }
 }

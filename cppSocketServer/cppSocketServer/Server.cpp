@@ -153,17 +153,25 @@ void Server::WorkerLoop()
         // null 체크
         if (!session || !ov)
             continue;
-        
+       
+        session->ReleaseIo();
+
         // 비동기 I/O에서 Recv 또는 Send 구분 처리
         auto* ovEx = reinterpret_cast<OverlappedEx*>(ov);
 
         // 오류 발생
         if (!ok)
         {
+            DWORD err = GetLastError();
+            std::cout << "[GQCS !ok] err=" << err << "\n";
             session->Disconnect("GQCS !ok");
 
             if (ovEx->type == IOType::Recv) delete reinterpret_cast<RecvContext*>(ovEx);
             else if (ovEx->type == IOType::Send) delete reinterpret_cast<SendContext*>(ovEx);
+            
+            if (session->CanCleanup())
+                RemoveClient(session->GetSessionId());
+
             continue;
         }
 
@@ -172,6 +180,10 @@ void Server::WorkerLoop()
         {
             if (ovEx->type == IOType::Recv) delete reinterpret_cast<RecvContext*>(ovEx);
             else delete reinterpret_cast<SendContext*>(ovEx);
+
+            if (session->CanCleanup())
+                RemoveClient(session->GetSessionId());
+
             continue;
         }
 
@@ -180,6 +192,10 @@ void Server::WorkerLoop()
         {
             delete reinterpret_cast<RecvContext*>(ovEx);
             session->Disconnect("Recv bytes==0");
+
+            if (session->CanCleanup())
+                RemoveClient(session->GetSessionId());
+
             continue;
         }
 
@@ -196,6 +212,9 @@ void Server::WorkerLoop()
             session->OnSend(bytes);
             delete ctx;
         }
+
+        if (session->CanCleanup())
+            RemoveClient(session->GetSessionId());
     }
 }
 
@@ -276,6 +295,7 @@ void Server::HeartbeatLoop()
         {
             std::cout << "Session timed out\n";
             s->Disconnect("Heartbeat timeout");
+            RemoveClient(s->GetSessionId());
         }
 
         // 살아있는 세션에 heartbeat 응답(PONG) 전송
@@ -411,12 +431,8 @@ void Server::CloseRoom(int id) {
     }
 }
 
-void Server::RemoveClient(ClientSession* s)
+void Server::RemoveClient(int sid)
 {
-    if (!s) return;
-    const int sid = s->GetSessionId();
-
-    // matchList에서 제거 (락 범위 최소화)
     {
         std::lock_guard<std::mutex> lock(matchMutex);
         matchList.remove(sid);
@@ -424,23 +440,22 @@ void Server::RemoveClient(ClientSession* s)
 
     std::unique_ptr<ClientSession> dying;
 
-    // clients map에서 소유권 이동
     {
         std::lock_guard<std::mutex> lock(clientsMutex);
         auto it = clients.find(sid);
 
-        if (it != clients.end())
-        {
-            dying = std::move(it->second);
-            clients.erase(it);
-        }
+        if (it == clients.end())
+            return;
+
+        ClientSession* s = it->second.get();
+        if (!s->CanCleanup())
+            return;
+
+        dying = std::move(it->second);
+        std::cout << "[SESSION REMOVE] sid=" << sid << "\n";
+        clients.erase(it);
     }
 
-    // 락 밖에서 정리
-    if (dying)
-    {
-        dying->Disconnect("room clear");
-    }
-
+    // 🔥 여기서 unique_ptr 소멸 → ClientSession delete
     std::cout << "[Server] Client " << sid << " Removed and Resource Cleaned\n";
 }

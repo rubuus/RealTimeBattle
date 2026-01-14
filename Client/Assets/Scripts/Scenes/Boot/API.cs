@@ -29,21 +29,27 @@ public class API : MonoBehaviour
     public IEnumerator SendJsonRequest<T>(
     string endpoint,
     string method,
-    T data,
-    Action<string> onSuccess,
-    Action<string> onError)
+    T data = default,
+    Action<string> onSuccess = null,
+    Action<string> onError = null)
     {
-        string json = JsonConvert.SerializeObject(data);
-        var req = new UnityWebRequest($"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}", method);
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+        var url = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
 
-        req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        var req = new UnityWebRequest(url, method);
         req.downloadHandler = new DownloadHandlerBuffer();
-        req.SetRequestHeader("Content-Type", "application/json");
 
-        // ✅ JWT 토큰이 존재하면 Authorization 헤더 자동 추가
-        if (!string.IsNullOrEmpty(AuthManager.Instance.AccessToken))
-            req.SetRequestHeader("Authorization", "Bearer " + AuthManager.Instance.AccessToken);
+        // data가 있을 때만 body 추가 (GET 대응)
+        if (data != null && !method.Equals(UnityWebRequest.kHttpVerbGET))
+        {
+            var json = JsonConvert.SerializeObject(data);
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+            req.SetRequestHeader("Content-Type", "application/json");
+        }
+
+        // JWT 자동 첨부
+        var token = AuthManager.Instance.AccessToken;
+        if (!string.IsNullOrEmpty(token))
+            req.SetRequestHeader("Authorization", $"Bearer {token}");
 
         yield return req.SendWebRequest();
 

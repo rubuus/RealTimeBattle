@@ -1,6 +1,7 @@
 #pragma once
 #include <queue>
 #include <list>
+#include <iostream>
 #include <unordered_map>
 #include <WinSock2.h>
 #include <MSWSock.h>
@@ -26,13 +27,15 @@ public:
 	void CreateRoom(ClientSession* p1, ClientSession* p2);
 	void NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2);
 	void CloseRoom(int id);
-	void RemoveClient(ClientSession* s);
+	void RemoveClient(int sid);
 
 	// Network에서 꺼내쓰는용
 	ClientSession* FindSession(int sid) 
 	{ 
 		auto it = clients.find(sid);
-		return (it == clients.end()) ? nullptr : it->second.get();
+		if (it == clients.end())
+			std::cout << "[FindSession FAIL] sid=" << sid << "\n";
+		return it != clients.end() ? it->second.get() : nullptr;
 	};
 
 private:

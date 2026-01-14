@@ -1,16 +1,11 @@
 ﻿  ClientSession.cpp
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ClientSession.cpp(108,22): warning C4267: '-=': conversion from 'size_t' to 'int32_t', possible loss of data
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ClientSession.cpp(110,22): warning C4267: '-=': conversion from 'size_t' to 'int32_t', possible loss of data
+  Main.cpp
+  Network.cpp
   PacketRouter.cpp
   Room.cpp
   Server.cpp
 C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\Server.cpp(59,23): warning C4018: '<': signed/unsigned mismatch
-  ServerPlayer.cpp
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(139,25): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(142,27): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(143,27): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(228,16): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(244,17): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
-C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\cppSocketServer\ServerPlayer.cpp(269,15): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
   Generating Code...
   cppSocketServer.vcxproj -> C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\x64\Debug\cppSocketServer.exe
   'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는

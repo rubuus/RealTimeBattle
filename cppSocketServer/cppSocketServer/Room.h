@@ -82,7 +82,8 @@ private:
     ClientSession* p2;
     std::unique_ptr<ServerPlayer> sp1;
     std::unique_ptr<ServerPlayer> sp2;
-
+    std::chrono::steady_clock::time_point lastUpdate;
+    std::chrono::steady_clock::time_point lastLagLog;
     Vector2 leftSpawn;
     Vector2 rightSpawn;
 
@@ -90,8 +91,9 @@ private:
     bool p2Ready = false;
     bool gameStarted = false;
     bool battleStarted = false;
+    bool gameEnded = false;
 
-    double gameTime = 100.0f;
+    double gameTime = 3.0f;
     double stateSendAcc = 0.0f;
     double timeSendAcc = 0.0f;
 

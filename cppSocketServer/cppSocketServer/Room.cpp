@@ -35,15 +35,61 @@ Room::Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& p
 // Network/IO 스레드 → Room 스레드로 전달되는 이벤트 enqueue
 void Room::EnqueueEvent(const RoomEvent& ev)
 {
-    std::lock_guard<std::mutex> lock(eventMutex);
-    eventQueue.push(ev);
+    {
+        std::lock_guard<std::mutex> lock(eventMutex);
+        eventQueue.push(ev);
+    }
+    
+
+    size_t sz;
+    {
+        std::lock_guard<std::mutex> lock(eventMutex);
+        sz = eventQueue.size();
+    }
+
+    if (sz > 50)
+    {
+        static auto lastLog = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+
+        if (now - lastLog > std::chrono::seconds(1))
+        {
+            std::cout
+                << "[ROOM EVENT BACKLOG] room=" << roomId
+                << " size=" << sz << "\n";
+            lastLog = now;
+        }
+    }
 }
 
 // Network/IO 스레드로 전달되는 이벤트 enqueue
 void Room::EmitOutEvent(const RoomOutEvent& ev)
 {
-    std::lock_guard<std::mutex> lock(outEventMutex);
-    outEvents.push(ev);
+    {
+        std::lock_guard<std::mutex> lock(outEventMutex);
+        outEvents.push(ev);
+    }
+    
+
+    size_t sz;
+    {
+        std::lock_guard<std::mutex> lock(outEventMutex);
+        sz = outEvents.size();
+    }
+
+    if (sz > 50)
+    {
+        static auto lastLog = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+
+        if (now - lastLog > std::chrono::seconds(1))
+        {
+            std::cout
+                << "[ROOM OUT BACKLOG] room=" << roomId
+                << " size=" << sz << "\n";
+            lastLog = now;
+        }
+    }
 }
 
 // 이벤트 큐 처리 (룸 업데이트 스레드에서 호출)
@@ -89,14 +135,47 @@ void Room::OutEvents()
     {
         auto ev = outEvents.front();
         outEvents.pop();
-
         net.Dispatch(ev);
     }
 }
 
 void Room::Update(double dt)
 {
+    using namespace std::chrono;
+
+    auto now = steady_clock::now();
+
+    // 최초 1회 초기화
+    if (lastUpdate.time_since_epoch().count() == 0)
+    {
+        lastUpdate = now;
+        lastLagLog = now;
+        return;
+    }
+
+    double realDt = duration<double>(now - lastUpdate).count();
+    lastUpdate = now;
+
+    constexpr double LAG_THRESHOLD = 0.2; // 200ms
+
+    if (realDt > LAG_THRESHOLD)
+    {
+        // Room별로 1초에 한 번만 출력
+        if (now - lastLagLog > seconds(1))
+        {
+            std::cout
+                << "[ROOM LAG] room=" << roomId
+                << " realDt=" << realDt
+                << " p1=" << (p1 ? p1->GetSessionId() : -1)
+                << " p2=" << (p2 ? p2->GetSessionId() : -1)
+                << "\n";
+
+            lastLagLog = now;
+        }
+    }
+
     InputEvents();
+    OutEvents();
 
     if (!gameStarted) return;   // 매치 안됐으면 return
     if (!p1 || !p2) return;     // 세션 1명이라도 없으면 return
@@ -115,8 +194,6 @@ void Room::Update(double dt)
         EmitTimeUpdate();
 
     EmitDamageUpdate();
-
-    OutEvents();
 
     if (gameTime <= 0.0f || sp1->GetCurrentHP() <= 0 || sp2->GetCurrentHP() <= 0)
         EndGame();
@@ -284,7 +361,10 @@ bool Room::Overlap(Hitbox& hit, Hurtbox& hurt)
 
 void Room::EndGame()
 {
-    if (closed) return;
+    if (gameEnded)
+        return;
+
+    gameEnded = true;
 
     EmitGameResult();
     BeginCloseAckPhase();
@@ -302,19 +382,19 @@ void Room::EmitGameResult()
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p1sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p1sid } });
-        SaveRecordAsync(p1, p2);
+        //SaveRecordAsync(p1, p2);
     }
     else if (p1hp < p2hp)
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p2sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p2sid } });
-        SaveRecordAsync(p2, p1);
+        //SaveRecordAsync(p2, p1);
     }
     else
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { -1 } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { -1 } });
-        SaveRecordAsync(p1, p2);
+        //SaveRecordAsync(p1, p2);
     }
 }
 

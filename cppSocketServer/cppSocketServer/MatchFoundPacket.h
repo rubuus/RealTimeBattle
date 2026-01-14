@@ -22,4 +22,4 @@ struct MatchFoundPacket {
 };
 
 #pragma pack(pop)
-static_assert(sizeof(MatchFoundPacket) == 21, "MatchFoundPacket struct size must be 13 bytes");
+static_assert(sizeof(MatchFoundPacket) == 21, "MatchFoundPacket struct size must be 21 bytes");

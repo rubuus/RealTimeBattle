@@ -12,8 +12,6 @@ namespace api.Models
 
         public DateTime FinishedTime { get; private set; }
 
-        private BattleRecord() { }
-
         public static BattleRecord Create(int winner, int loser)
         {
             return new BattleRecord

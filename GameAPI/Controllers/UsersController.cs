@@ -140,6 +140,9 @@ namespace api.Controllers
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var user = await _db.Users.FindAsync(userId);
 
+            if (user.ProfileImage == req.ProfileImage)
+                return Ok();
+
             if (user == null)
                 return NotFound(new { Message = "User not found" });
 

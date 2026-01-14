@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include "Network.h"
 #include "Server.h"
 #include "ClientSession.h"
@@ -7,6 +7,13 @@
 
 void Network::Dispatch(const RoomOutEvent& ev)
 {
+	auto* session = Server::Instance().FindSession(ev.sessionId);
+	if (!session)
+	{
+		// 💡 정상적인 부하 상황에서 반드시 발생
+		return;
+	}
+
 	switch (ev.type)
 	{
 		case RoomOutEventType::LoadBattle:
@@ -91,6 +98,7 @@ void Network::BroadcastResult(const RoomOutEvent& ev)
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<GameResultPayload>(ev.payload);
 
+	std::cout << ev.sessionId << '\n';
 	if (payload.winner == -1)
 	{
 		s->SendPacket(S2C_PacketType::GAME_DRAW);

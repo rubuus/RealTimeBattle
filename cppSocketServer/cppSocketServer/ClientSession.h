@@ -77,6 +77,22 @@ public:
     
 	bool IsDisconnected() const { return disconnected.load(); }
 
+    void AddIo()
+    {
+        pendingIo.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void ReleaseIo()
+    {
+        pendingIo.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    bool CanCleanup() const
+    {
+        return disconnected.load(std::memory_order_acquire)
+            && pendingIo.load(std::memory_order_acquire) == 0;
+    }
+
 	std::chrono::steady_clock::time_point GetLastRecvTime() const { return lastRecvTime; }
     void SetLastRecvTime() { lastRecvTime = std::chrono::steady_clock::now(); }
 
@@ -99,6 +115,7 @@ private:
     std::atomic<bool> hasInput = false;
     PlayerInputPacket latestInput;
 
+    std::atomic<int>  pendingIo = 0;     // 진행 중 IO 개수
     std::atomic<bool> disconnected = false;
     bool battleReady = false;
     bool ackReceived = false;
