@@ -41,7 +41,8 @@ public class PlayerController : MonoBehaviour
     private Vector2 smoothVel;
 
     [SerializeField]
-    private float networkSmoothTime = 0.03f;
+    private float networkSmoothTime = 0.01f;
+    private float SNAP_DIST = 0.7f;
 
     private Rigidbody2D rigid;
     private Animator anim;
@@ -274,14 +275,23 @@ public class PlayerController : MonoBehaviour
         isNetworkUpdatePending = true;
     }
 
-    // 서버가 보내준 위치로 자연스럽게 보간
+    // 서버가 보내준 위치로 자연스럽게 보간 (패킷 밀릴 시, 보간 초기화)
     private void ApplyNetworkPosition()
     {
-        transform.position = Vector2.SmoothDamp(
-                    transform.position,
-                    networkTargetPos,
-                    ref smoothVel,
-                    networkSmoothTime
-                );
+        if (Vector2.Distance(transform.position, networkTargetPos) > SNAP_DIST)
+        {
+            transform.position = networkTargetPos;
+            smoothVel = Vector2.zero;
+            anim.speed = 1.0f;
+        }
+        else
+        {
+            transform.position = Vector2.SmoothDamp(
+                transform.position,
+                networkTargetPos,
+                ref smoothVel,
+                networkSmoothTime
+            );
+        }
     }
 }

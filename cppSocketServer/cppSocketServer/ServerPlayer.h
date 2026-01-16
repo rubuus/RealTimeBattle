@@ -85,7 +85,7 @@ private:
     bool punchPressed = false;
 
     // 파라미터
-    float moveSpeed = 12.0f;
+    float moveSpeed = 10.0f;
     float jumpPower = 18.0f;
     float gravity = -80.0f;
     float prevY;

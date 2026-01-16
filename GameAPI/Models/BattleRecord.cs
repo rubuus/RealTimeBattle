@@ -6,10 +6,10 @@ namespace api.Models
         public int Id { get; private set; }
 
         public int WinnerId { get; private set; }
-        public User WinnerUser { get; set; }
+        public User WinnerUser { get; set; } = null!;
 
         public int LoserId { get; private set; }
-        public User LoserUser { get; set; }
+        public User LoserUser { get; set; } = null!;
 
         public DateTime FinishedTime { get; private set; }
 
