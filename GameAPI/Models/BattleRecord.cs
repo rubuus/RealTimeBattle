@@ -1,5 +1,6 @@
 namespace api.Models
 {
+    // Record 관리 모델
     public class BattleRecord
     {
         public int Id { get; private set; }
@@ -12,6 +13,7 @@ namespace api.Models
 
         public DateTime FinishedTime { get; private set; }
 
+        // 전적 객체 return
         public static BattleRecord Create(int winner, int loser)
         {
             return new BattleRecord

@@ -152,6 +152,7 @@ public static class CppPacketRouter
         SocketClient.Instance.finalResult = "Win";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
         _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.RESULT_ACK);
     }
@@ -163,6 +164,7 @@ public static class CppPacketRouter
         SocketClient.Instance.finalResult = "Lose";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
         _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.RESULT_ACK);
     }
@@ -174,6 +176,7 @@ public static class CppPacketRouter
         SocketClient.Instance.finalResult = "Draw";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
         _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.RESULT_ACK);
     }

@@ -1,3 +1,27 @@
-﻿  cppSocketServer.vcxproj -> C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\x64\Debug\CppSocketServer.exe
+﻿  PacketRouter.cpp
+C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2635,85): warning C4244: 'argument': conversion from 'double' to '__time64_t', possible loss of data
+  (compiling source file 'PacketRouter.cpp')
+      C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2635,85):
+      the template instantiation context (the oldest one first) is
+          C:\vcpkg\installed\x64-windows\include\jwt-cpp\traits\nlohmann-json\defaults.h(23,56):
+          see reference to class template instantiation 'jwt::verifier<jwt::default_clock,jwt::traits::nlohmann_json>' being compiled
+          C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(3706,57):
+          see reference to class template instantiation 'jwt::basic_claim<jwt::traits::nlohmann_json>' being compiled
+          C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2633,8):
+          while compiling class template member function 'jwt::date jwt::basic_claim<jwt::traits::nlohmann_json>::as_date(void) const'
+              C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2849,32):
+              see the first reference to 'jwt::basic_claim<jwt::traits::nlohmann_json>::as_date' in 'jwt::payload<json_traits>::get_issued_at'
+          with
+          [
+              json_traits=jwt::traits::nlohmann_json
+          ]
+              C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(3612,24):
+              see the first reference to 'jwt::payload<json_traits>::get_issued_at' in 'jwt::verifier<jwt::default_clock,jwt::traits::nlohmann_json>::{ctor}::<lambda_2>::operator ()'
+          with
+          [
+              json_traits=jwt::traits::nlohmann_json
+          ]
+  
+  cppSocketServer.vcxproj -> C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\cppSocketServer\x64\Debug\CppSocketServer.exe
   'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
   배치 파일이 아닙니다.

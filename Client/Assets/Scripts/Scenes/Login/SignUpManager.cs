@@ -26,24 +26,12 @@ public class SignUpManager : MonoBehaviour
     [SerializeField] private TMP_Text errorMessage;
     [SerializeField] private TMP_Text nicknameGuideMessage;
     [SerializeField] private TMP_Text nicknameErrorMessage;
-    [SerializeField] private AuthManager authManager;
 
     private string currentId;
     private string currentPw;
 
     void Start()
     {
-        // authManager object 찾기
-        if (authManager == null)
-            authManager = FindFirstObjectByType<AuthManager>();
-
-        // 찾아도 없으면 return
-        if (authManager == null)
-        {
-            Debug.LogError("AuthManager not found in scene!");
-            return;
-        }
-
         signUpButton.onClick.AddListener(OnSignUpClick);
         nicknameButton.onClick.AddListener(OnNicknameClick);
         cancelButton.onClick.AddListener(ShowLogin);
@@ -111,10 +99,10 @@ public class SignUpManager : MonoBehaviour
                     ShowError(message);
                     return;
                 }
-
-                StartCoroutine(authManager.SignUp(currentId, currentPw, nickname));
-                ShowLogin();
             }));
+
+            StartCoroutine(AuthManager.Instance.SignUp(currentId, currentPw, nickname));
+            ShowLogin();
         }
     }
 

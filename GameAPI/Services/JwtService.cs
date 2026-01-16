@@ -6,9 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace api.Services
 {
+    // JWT Token 생성
     public class JwtService
     {
-        
         private readonly IConfiguration _config;
 
         public JwtService(IConfiguration config)
@@ -16,8 +16,9 @@ namespace api.Services
             _config = config;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateAccessToken(User user)
         {
+            // private claim 생성 (payload)
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -29,6 +30,7 @@ namespace api.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key 설정 누락")));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // 토큰 내용 작성
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
@@ -39,4 +41,6 @@ namespace api.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
+
+    
 }

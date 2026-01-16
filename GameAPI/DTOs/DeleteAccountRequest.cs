@@ -2,6 +2,6 @@ namespace api.DTOs
 {
     public class DeleteAccountRequest
     {
-        public string AccessToken { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

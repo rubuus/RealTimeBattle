@@ -17,11 +17,13 @@ namespace api.Controllers
             _db = db;
         }
 
+        // 전적 저장
         [HttpPost("save")]
         public async Task<IActionResult> Save([FromBody] SaveRecordRequest req)
         {
             var record = BattleRecord.Create(req.WinnerId, req.LoserId);
             _db.BattleRecords.Add(record);
+            
             try
             {
                 await _db.SaveChangesAsync();
@@ -30,13 +32,14 @@ namespace api.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine("❌ SaveChanges 실패");
-                Console.WriteLine(ex.ToString());   // ← 이거 출력되는 거 그대로 나한테 붙여줘
                 return StatusCode(500, ex.Message);
             }
 
             return Ok();
         }
 
+
+        // 클라이언트에서 전적 요청 시, 3개씩 보내줌
         [HttpGet("{id}")]
         public async Task<IActionResult> GetBattleRecord(int id, int page = 1, int pageSize = 3)
         {
@@ -58,7 +61,7 @@ namespace api.Controllers
                 WinnerId = r.WinnerId,
                 FinishedTime = r.FinishedTime,
 
-                // EnemyUserId → User 테이블에서 닉네임 조회
+                // User 테이블에서 닉네임 조회
                 LoserId = r.LoserId,
                 WinnerNickname = _db.Users
                     .Where(u => u.Id == r.WinnerId)

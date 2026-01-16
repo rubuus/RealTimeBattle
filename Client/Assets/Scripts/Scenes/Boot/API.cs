@@ -18,7 +18,7 @@ public class API : MonoBehaviour
 {
     public static API Instance { get; private set; }
 
-    [SerializeField] private string baseUrl = "http://localhost:5146";
+    public string baseUrl = "http://localhost:5146";
 
     private void Awake()
     {
@@ -60,9 +60,34 @@ public class API : MonoBehaviour
 
         yield return req.SendWebRequest();
 
+        // 토큰 만료 시
+        if (req.responseCode == 401)
+        {
+            bool refreshed = false;
+
+            yield return AuthManager.Instance.RefreshTokenRequest(ok => refreshed = ok);
+
+            if (refreshed)
+            {
+                yield return SendJsonRequest(endpoint, method, data, onSuccess, onError);
+            }
+            else
+            {
+                AuthManager.Instance.Logout();
+                onError?.Invoke("Unauthorized");
+            }
+
+            yield break;
+        }
+
+        // 정상 처리
         if (req.result == UnityWebRequest.Result.Success)
+        {
             onSuccess?.Invoke(req.downloadHandler.text);
+        }
         else
+        {
             onError?.Invoke(req.error);
+        }
     }
 }

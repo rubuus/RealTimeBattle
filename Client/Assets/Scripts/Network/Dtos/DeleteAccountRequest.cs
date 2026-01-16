@@ -2,5 +2,5 @@ using UnityEngine;
 
 public class DeleteAccountRequest
 {
-    public string AccessToken;
+    public string Password;
 }

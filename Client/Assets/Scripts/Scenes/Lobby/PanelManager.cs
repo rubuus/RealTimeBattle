@@ -41,6 +41,9 @@ public class PanelManager : MonoBehaviour
     [SerializeField] private List<PanelItem> panelItems;
     [SerializeField] private NicknameManager nicknameManager;
     [SerializeField] private Button deleteAccountButton;
+    
+    [SerializeField] private TMP_InputField password;
+    [SerializeField] private Button disappearAccountButton;
 
     private Dictionary<PanelType, GameObject> panelDict = new();
 
@@ -67,6 +70,8 @@ public class PanelManager : MonoBehaviour
             }
         }
 
+        password.gameObject.SetActive(false);
+        disappearAccountButton.gameObject.SetActive(false);
         deleteAccountButton.onClick.AddListener(DeleteAccount);
     }
 
@@ -108,9 +113,7 @@ public class PanelManager : MonoBehaviour
             }
 
             if (type == PanelType.ChangeNickname)
-            {
                 nicknameManager.guideMessage.gameObject.SetActive(true);
-            }
 
             target.SetActive(true);
         }
@@ -148,6 +151,12 @@ public class PanelManager : MonoBehaviour
     // 계정 삭제
     private void DeleteAccount()
     {
-        StartCoroutine(AuthManager.Instance.DeleteAccount());
+        password.gameObject.SetActive(true);
+        disappearAccountButton.gameObject.SetActive(true);
+    }
+
+    private void Disapper()
+    {
+        StartCoroutine(AuthManager.Instance.DeleteAccount(password.text));
     }
 }

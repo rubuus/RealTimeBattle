@@ -18,8 +18,9 @@ public class AuthManager : MonoBehaviour
 
     public int UserId { get; private set; }
     public string Nickname { get; private set; }
-    public string AccessToken { get; private set; }
     public int ProfileImage { get; private set; }
+    public string AccessToken { get; private set; }
+    public string RefreshToken { get; private set; }
 
     private void Awake()
     {
@@ -49,8 +50,15 @@ public class AuthManager : MonoBehaviour
             data: signUpData,
             onSuccess: res =>
             {
-                var response = JsonConvert.DeserializeObject<RegisterResponse>(res);
-                Debug.Log($"회원가입 성공: {response.Message} (UserId: {response.UserId})");
+                try
+                {
+                    var response = JsonConvert.DeserializeObject<RegisterResponse>(res);
+                    Debug.Log($"회원가입 성공: {response.Message} (UserId: {response.UserId})");
+                }
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                }
             },
             onError: err =>
             {
@@ -60,18 +68,37 @@ public class AuthManager : MonoBehaviour
     }
 
     // 계정 아이디 중복 확인
-    public IEnumerator CheckDuplicateAccount(string accountId, System.Action<bool, string> onDone)
+    public IEnumerator CheckDuplicateAccount(string accountId, Action<bool, string> onDone)
     {
+        bool finished = false;
+
+        // 중복 방지 및 완료 신호 보냄
+        void Finish(bool isDuplicate, string msg)
+        {
+            if (finished) return;
+            finished = true;
+            onDone?.Invoke(isDuplicate, msg);
+        }
+
         yield return API.Instance.SendJsonRequest(
             endpoint: "users/check-account", 
             method: UnityWebRequest.kHttpVerbPOST, 
             data: new AccountCheckRequest { AccountId = accountId },
             onSuccess: res => {
-                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
+                try
+                {
+                    var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+                    Finish(parsed.IsDuplicate, parsed.Message);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                    Finish(true, "Parse Error");
+                }
             },
             onError: err => {
-                onDone?.Invoke(true, "Request Failed");
+                Debug.Log(err);
+                Finish(false, "Request Failed");
             }
         );
     }
@@ -79,6 +106,16 @@ public class AuthManager : MonoBehaviour
     // 로그인 요청
     public IEnumerator Login(string accountId, string password, Action<bool> onResult)
     {
+        bool finished = false;
+
+        // 중복 방지 및 완료 신호 보냄
+        void Finish(bool success)
+        {
+            if (finished) return;
+            finished = true;
+            onResult?.Invoke(success);
+        }
+
         var loginData = new LoginRequest
         {
             AccountId = accountId,
@@ -99,31 +136,58 @@ public class AuthManager : MonoBehaviour
                     Nickname = response.Nickname;
                     ProfileImage = response.ProfileImage;
                     AccessToken = response.Accesstoken;
+                    RefreshToken = response.RefreshToken;
 
-                    onResult?.Invoke(true);
+                    Finish(true);
                 }
-                catch
+                catch (Exception e)
                 {
-                    onResult?.Invoke(false);
+                    Debug.LogError(e);
+                    Finish(true);
                 }
             },
-            onError: err => { onResult?.Invoke(false); }
+            onError: err => 
+            { 
+                Debug.LogError(err);
+                Finish(false);
+            }
         );
     }
 
     // Nickname 중복 확인
     public IEnumerator CheckDuplicateNickname(string nickname, System.Action<bool, string> onDone)
     {
+        bool finished = false;
+
+        // 중복 방지 및 완료 신호 보냄
+        void Finish(bool isDuplicate, string msg)
+        {
+            if (finished) return;
+            finished = true;
+            onDone?.Invoke(isDuplicate, msg);
+        }
+
         yield return API.Instance.SendJsonRequest(
             endpoint: "users/check-nickname",
             method: UnityWebRequest.kHttpVerbPOST,
             data: new NicknameCheckRequest { Nickname = nickname },
             onSuccess: res => {
-                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
+                try
+                {
+                    var parsed =
+                        JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+
+                    Finish(parsed.IsDuplicate, parsed.Message);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError(e);
+                    Finish(true, "Parse Error");
+                }
             },
             onError: err => {
-                onDone?.Invoke(true, "Request Failed");
+                Debug.LogError(err);
+                Finish(false, "Request Failed");
             }
         );
     }
@@ -154,16 +218,62 @@ public class AuthManager : MonoBehaviour
     }
 
     // 계정 삭제
-    public IEnumerator DeleteAccount()
+    public IEnumerator DeleteAccount(string pw)
     {
         yield return API.Instance.SendJsonRequest(
             endpoint: "users/delete-account",
             method: UnityWebRequest.kHttpVerbPOST,
-            data: new DeleteAccountRequest { AccessToken = AccessToken },
+            data: new DeleteAccountRequest { Password = pw },
             onSuccess: res => {
                 Application.Quit();
             },
             onError: Debug.Log
         );
+    }
+
+    // 재발급 토큰 -> 인증 토큰
+    public IEnumerator RefreshTokenRequest(Action<bool> onResult)
+    {
+        var req = new UnityWebRequest(
+            $"{API.Instance.baseUrl}/auth/refresh",
+            UnityWebRequest.kHttpVerbPOST
+        );
+
+        req.downloadHandler = new DownloadHandlerBuffer();
+
+        // RefreshToken 전달
+        req.SetRequestHeader(
+            "Authorization",
+            "Bearer " + RefreshToken
+        );
+
+        yield return req.SendWebRequest();
+
+        if (req.result == UnityWebRequest.Result.Success)
+        {
+            try
+            {
+                var res = JsonConvert.DeserializeObject<RefreshTokenResponse>(
+                    req.downloadHandler.text
+                );
+
+                AccessToken = res.AccessToken;
+                onResult?.Invoke(true);
+            }
+            catch
+            {
+                onResult?.Invoke(false);
+            }
+        }
+        else
+        {
+            onResult?.Invoke(false);
+        }
+    }
+
+    public IEnumerator Logout()
+    {
+        Application.Quit();
+        yield break;
     }
 }

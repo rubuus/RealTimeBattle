@@ -6,4 +6,5 @@ public class LoginResponse
     public string Nickname;
     public int ProfileImage;
     public string Accesstoken;
+    public string RefreshToken;
 }
