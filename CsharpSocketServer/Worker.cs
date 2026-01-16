@@ -1,4 +1,4 @@
-namespace GameSocketServer;
+namespace CsharpSocketServer;
 
 public class Worker(ILogger<Worker> logger) : BackgroundService
 {

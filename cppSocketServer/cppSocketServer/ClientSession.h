@@ -13,8 +13,8 @@ class PacketRouter;
 struct PacketHeader;
 struct ParsedPacket;
 struct PlayerInputPacket;
-enum class S2C_PacketType : uint16_t;
-enum class C2S_PacketType : uint16_t;
+enum class S2C_HeaderType : uint16_t;
+enum class C2S_HeaderType : uint16_t;
 
 constexpr int RECV_BUFFER_SIZE = 8192;
 
@@ -42,16 +42,19 @@ class ClientSession {
 public:
     ClientSession(SOCKET s, int id);
 
+    bool GetAuthenticated() { return isAuthenticated; }
+    void SetAuthenticated(bool b) { isAuthenticated = b; }
+
     void PostRecv();
     void OnRecv(DWORD bytes);
     void OnSend(DWORD bytes);
 
     // 헤더만 있을 경우
-    void SendPacket(S2C_PacketType type);
+    void SendPacket(S2C_HeaderType type);
 
     // 바디 포함 패킷일 경우
     template<typename T>
-    void SendPacket(S2C_PacketType type, const T& body)
+    void SendPacket(S2C_HeaderType type, const T& body)
     {
         SendPacketInternal(type, &body, sizeof(T));
     }
@@ -77,16 +80,19 @@ public:
     
 	bool IsDisconnected() const { return disconnected.load(); }
 
+    // IO 추가
     void AddIo()
     {
         pendingIo.fetch_add(1, std::memory_order_relaxed);
     }
 
+    // 처리 완료 됐으면 빼기
     void ReleaseIo()
     {
         pendingIo.fetch_sub(1, std::memory_order_relaxed);
     }
 
+    // 연결이 끊겼고, 모든 IO가 완료되면, 세션을 안전하게 정리할 수 있는지 확인
     bool CanCleanup() const
     {
         return disconnected.load(std::memory_order_acquire)
@@ -98,12 +104,14 @@ public:
 
 private:
     void SendPacketInternal(
-        S2C_PacketType type,
+        S2C_HeaderType type,
         const void* body,
         size_t bodySize);
 
     SOCKET socket = INVALID_SOCKET; // 연결 객체
 	Room* room = nullptr; // 소속된 방
+
+    bool isAuthenticated = false;
 
     char recvBuffer[RECV_BUFFER_SIZE];
     int32_t recvBytes;
@@ -117,7 +125,9 @@ private:
 
     std::atomic<int>  pendingIo = 0;     // 진행 중 IO 개수
     std::atomic<bool> disconnected = false;
+
     bool battleReady = false;
     bool ackReceived = false;
+
     std::chrono::steady_clock::time_point lastRecvTime;
 };

@@ -4,5 +4,4 @@ using UnityEngine;
 public class ChangeNicknameRequest
 {
     public string Nickname;
-    public string AccessToken;
 }

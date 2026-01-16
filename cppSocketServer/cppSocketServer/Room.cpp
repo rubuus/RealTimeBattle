@@ -40,7 +40,7 @@ void Room::EnqueueEvent(const RoomEvent& ev)
         eventQueue.push(ev);
     }
     
-
+    // 이벤트 큐 원소가 50개 이상이면 틱 밀리는 룸 로그 띄우기
     size_t sz;
     {
         std::lock_guard<std::mutex> lock(eventMutex);
@@ -141,39 +141,6 @@ void Room::OutEvents()
 
 void Room::Update(double dt)
 {
-    using namespace std::chrono;
-
-    auto now = steady_clock::now();
-
-    // 최초 1회 초기화
-    if (lastUpdate.time_since_epoch().count() == 0)
-    {
-        lastUpdate = now;
-        lastLagLog = now;
-        return;
-    }
-
-    double realDt = duration<double>(now - lastUpdate).count();
-    lastUpdate = now;
-
-    constexpr double LAG_THRESHOLD = 0.2; // 200ms
-
-    if (realDt > LAG_THRESHOLD)
-    {
-        // Room별로 1초에 한 번만 출력
-        if (now - lastLagLog > seconds(1))
-        {
-            std::cout
-                << "[ROOM LAG] room=" << roomId
-                << " realDt=" << realDt
-                << " p1=" << (p1 ? p1->GetSessionId() : -1)
-                << " p2=" << (p2 ? p2->GetSessionId() : -1)
-                << "\n";
-
-            lastLagLog = now;
-        }
-    }
-
     InputEvents();
     OutEvents();
 
@@ -382,19 +349,19 @@ void Room::EmitGameResult()
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p1sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p1sid } });
-        //SaveRecordAsync(p1, p2);
+        SaveRecordAsync(p1, p2);
     }
     else if (p1hp < p2hp)
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p2sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p2sid } });
-        //SaveRecordAsync(p2, p1);
+        SaveRecordAsync(p2, p1);
     }
     else
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { -1 } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { -1 } });
-        //SaveRecordAsync(p1, p2);
+        SaveRecordAsync(p1, p2);
     }
 }
 
@@ -462,6 +429,7 @@ void Room::SaveRecordAsync(ClientSession* winner, ClientSession* loser)
 {
     SaveRecordRequest req{ winner->GetUserId(), loser->GetUserId() };
 
+    // Json 직렬화 + API 요청은 비용이 크기 때문에 Thread Pool 사용
     threadPool.Enqueue([req]() mutable {
         nlohmann::json j = req;
         std::string body = j.dump();

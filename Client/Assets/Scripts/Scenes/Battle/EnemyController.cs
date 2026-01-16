@@ -1,26 +1,35 @@
 ﻿using System;
-using System.Text;
 using UnityEngine;
-using UnityEngine.Rendering;
 using static PlayerController;
+
+/*
+ * EnemyController.cs
+ * 
+ * 역할 :
+ * - Enemy 오브젝트 상태 업데이트 및 위치 보간
+ * 
+ */
 
 public class EnemyController : MonoBehaviour
 {
-    private PlayerState enemyState = PlayerState.Idle;
+    public bool isNetworkUpdatePending = false;
 
+    private PlayerState enemyState = PlayerState.Idle;
     private Vector2 networkTargetPos;
+    private float networkDir;
     private string networkTargetState;
     private byte networkTargetStateByte;
-    public bool isNetworkUpdatePending = false;
-    private float networkDir;
 
     private Vector2 smoothVel;
-    [SerializeField] private float networkSmoothTime = 0.03f;
+
+    [SerializeField]
+    private float networkSmoothTime = 0.03f;
 
     private Rigidbody2D rigid;
     private Animator anim;
 
-    void Awake()
+    // 서버 권위를 위해 rigidbody, velocity 초기화
+    private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
@@ -31,7 +40,7 @@ public class EnemyController : MonoBehaviour
         networkDir = (SocketClient.Instance.side == "RIGHT") ? 1f : -1f;
     }
 
-    void Update()
+    private void Update()
     {
         if (isNetworkUpdatePending) 
         {
@@ -43,12 +52,8 @@ public class EnemyController : MonoBehaviour
         ApplyServerDirection();
     }
 
-    public void ApplyServerDirection()
-    {
-        transform.localScale = new Vector2(networkDir, 1);
-    }
-
-    public void ApplyServerStateWithGuard()
+    // 상태 변화 예외 처리 (중복 방지 및 재전송 패킷 업데이트 방지)
+    private void ApplyServerStateWithGuard()
     {
         if (!TryResolvePlayerState(out var newState))
         {
@@ -58,7 +63,7 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        // 🔒 Punch 가드 (한 번만!)
+        // Punch 가드 (서버에서 막아주지만 클라에서도 방지용)
         if (enemyState == PlayerState.Punch &&
             newState == PlayerState.Punch)
         {
@@ -70,38 +75,39 @@ public class EnemyController : MonoBehaviour
         isNetworkUpdatePending = false;
     }
 
-
-    public void ApplyServerState(Vector2 pos, string state, int dir)
+    // 제대로 된 상태 데이터가 전달 됐으면 true
+    private bool TryResolvePlayerState(
+    out PlayerState resolvedState)
     {
-        networkTargetPos = pos;
-        networkTargetState = state;
-        networkDir = dir;
-        isNetworkUpdatePending = true;
+        // C++ 서버 (byte)
+        if (SocketClient.Instance.useCppServer)
+        {
+            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
+            {
+                resolvedState = (PlayerState)networkTargetStateByte;
+                return true;
+            }
+        }
+        // C# 서버 (string)
+        else
+        {
+            if (!string.IsNullOrEmpty(networkTargetState) &&
+                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            {
+                resolvedState = parsed;
+                return true;
+            }
+        }
+
+        resolvedState = default;
+        return false;
     }
 
-    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
-    {
-        networkTargetPos = pos;
-        networkTargetStateByte = state;
-        networkDir = dir;
-        isNetworkUpdatePending = true;
-    }
-
-    public void ApplyNetworkPosition()
-    {
-            transform.position = Vector2.SmoothDamp(
-                transform.position,
-                networkTargetPos,
-                ref smoothVel,
-                networkSmoothTime
-            );
-    }
-
-    void ChangeState(PlayerState newState)
+    // 상태에 따라 애니메이션 변경
+    private void ChangeState(PlayerState newState)
     {
         // 중복 전환 방지
-        if (enemyState == newState)
-            return;
+        if (enemyState == newState) return;
 
         enemyState = newState;
 
@@ -137,30 +143,38 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    private bool TryResolvePlayerState(
-    out PlayerState resolvedState)
+    // C# 서버에서 상태 받아서 저장
+    public void ApplyServerState(Vector2 pos, string state, int dir)
     {
-        // C++ 서버 (byte)
-        if (SocketClient.Instance.useCppServer)
-        {
-            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
-            {
-                resolvedState = (PlayerState)networkTargetStateByte;
-                return true;
-            }
-        }
-        // C# 서버 (string)
-        else
-        {
-            if (!string.IsNullOrEmpty(networkTargetState) &&
-                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
-            {
-                resolvedState = parsed;
-                return true;
-            }
-        }
+        networkTargetPos = pos;
+        networkTargetState = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
 
-        resolvedState = default;
-        return false;
+    // C++ 서버에서 상태 받아서 저장
+    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
+    {
+        networkTargetPos = pos;
+        networkTargetStateByte = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
+
+    // 서버가 보내준 위치로 자연스럽게 보간
+    private void ApplyNetworkPosition()
+    {
+            transform.position = Vector2.SmoothDamp(
+                transform.position,
+                networkTargetPos,
+                ref smoothVel,
+                networkSmoothTime
+            );
+    }
+
+    // 방향 업데이트
+    private void ApplyServerDirection()
+    {
+        transform.localScale = new Vector2(networkDir, 1);
     }
 }

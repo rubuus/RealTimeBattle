@@ -1,5 +1,13 @@
 using UnityEngine;
 
+/*
+ * AudioManager.cs
+ * 
+ * 역할 :
+ * - 게임 Audio 관리
+ * 
+ */
+
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
@@ -23,6 +31,7 @@ public class AudioManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    // BGM 시작
     public void PlayBGM(AudioClip clip, bool loop = true)
     {
         bgmSource.clip = clip;
@@ -30,16 +39,19 @@ public class AudioManager : MonoBehaviour
         bgmSource.Play();
     }
 
-    public void PlaySFX(AudioClip clip)
-    {
-        sfxSource.PlayOneShot(clip);
-    }
-
+    // BGM 멈춤
     public void StopBGM()
     {
         bgmSource.Stop();
     }
 
+    // 이벤트 발생 시, SFX 한번
+    public void PlaySFX(AudioClip clip)
+    {
+        sfxSource.PlayOneShot(clip);
+    }
+
+    // Volume 세팅
     public void SetVolume(float volume)
     {
         bgmSource.volume = volume;

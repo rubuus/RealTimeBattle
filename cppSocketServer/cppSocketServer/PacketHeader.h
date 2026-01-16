@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-enum class C2S_PacketType : uint16_t{
+enum class C2S_HeaderType : uint16_t{
 	LOGIN = 0,
 	MATCH_START = 1,
 	BATTLE_READY = 2,
@@ -11,7 +11,7 @@ enum class C2S_PacketType : uint16_t{
 	PING = 6
 };
 
-enum class S2C_PacketType : uint16_t {
+enum class S2C_HeaderType : uint16_t {
 	MATCH_FOUND = 0,
 	LOAD_BATTLE = 1,
 	PLAYER_STATE = 2,

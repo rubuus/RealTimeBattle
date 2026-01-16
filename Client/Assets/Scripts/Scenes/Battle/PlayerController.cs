@@ -1,47 +1,52 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
+
+/*
+ * PlayerController.cs
+ * 
+ * 역할 :
+ * - Player 오브젝트 상태 업데이트 및 위치 보간, 입력 전송
+ * 
+ */
+
+public enum PlayerState : byte
+{
+    Idle,
+    Run,
+    Jump,
+    GroundDash,
+    AirDash,
+    Punch,
+    Hurt
+}
 
 public class PlayerController : MonoBehaviour
 {
-    public enum PlayerState : byte
-    {
-        Idle,
-        Run,
-        Jump,
-        GroundDash,
-        AirDash,
-        Punch,
-        Hurt
-    }
-
     private PlayerState state = PlayerState.Idle;
     private float sendTimer = 0f;
-    const float SEND_INTERVAL = 0.05f;
+    private const float SEND_INTERVAL = 0.05f;
 
-    // --- 입력값 (로컬에서만 사용) ---
     private float moveInput;
     private bool jumpPressed;
     private bool dashPressed;
     private bool punchPressed;
 
-    // --- 서버에서 받은 권위 좌표/상태 ---
     private Vector2 networkTargetPos;
+    private float networkDir;
     private string networkTargetState;
     private byte networkTargetStateByte;
     private bool isNetworkUpdatePending = false;
-    private float networkDir;
-    [SerializeField] private float networkSmoothTime = 0.03f;
 
     private Vector2 smoothVel;
+
+    [SerializeField]
+    private float networkSmoothTime = 0.03f;
 
     private Rigidbody2D rigid;
     private Animator anim;
 
+    // 서버 권위를 위해 rigidbody, velocity 초기화
     void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
@@ -66,17 +71,18 @@ public class PlayerController : MonoBehaviour
         ApplyNetworkPosition();
         ApplyServerDirection();
 
+        // 지정한 전송 주기(SEND_INTERVAL)를 유지하기 위해
+        // 프레임 지연 시 누적된 시간만큼 입력 패킷을 보충 전송
         sendTimer += Time.unscaledDeltaTime;
-
         while (sendTimer >= SEND_INTERVAL)
         {
             sendTimer -= SEND_INTERVAL;
-
             SendInput();
         }
     }
 
-    void ReadInput()
+    // 유저 입력 저장
+    private void ReadInput()
     {
         if (Input.GetKey(KeyCode.RightArrow))
             moveInput = 1;
@@ -90,71 +96,8 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Z)) punchPressed = true;
     }
 
-    private void SendInput()
-    {
-        if (SocketClient.Instance.useCppServer)
-            SendInput_CppBinary();
-        else
-            SendInput_CSharpDTO();
-
-        jumpPressed = false;
-        dashPressed = false;
-        punchPressed = false;
-    }
-
-    private void SendInput_CSharpDTO()
-    {
-        _ = SocketClient.Instance.Send(new PlayerInputPacket()
-        {
-            type = "INPUT",
-            id = SocketClient.Instance.myUserId,
-            move = moveInput,
-            jump = jumpPressed,
-            dash = dashPressed,
-            punch = punchPressed
-        });
-    }
-
-    private void SendInput_CppBinary()
-    {
-        var bodyStruct = new CppPlayerInputPacket
-        {
-            id = SocketClient.Instance.myUserId,
-            move = moveInput,
-            jump = jumpPressed ? (byte)1 : (byte)0,
-            dash = dashPressed ? (byte)1 : (byte)0,
-            punch = punchPressed ? (byte)1 : (byte)0
-        };
-
-        // 🔥 body → bytes (복사 없이)
-        ReadOnlySpan<byte> body =
-            MemoryMarshal.AsBytes(
-                MemoryMarshal.CreateReadOnlySpan(ref bodyStruct, 1)
-            );
-
-        PacketHeader header = new PacketHeader
-        {
-            type = (ushort)C2S_PacketType.INPUT,
-            size = (ushort)(PacketHeader.Size + body.Length)
-        };
-
-        byte[] buffer = new byte[header.size];
-
-        // 1) 헤더 복사
-        MemoryMarshal.Write(buffer.AsSpan(0, PacketHeader.Size), ref header);
-
-        // 2) 바디 복사
-        body.CopyTo(buffer.AsSpan(PacketHeader.Size));
-
-        _ = SocketClient.Instance.SendAsync(buffer);
-    }
-
-    public void ApplyServerDirection()
-    {
-        transform.localScale = new Vector2(networkDir, 1);
-    }
-
-    public void ApplyServerStateWithGuard()
+    // 상태 변화 예외 처리 (중복 방지 및 재전송 패킷 업데이트 방지)
+    private void ApplyServerStateWithGuard()
     {
         if (!TryResolvePlayerState(out var newState))
         {
@@ -175,38 +118,39 @@ public class PlayerController : MonoBehaviour
         isNetworkUpdatePending = false;
     }
 
-    public void ApplyServerState(Vector2 pos, string state, int dir)
+    // 제대로 된 상태 데이터가 전달 됐으면 true
+    private bool TryResolvePlayerState(
+    out PlayerState resolvedState)
     {
-        networkTargetPos = pos;
-        networkTargetState = state;
-        networkDir = dir;
-        isNetworkUpdatePending = true;
+        // C++ 서버 (byte)
+        if (SocketClient.Instance.useCppServer)
+        {
+            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
+            {
+                resolvedState = (PlayerState)networkTargetStateByte;
+                return true;
+            }
+        }
+        // C# 서버 (string)
+        else
+        {
+            if (!string.IsNullOrEmpty(networkTargetState) &&
+                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            {
+                resolvedState = parsed;
+                return true;
+            }
+        }
+
+        resolvedState = default;
+        return false;
     }
 
-    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
+    // 상태에 따라 애니메이션 변경
+    private void ChangeState(PlayerState newState)
     {
-        networkTargetPos = pos;
-        networkTargetStateByte = state;
-        networkDir = dir;
-        isNetworkUpdatePending = true;
-    }
-
-    public void ApplyNetworkPosition()
-    {
-        transform.position = Vector2.SmoothDamp(
-                    transform.position,
-                    networkTargetPos,
-                    ref smoothVel,
-                    networkSmoothTime
-                );
-    }
-
-    void ChangeState(PlayerState newState)
-    {
-        Debug.Log($"ChangeState: {state} -> {newState}");
         // 중복 전환 방지
-        if (state == newState)
-            return;
+        if (state == newState) return;
 
         state = newState;
 
@@ -242,30 +186,102 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private bool TryResolvePlayerState(
-    out PlayerState resolvedState)
+    // 패킷 전송 후, 값 초기화
+    private void SendInput()
     {
-        // C++ 서버 (byte)
         if (SocketClient.Instance.useCppServer)
-        {
-            if (Enum.IsDefined(typeof(PlayerState), networkTargetStateByte))
-            {
-                resolvedState = (PlayerState)networkTargetStateByte;
-                return true;
-            }
-        }
-        // C# 서버 (string)
+            SendInput_CppBinary();
         else
-        {
-            if (!string.IsNullOrEmpty(networkTargetState) &&
-                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
-            {
-                resolvedState = parsed;
-                return true;
-            }
-        }
+            SendInput_CSharpDTO();
 
-        resolvedState = default;
-        return false;
+        jumpPressed = false;
+        dashPressed = false;
+        punchPressed = false;
+    }
+
+    // C# 서버 입력 패킷 전송
+    private void SendInput_CSharpDTO()
+    {
+        _ = SocketClient.Instance.CsharpSend(new PlayerInputPacket()
+        {
+            type = "INPUT",
+            id = SocketClient.Instance.myUserId,
+            move = moveInput,
+            jump = jumpPressed,
+            dash = dashPressed,
+            punch = punchPressed
+        });
+    }
+
+    // C++ 서버 입력 패킷 전송
+    private void SendInput_CppBinary()
+    {
+        // 바디 패킷 생성
+        var bodyStruct = new CppPlayerInputPacket
+        {
+            id = SocketClient.Instance.myUserId,
+            move = moveInput,
+            jump = jumpPressed ? (byte)1 : (byte)0,
+            dash = dashPressed ? (byte)1 : (byte)0,
+            punch = punchPressed ? (byte)1 : (byte)0
+        };
+
+        // 구조체를 복사 없이 byte 단위로 참조 (Span 기반)
+        ReadOnlySpan<byte> body =
+            MemoryMarshal.AsBytes(
+                MemoryMarshal.CreateReadOnlySpan(ref bodyStruct, 1)
+            );
+
+        PacketHeader header = new PacketHeader
+        {
+            type = (ushort)C2S_HeaderType.INPUT,
+            size = (ushort)(PacketHeader.Size + body.Length)
+        };
+
+        // 패킷 사이즈에 맞게 byte 배열 생성
+        byte[] buffer = new byte[header.size];
+
+        // buffer에 헤더 Write
+        MemoryMarshal.Write(buffer.AsSpan(0, PacketHeader.Size), ref header);
+
+        // buffer에 헤더 크기 뒤부터 바디 Write
+        body.CopyTo(buffer.AsSpan(PacketHeader.Size));
+
+        _ = SocketClient.Instance.CppSend(buffer);
+    }
+
+    // 방향 업데이트
+    private void ApplyServerDirection()
+    {
+        transform.localScale = new Vector2(networkDir, 1);
+    }
+
+    // C# 서버에서 상태 받아서 저장
+    public void ApplyServerState(Vector2 pos, string state, int dir)
+    {
+        networkTargetPos = pos;
+        networkTargetState = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
+
+    // C++ 서버에서 상태 받아서 저장
+    public void ApplyServerState(Vector2 pos, byte state, sbyte dir)
+    {
+        networkTargetPos = pos;
+        networkTargetStateByte = state;
+        networkDir = dir;
+        isNetworkUpdatePending = true;
+    }
+
+    // 서버가 보내준 위치로 자연스럽게 보간
+    private void ApplyNetworkPosition()
+    {
+        transform.position = Vector2.SmoothDamp(
+                    transform.position,
+                    networkTargetPos,
+                    ref smoothVel,
+                    networkSmoothTime
+                );
     }
 }

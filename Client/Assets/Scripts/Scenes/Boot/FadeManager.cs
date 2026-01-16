@@ -3,14 +3,23 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/*
+ * FadeManager.cs
+ * 
+ * 역할 :
+ * - 씬 이동 시, Fade 효과 처리
+ * 
+ */
+
 public class FadeManager : MonoBehaviour
 {
     public static FadeManager Instance { get; private set; }
-    private CanvasGroup fadeCanvasGroup;
+
     [SerializeField] private Image backColor;
     [SerializeField] private float defaultFadeDuration = 0.5f;
-
+    private CanvasGroup fadeCanvasGroup;
     private Coroutine currentCouroutine;
+
     public bool HasCanvasGroup => fadeCanvasGroup != null;
 
     private void Awake()
@@ -66,18 +75,21 @@ public class FadeManager : MonoBehaviour
         }
     }
 
+    // Black -> White
     public IEnumerator FadeIn(float duration = -1f)
     {
         if (fadeCanvasGroup == null) yield break;
         yield return currentCouroutine = StartCoroutine(FadeCoroutine(0f, 1f, duration < 0 ? defaultFadeDuration : duration));
     }
 
+    // White -> Black
     public IEnumerator FadeOut(float duration = -1f)
     {
         if (fadeCanvasGroup == null) yield break;
         yield return currentCouroutine = StartCoroutine(FadeCoroutine(1f, 0f, duration < 0 ? defaultFadeDuration : duration));
     }
 
+    // Fade 로직
     private IEnumerator FadeCoroutine(float from, float to, float duration)
     {
         if (fadeCanvasGroup == null) yield break;

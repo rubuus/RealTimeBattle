@@ -1,6 +1,14 @@
 ﻿using System.IO;
 using UnityEngine;
 
+/*
+ * SettingData.cs
+ * 
+ * 역할 :
+ * - 클라이언트 데이터 저장 및 불러오기
+ * 
+ */
+
 [System.Serializable]
 public class SettingsData
 {
@@ -23,36 +31,38 @@ public class SettingsData
         }
     }
 
-    // ✅ JSON으로 저장
+    // JSON으로 저장
     public static void Save()
     {
         string json = JsonUtility.ToJson(Current, true);
         File.WriteAllText(filePath, json);
-        Debug.Log($"✅ Settings saved to: {filePath}");
+        Debug.Log($"Settings saved to: {filePath}");
     }
 
-    // ✅ JSON에서 불러오기
+    // 모든 설정 초기화
+    public static void Reset()
+    {
+        _current = new SettingsData();
+        Save();
+        Debug.Log("Settings reset to default");
+    }
+
+    // JSON에서 불러오기
     public static void Load()
     {
         if (File.Exists(filePath))
         {
             string json = File.ReadAllText(filePath);
             _current = JsonUtility.FromJson<SettingsData>(json);
-            Debug.Log("✅ Settings loaded");
+            Debug.Log("Settings loaded");
         }
         else
         {
             _current = new SettingsData(); // 기본값 생성
             Save(); // 파일 없으면 새로 저장
-            Debug.Log("⚠️ Settings file not found. Created new one.");
+            Debug.Log("Settings file not found. Created new one.");
         }
     }
 
-    // ✅ 모든 설정 초기화
-    public static void Reset()
-    {
-        _current = new SettingsData();
-        Save();
-        Debug.Log("🔄 Settings reset to default");
-    }
+    
 }

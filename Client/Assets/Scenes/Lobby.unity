@@ -639,50 +639,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 126924964}
   m_CullTransparentMesh: 1
---- !u!1 &137253637
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 137253639}
-  - component: {fileID: 137253638}
-  m_Layer: 0
-  m_Name: DisconnectManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &137253638
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 137253637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a1f2100f4a687745a1f418a78ac0400, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DisconnectManager
---- !u!4 &137253639
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 137253637}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.25398, y: 0.71576, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &149199037
 GameObject:
   m_ObjectHideFlags: 0
@@ -6089,8 +6045,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SocketClient
   connected: 0
   enemyDisconnected: 0
-  myId: 0
-  enemyId: 0
+  useCppServer: 0
+  myUserId: 0
+  mySessionId: 0
+  enemyUserId: 0
+  enemySessionId: 0
   roomId: 0
   side: 
   finalResult: DRAW
@@ -11763,4 +11722,3 @@ SceneRoots:
   - {fileID: 1325499167}
   - {fileID: 1111793943}
   - {fileID: 270859013}
-  - {fileID: 137253639}

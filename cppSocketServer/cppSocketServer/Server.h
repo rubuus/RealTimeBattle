@@ -29,6 +29,8 @@ public:
 	void CloseRoom(int id);
 	void RemoveClient(int sid);
 
+	std::string GetJWTKey() { return secretKey; }
+
 	// Network에서 꺼내쓰는용
 	ClientSession* FindSession(int sid) 
 	{ 
@@ -40,6 +42,7 @@ public:
 
 private:
 	ThreadPool threadPool{ 4 }; // 내부 로직용 스레드 풀
+	std::string secretKey = "V8rG#b3Yp0!tQs7Wk9@Zx2&Nm5eUj4Ha";
 
 	int _port;
 	int _roomIdCounter = 1;

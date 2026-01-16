@@ -1,7 +1,9 @@
 ﻿#include <iostream>
+#define JWT_DISABLE_PICOJSON
+#include <jwt-cpp/jwt.h>
+#include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include "PacketRouter.h"
 #include "PacketHeader.h"
-#include "LoginPacket.h"
 #include "Server.h"
 #include "Room.h"
 #include "RoomEvent.h"
@@ -14,33 +16,33 @@ PacketRouter& PacketRouter::Instance()
 
 void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
 {
-    switch (static_cast<C2S_PacketType>(pkt.type))
+    switch (static_cast<C2S_HeaderType>(pkt.type))
     {
-        case C2S_PacketType::LOGIN:
+        case C2S_HeaderType::LOGIN:
 		    HandleLogin(s, pkt.body, pkt.bodySize);
             break;
 
-        case C2S_PacketType::MATCH_START:
+        case C2S_HeaderType::MATCH_START:
             HandleMatchStart(s);
             break;
 
-        case C2S_PacketType::BATTLE_READY:
+        case C2S_HeaderType::BATTLE_READY:
 		    HandleBattleReady(s);
             break;
 
-        case C2S_PacketType::BATTLE_START:
+        case C2S_HeaderType::BATTLE_START:
             HandleBattleStart(s);
             break;
 
-        case C2S_PacketType::INPUT:
+        case C2S_HeaderType::INPUT:
 		    HandleInput(s, pkt.body, pkt.bodySize);
             break;
 
-        case C2S_PacketType::RESULT_ACK:
+        case C2S_HeaderType::RESULT_ACK:
 		    HandleResultAck(s);
             break;
 
-        case C2S_PacketType::PING:
+        case C2S_HeaderType::PING:
 		    HandlePing(s);
             break;
 
@@ -50,24 +52,70 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
     }
 }
 
+// 해당 세션에 JWT 검증 후, userId 초기화
+// 클라이언트에서 보낸 토큰의 가변 크기 항상 신뢰
 void PacketRouter::HandleLogin(ClientSession& s, const char* body, uint16_t bodySize)
 {
-    // 바디 사이즈 체크
-    if (bodySize < sizeof(LoginPacket))
+    // 스택 변수로 저장
+    std::string token(body, body + bodySize);
+
+    // 바디 사이즈 검증
+    if (bodySize == 0 || bodySize > 2048)
+    {
+        s.Disconnect("invalid jwt size");
         return;
+    }
 
-	// 패킷에 직접 접근하지 않고, 안전하게 memcpy 사용
-    LoginPacket login;
-    memcpy(&login, body, sizeof(LoginPacket));
+    // JWT Token 인증
+    try
+    {
+        auto decoded = jwt::decode(token);
 
-    s.SetUserId(login.userId);
+        jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{ Server::Instance().GetJWTKey() })
+            .with_issuer("GamePortfolio.Server")
+            .with_audience("GameClient")
+            .verify(decoded);
+
+        auto claim = decoded.get_payload_claim("sub");
+
+        int userId = 0;
+
+        // string으로 들어온 경우
+        try
+        {
+            userId = std::stoi(claim.as_string());
+        }
+        catch (const std::exception&)
+        {
+            // 만약 숫자로 들어온 경우
+            try
+            {
+                userId = static_cast<int>(claim.as_integer());
+            }
+            catch (...)
+            {
+                throw std::runtime_error("invalid sub claim");
+            }
+        }
+        
+        s.SetUserId(userId);
+        s.SetAuthenticated(true);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "[JWT ERROR] " << e.what() << "\n";
+        s.Disconnect("jwt verify failed");
+    }
 }
 
+// 매칭 시작 시, List에 해당 세션 추가
 void PacketRouter::HandleMatchStart(ClientSession& s)
 {
     Server::Instance().AddToMatchList(s.GetSessionId());
 };
 
+// 준비 완료되면 해당 룸에 이벤트 전달
 void PacketRouter::HandleBattleReady(ClientSession& s)
 {
     Room* room = s.GetRoom();
@@ -80,6 +128,7 @@ void PacketRouter::HandleBattleReady(ClientSession& s)
     room->EnqueueEvent(ev);
 };
 
+// 배틀 씬 로드되면 해당 룸에 이벤트 전달
 void PacketRouter::HandleBattleStart(ClientSession& s)
 {
     Room* room = s.GetRoom();
@@ -92,6 +141,7 @@ void PacketRouter::HandleBattleStart(ClientSession& s)
     room->EnqueueEvent(ev);
 };
 
+// 입력 있을 시, 해당 룸에 이벤트 전달
 void PacketRouter::HandleInput(ClientSession& s, const char* body, uint16_t bodySize)
 {
     // 바디 사이즈 체크
@@ -113,6 +163,7 @@ void PacketRouter::HandleInput(ClientSession& s, const char* body, uint16_t body
     room->EnqueueEvent(ev);
 };
 
+// 배틀이 끝났다면 해당 룸에 이벤트 전달
 void PacketRouter::HandleResultAck(ClientSession& s)
 {
     Room* room = s.GetRoom();
@@ -125,6 +176,7 @@ void PacketRouter::HandleResultAck(ClientSession& s)
     room->EnqueueEvent(ev);
 };
 
+// 해당 세션 Heartbeat 시간 초기화
 void PacketRouter::HandlePing(ClientSession& s)
 {
     s.SetLastRecvTime();

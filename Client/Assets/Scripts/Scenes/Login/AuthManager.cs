@@ -1,9 +1,16 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections;
-using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+
+/*
+ * AuthManager.cs
+ * 
+ * 역할 :
+ * - 계정 관련 API 통신 관리
+ * 
+ */
 
 public class AuthManager : MonoBehaviour
 {
@@ -26,38 +33,6 @@ public class AuthManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    public IEnumerator CheckDuplicateAccount(string accountId, System.Action<bool, string> onDone)
-    {
-        var req = new AccountCheckRequest { AccountId = accountId };
-
-        yield return API.Instance.SendJsonRequest(
-            "users/check-account", "POST", req,
-            onSuccess: res => {
-                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
-            },
-            onError: err => {
-                onDone?.Invoke(true, "Request Failed");
-            }
-        );
-    }
-
-    public IEnumerator CheckDuplicateNickname(string nickname, System.Action<bool, string> onDone)
-    {
-        var req = new NicknameCheckRequest { Nickname = nickname };
-
-        yield return API.Instance.SendJsonRequest(
-            "users/check-nickname", "POST", req,
-            onSuccess: res => {
-                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
-                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
-            },
-            onError: err => {
-                onDone?.Invoke(true, "Request Failed"); // 실패 시 보수적으로 막기
-            }
-        );
-    }
-
     // 회원가입 요청
     public IEnumerator SignUp(string accountId, string password, string nickname)
     {
@@ -69,9 +44,9 @@ public class AuthManager : MonoBehaviour
         };
 
         yield return API.Instance.SendJsonRequest(
-            "users/register",
-            "POST",
-            signUpData,
+            endpoint: "users/register",
+            method: UnityWebRequest.kHttpVerbPOST,
+            data: signUpData,
             onSuccess: res =>
             {
                 var response = JsonConvert.DeserializeObject<RegisterResponse>(res);
@@ -80,6 +55,23 @@ public class AuthManager : MonoBehaviour
             onError: err =>
             {
                 Debug.LogWarning($"회원가입 실패: {err}");
+            }
+        );
+    }
+
+    // 계정 아이디 중복 확인
+    public IEnumerator CheckDuplicateAccount(string accountId, System.Action<bool, string> onDone)
+    {
+        yield return API.Instance.SendJsonRequest(
+            endpoint: "users/check-account", 
+            method: UnityWebRequest.kHttpVerbPOST, 
+            data: new AccountCheckRequest { AccountId = accountId },
+            onSuccess: res => {
+                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
+            },
+            onError: err => {
+                onDone?.Invoke(true, "Request Failed");
             }
         );
     }
@@ -94,75 +86,83 @@ public class AuthManager : MonoBehaviour
         };
 
         yield return API.Instance.SendJsonRequest(
-            "users/login", "POST", loginData,
+            endpoint: "users/login", 
+            method: UnityWebRequest.kHttpVerbPOST, 
+            data: loginData,
             onSuccess: res =>
             {
-                var response = JsonConvert.DeserializeObject<LoginResponse>(res);
-
-                if (!string.IsNullOrEmpty(response.AccessToken))
+                try
                 {
+                    var response = JsonConvert.DeserializeObject<LoginResponse>(res);
+
                     UserId = response.UserId;
                     Nickname = response.Nickname;
-                    AccessToken = response.AccessToken;
                     ProfileImage = response.ProfileImage;
+                    AccessToken = response.Accesstoken;
 
-                    onResult?.Invoke(true); // 성공
+                    onResult?.Invoke(true);
                 }
-                else
+                catch
                 {
-                    onResult?.Invoke(false); // 실패
+                    onResult?.Invoke(false);
                 }
             },
-            onError: err =>
-            {
-                onResult?.Invoke(false);
+            onError: err => { onResult?.Invoke(false); }
+        );
+    }
+
+    // Nickname 중복 확인
+    public IEnumerator CheckDuplicateNickname(string nickname, System.Action<bool, string> onDone)
+    {
+        yield return API.Instance.SendJsonRequest(
+            endpoint: "users/check-nickname",
+            method: UnityWebRequest.kHttpVerbPOST,
+            data: new NicknameCheckRequest { Nickname = nickname },
+            onSuccess: res => {
+                var parsed = JsonConvert.DeserializeObject<DuplicateCheckResponse>(res);
+                onDone?.Invoke(parsed.IsDuplicate, parsed.Message);
+            },
+            onError: err => {
+                onDone?.Invoke(true, "Request Failed");
             }
         );
     }
 
+    // Nickname 변경
     public IEnumerator ChangeNicknameRequest(string nickname)
     {
-        var req = new ChangeNicknameRequest
-        {
-            Nickname = nickname,
-            AccessToken = AccessToken
-        };
-
         yield return API.Instance.SendJsonRequest(
-            "users/change-nickname", "POST", req,
+            endpoint: "users/change-nickname",
+            method: UnityWebRequest.kHttpVerbPOST,
+            data: new ChangeNicknameRequest { Nickname = nickname },
             onSuccess: res => {
                 Application.Quit();
             },
-            onError: err => {
-                Debug.Log(err);
-            }
+            onError: Debug.Log
         );
     }
 
-    public IEnumerator DeleteAccount()
-    {
-        var req = new DeleteAccountRequest
-        {
-            AccessToken = AccessToken
-        };
-
-        yield return API.Instance.SendJsonRequest(
-            "users/delete-account", "POST", req,
-            onSuccess: res => {
-                Application.Quit();
-            },
-            onError: err => {
-                Debug.Log(err);
-            }
-        );
-    }
-
+    // ProfileImage 변경
     public IEnumerator ChangeProfileImage(int idx)
     {
         yield return API.Instance.SendJsonRequest(
-            "users/profile-image", 
-            UnityWebRequest.kHttpVerbPOST,
-            new ChangeProfileImageRequest { ProfileImage = idx },
+            endpoint: "users/profile-image", 
+            method: UnityWebRequest.kHttpVerbPOST,
+            data: new ChangeProfileImageRequest { ProfileImage = idx },
+            onError: Debug.Log
+        );
+    }
+
+    // 계정 삭제
+    public IEnumerator DeleteAccount()
+    {
+        yield return API.Instance.SendJsonRequest(
+            endpoint: "users/delete-account",
+            method: UnityWebRequest.kHttpVerbPOST,
+            data: new DeleteAccountRequest { AccessToken = AccessToken },
+            onSuccess: res => {
+                Application.Quit();
+            },
             onError: Debug.Log
         );
     }

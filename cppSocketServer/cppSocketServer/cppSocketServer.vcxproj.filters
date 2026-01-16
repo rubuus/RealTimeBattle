@@ -77,9 +77,6 @@
     <ClInclude Include="DamagePacket.h">
       <Filter>Header Files\Packets</Filter>
     </ClInclude>
-    <ClInclude Include="LoginPacket.h">
-      <Filter>Header Files\Packets</Filter>
-    </ClInclude>
     <ClInclude Include="PlayerInputPacket.h">
       <Filter>Header Files\Packets</Filter>
     </ClInclude>

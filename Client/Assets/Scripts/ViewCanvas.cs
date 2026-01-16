@@ -1,5 +1,13 @@
 using UnityEngine;
 
+/*
+ * ViewCanvas.cs
+ * 
+ * 역할 :
+ * - 로드되는 씬의 alpha 값 초기화 후, Fade In
+ * 
+ */
+
 public class ViewCanvas : MonoBehaviour
 {
     void Start()

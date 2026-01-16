@@ -27,6 +27,7 @@ int main()
         std::thread tickThread(&Server::TickLoop, &server);
         std::thread heartbeatThread(&Server::HeartbeatLoop, &server);
 
+        // Thread ´ë±â
         acceptThread.join();
         tickThread.join();
         heartbeatThread.join();

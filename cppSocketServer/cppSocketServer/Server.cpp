@@ -128,6 +128,7 @@ void Server::AcceptLoop()
     }
 }
 
+// IOCP 큐에 이벤트가 있을 시, 세션에 이벤트 넘겨주는 Thread
 void Server::WorkerLoop()
 {
     while (true)
@@ -278,15 +279,21 @@ void Server::HeartbeatLoop()
 
             for (auto& pair : clients)
             {
+                auto* s = pair.second.get();
+
+                if (s->IsDisconnected())
+                    continue;
+
+                // 세션 응답 주기 갱신
                 auto duration =
                     std::chrono::duration_cast<std::chrono::seconds>(
                         now - pair.second->GetLastRecvTime()).count();
 
-                // 상태 분류
+                // 5초 이상 응답 없을 시, time out
                 if (duration > 5)
-                    timeoutList.push_back(pair.second.get());
-                else if (!pair.second->IsDisconnected())
-                    aliveList.push_back(pair.second.get());
+                    timeoutList.push_back(s);
+                else
+                    aliveList.push_back(s);
             }
         }
 
@@ -301,7 +308,7 @@ void Server::HeartbeatLoop()
         // 살아있는 세션에 heartbeat 응답(PONG) 전송
         for (auto s : aliveList)
         {
-            s->SendPacket(S2C_PacketType::PONG);
+            s->SendPacket(S2C_HeaderType::PONG);
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -309,6 +316,7 @@ void Server::HeartbeatLoop()
 }
 
 // Server 종료: 모든 스레드 종료 대기 및 WinSock 정리
+// 특정 상황 아니면 서버는 계속 돌기 때문에 확장용
 void Server::StopServer()
 {
     running = false;
@@ -337,6 +345,10 @@ void Server::AddToMatchList(int sid)
 	// matchList 접근은 mutex로 보호
     {
 		std::lock_guard<std::mutex> lock(matchMutex);
+
+        if (std::find(matchList.begin(), matchList.end(), sid) != matchList.end())
+            return;
+
         matchList.push_back(sid);
 
         if (matchList.size() < 2) return;
@@ -385,6 +397,10 @@ void Server::AddToMatchList(int sid)
 // 두 세션으로 새 룸 생성
 void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 {
+    // 한 클라에서 2번 매칭 시도로 룸 생성 방지
+    if (p1 == p2 || p1->GetSessionId() == p2->GetSessionId())
+        return;
+
     int roomId = _roomIdCounter++;
 
     Room* roomPtr = nullptr;
@@ -405,8 +421,8 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 }
 
 void Server::NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2) {
-    p1->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p1->GetUserId(), p1->GetSessionId(), p2->GetUserId(), p2->GetSessionId(), Side::Left));
-    p2->SendPacket(S2C_PacketType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
+    p1->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p1->GetUserId(), p1->GetSessionId(), p2->GetUserId(), p2->GetSessionId(), Side::Left));
+    p2->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
 }
 
 void Server::CloseRoom(int id) {
@@ -433,6 +449,7 @@ void Server::CloseRoom(int id) {
 
 void Server::RemoveClient(int sid)
 {
+    // 매칭리스트에서 세션 제거
     {
         std::lock_guard<std::mutex> lock(matchMutex);
         matchList.remove(sid);
@@ -440,6 +457,7 @@ void Server::RemoveClient(int sid)
 
     std::unique_ptr<ClientSession> dying;
 
+    // 세션 정리할 준비가 되면 소유권 넘긴 후, clients 컨테이너에서 제거
     {
         std::lock_guard<std::mutex> lock(clientsMutex);
         auto it = clients.find(sid);
@@ -453,9 +471,10 @@ void Server::RemoveClient(int sid)
 
         dying = std::move(it->second);
         std::cout << "[SESSION REMOVE] sid=" << sid << "\n";
+
+        // 여기서 unique_ptr 소멸 (session delete)
         clients.erase(it);
     }
 
-    // 🔥 여기서 unique_ptr 소멸 → ClientSession delete
     std::cout << "[Server] Client " << sid << " Removed and Resource Cleaned\n";
 }

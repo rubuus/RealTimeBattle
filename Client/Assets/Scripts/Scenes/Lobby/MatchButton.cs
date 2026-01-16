@@ -1,8 +1,17 @@
 using UnityEngine;
 
+/* 
+ * MatchButton.cs
+ * 
+ * 역할 : 
+ * - Match 버튼 클릭 시, 매칭 시작 상태를 소켓 서버에 알림
+ * 
+*/
+
 public class MatchButton : MonoBehaviour
 {
     public static MatchButton Instance;
+
     public bool isMatching = false;
 
     private void Awake()
@@ -10,7 +19,7 @@ public class MatchButton : MonoBehaviour
         Instance = this;
     }
 
-    public async void OnMatchStart()
+    public void OnMatchStart()
     {
         if (isMatching)
         {
@@ -20,15 +29,10 @@ public class MatchButton : MonoBehaviour
 
         isMatching = true;
 
-        if (!SocketClient.Instance.connected)
-        {
-            await SocketClient.Instance.CppConnect(); // await로 바꿔서 순서 보장
-        }
-
         if (SocketClient.Instance.useCppServer)
-            _ = SocketClient.Instance.SendHeaderOnlyAsync(C2S_PacketType.MATCH_START);
+            _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.MATCH_START);
         else
-            _ = SocketClient.Instance.Send(new BasePacket { type = "MATCH_START" });
+            _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "MATCH_START" });
 
         Debug.Log("MATCH_START sent");
     }

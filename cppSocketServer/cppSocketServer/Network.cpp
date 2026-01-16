@@ -8,44 +8,42 @@
 void Network::Dispatch(const RoomOutEvent& ev)
 {
 	auto* session = Server::Instance().FindSession(ev.sessionId);
-	if (!session)
-	{
-		// 💡 정상적인 부하 상황에서 반드시 발생
-		return;
-	}
 
+	// 이벤트 처리 시점에 세션이 이미 종료되었을 수 있으므로 null 체크
+	if (!session) return;
+		
 	switch (ev.type)
 	{
 		case RoomOutEventType::LoadBattle:
-			BroadcastReadyRoom(ev);
+			SendReadyRoom(ev);
 			break;
 
 		case RoomOutEventType::PlayerSpawn:
-			BroadcastSpawn(ev);
+			SendSpawn(ev);
 			break;
 
 		case RoomOutEventType::StateUpdate:
-			BroadcastState(ev);
+			SendState(ev);
 			break;
 
 		case RoomOutEventType::TimeUpdate:
-			BroadcastTime(ev);
+			SendTime(ev);
 			break;
 
 		case RoomOutEventType::Attack:
-			BroadcastDamage(ev);
+			SendDamage(ev);
 			break;
 
 		case RoomOutEventType::GameResult:
-			BroadcastResult(ev);
+			SendResult(ev);
 			break;
 
 		case RoomOutEventType::EnemyExit:
-			BroadcastEnemyExit(ev);
+			SendEnemyExit(ev);
 			break;
 
 		case RoomOutEventType::CloseRoom:
-			BroadcastRoomClosed(ev);
+			SendRoomClosed(ev);
 			break;
 
 		default:
@@ -53,47 +51,53 @@ void Network::Dispatch(const RoomOutEvent& ev)
 	}
 }
 
-void Network::BroadcastReadyRoom(const RoomOutEvent& ev)
+// 룸 생성 시, 해당 세션에 패킷 전송
+void Network::SendReadyRoom(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
-	s->SendPacket(S2C_PacketType::LOAD_BATTLE);
+	s->SendPacket(S2C_HeaderType::LOAD_BATTLE);
 }
 
-void Network::BroadcastSpawn(const RoomOutEvent& ev)
-{
-	auto* s = Server::Instance().FindSession(ev.sessionId);
-	auto& payload = std::get<UpdateStatePayload>(ev.payload);
-
-	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p1);
-	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p2);
-}
-
-void Network::BroadcastState(const RoomOutEvent& ev)
+// 해당 세션에 스폰용으로 상태 패킷 한번 전송
+void Network::SendSpawn(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateStatePayload>(ev.payload);
 
-	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p1);
-	s->SendPacket(S2C_PacketType::PLAYER_STATE, payload.p2);
+	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p1);
+	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p2);
 }
 
-void Network::BroadcastTime(const RoomOutEvent& ev)
+// 해당 세션에 상태 패킷 전송
+void Network::SendState(const RoomOutEvent& ev)
+{
+	auto* s = Server::Instance().FindSession(ev.sessionId);
+	auto& payload = std::get<UpdateStatePayload>(ev.payload);
+
+	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p1);
+	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p2);
+}
+
+// 해당 세션에 시간 패킷 전송
+void Network::SendTime(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateTimePayload>(ev.payload);
 
-	s->SendPacket(S2C_PacketType::GAME_TIME, payload.time);
+	s->SendPacket(S2C_HeaderType::GAME_TIME, payload.time);
 }
 
-void Network::BroadcastDamage(const RoomOutEvent& ev)
+// 해당 세션에 데미지 패킷 전송
+void Network::SendDamage(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateHurtPayload>(ev.payload);
 
-	s->SendPacket(S2C_PacketType::TAKE_DAMAGE, payload.dmg);
+	s->SendPacket(S2C_HeaderType::TAKE_DAMAGE, payload.dmg);
 }
 
-void Network::BroadcastResult(const RoomOutEvent& ev)
+// 해당 세션에 결과 패킷 한번 전송
+void Network::SendResult(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<GameResultPayload>(ev.payload);
@@ -101,26 +105,28 @@ void Network::BroadcastResult(const RoomOutEvent& ev)
 	std::cout << ev.sessionId << '\n';
 	if (payload.winner == -1)
 	{
-		s->SendPacket(S2C_PacketType::GAME_DRAW);
+		s->SendPacket(S2C_HeaderType::GAME_DRAW);
 	}
 	else if (payload.winner == ev.sessionId)
 	{
-		s->SendPacket(S2C_PacketType::GAME_WIN);
+		s->SendPacket(S2C_HeaderType::GAME_WIN);
 	}
 	else
 	{
-		s->SendPacket(S2C_PacketType::GAME_LOSE);
+		s->SendPacket(S2C_HeaderType::GAME_LOSE);
 	}
 }
 
-void Network::BroadcastEnemyExit(const RoomOutEvent& ev)
+// 해당 세션에 상대 종료 패킷 전송
+void Network::SendEnemyExit(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
-	s->SendPacket(S2C_PacketType::ENEMY_EXIT);
+	s->SendPacket(S2C_HeaderType::ENEMY_EXIT);
 }
 
-void Network::BroadcastRoomClosed(const RoomOutEvent& ev)
+// 해당 세션에 룸 닫힘 패킷 전송
+void Network::SendRoomClosed(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
-	s->SendPacket(S2C_PacketType::ROOM_CLOSED);
+	s->SendPacket(S2C_HeaderType::ROOM_CLOSED);
 }

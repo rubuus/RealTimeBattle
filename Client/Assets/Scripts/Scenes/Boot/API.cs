@@ -5,6 +5,15 @@ using System.Text;
 using System;
 using Newtonsoft.Json;
 
+/*
+ * API.cs
+ * 
+ * 역할 :
+ * - REST API 요청 관리
+ * - API 서버와의 HTTP 통신 담당
+ * 
+*/
+
 public class API : MonoBehaviour
 {
     public static API Instance { get; private set; }
@@ -13,9 +22,6 @@ public class API : MonoBehaviour
 
     private void Awake()
     {
-        QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = 120;
-
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject); // 중복 생성 방지
@@ -26,6 +32,7 @@ public class API : MonoBehaviour
         DontDestroyOnLoad(gameObject); // 씬 전환에도 유지
     }
 
+    // API DTO Send 공용 템플릿
     public IEnumerator SendJsonRequest<T>(
     string endpoint,
     string method,

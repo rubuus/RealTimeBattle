@@ -4,11 +4,20 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/* 
+ * ProfileImageButton.cs
+ * 
+ * 역할 : 
+ * - ProfileImage 변경 시, API 요청
+ * 
+*/
+
 public class ProfileImageButton : MonoBehaviour
 {
     [SerializeField] private List<Button> images = new List<Button>();
     [SerializeField] private Image profile;
-    Coroutine sendJob;
+
+    private Coroutine sendJob;
 
     private void Awake()
     {
@@ -19,6 +28,7 @@ public class ProfileImageButton : MonoBehaviour
         }
     }
 
+    // 바꾼 Image를 API 서버에 등록
     private void ChangeImage(int idx)
     {
         UserPanel.OnCharacterChanged?.Invoke(idx);
@@ -26,7 +36,7 @@ public class ProfileImageButton : MonoBehaviour
         if (sendJob != null)
             StopCoroutine(sendJob);
 
-        // 300ms 후 전송
+        // 0.3초 후, API 요청
         sendJob = StartCoroutine(SendProfileImageDelayed(idx));
     }
 

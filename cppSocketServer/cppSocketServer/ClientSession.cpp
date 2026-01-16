@@ -6,7 +6,6 @@
 #include "RoomEvent.h"
 #include "PacketHeader.h"
 #include "PacketRouter.h"
-#include "LoginPacket.h"
 
 ClientSession::ClientSession(SOCKET s, int id) : 
     socket(s), 
@@ -17,6 +16,7 @@ ClientSession::ClientSession(SOCKET s, int id) :
 {
 }
 
+// IOCP 기반 비동기 수신 요청 (Post Recv)
 void ClientSession::PostRecv()
 {
     if (IsDisconnected())
@@ -65,6 +65,7 @@ void ClientSession::PostRecv()
     }
 }
 
+// TCP 스트림 기반 패킷 파싱 처리
 void ClientSession::OnRecv(DWORD bytes)
 {
     SetLastRecvTime();
@@ -114,13 +115,15 @@ void ClientSession::OnRecv(DWORD bytes)
         PostRecv();
 }
 
-void ClientSession::SendPacket(S2C_PacketType type)
+void ClientSession::SendPacket(S2C_HeaderType type)
 {
 	SendPacketInternal(type, nullptr, 0);
 }
 
+// WSASend를 통해 비동기 송신 요청을 등록
+// 송신 완료는 IOCP 워커 스레드에서 처리
 void ClientSession::SendPacketInternal(
-    S2C_PacketType type,
+    S2C_HeaderType type,
     const void* body,
     size_t bodySize)
 {
@@ -187,6 +190,7 @@ void ClientSession::OnSend(DWORD bytes)
 
 }
 
+// 패킷 데이터 라우팅
 void ClientSession::OnPacket(const ParsedPacket& pkt)
 {
     PacketRouter::Instance().Route(*this, pkt);

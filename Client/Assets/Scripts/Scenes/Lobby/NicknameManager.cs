@@ -1,21 +1,28 @@
-using System.Collections;
-using System.Security.Cryptography;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
+/* 
+ * NicknameManager.cs
+ * 
+ * 역할 : 
+ * - Nickname 변경 로직 관리
+ * 
+*/
 
 public class NicknameManager : MonoBehaviour
 {
     public TMP_Text guideMessage;
     public TMP_Text errorMessage;
     public TMP_InputField nicknameField;
-    [SerializeField] private Button changeNicknameButton;
+    public Button changeNicknameButton;
 
     void Awake()
     {
         changeNicknameButton.onClick.AddListener(ChangeNickname);
     }
 
+    // 중복 체크 후, 변경된 Nickname 서버에 저장
     private void ChangeNickname()
     {
         string nickname = nicknameField.text;
@@ -44,6 +51,7 @@ public class NicknameManager : MonoBehaviour
         StartCoroutine(AuthManager.Instance.ChangeNicknameRequest(nickname));
     }
 
+    // UI에 Error 띄우기
     private void ShowError(string message)
     {
         errorMessage.text = message;

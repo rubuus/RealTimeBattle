@@ -93,7 +93,7 @@ private:
     bool battleStarted = false;
     bool gameEnded = false;
 
-    double gameTime = 3.0f;
+    double gameTime = 100.0f;
     double stateSendAcc = 0.0f;
     double timeSendAcc = 0.0f;
 

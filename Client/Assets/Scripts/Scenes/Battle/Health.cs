@@ -1,11 +1,18 @@
 using UnityEngine;
 
+/*
+ * Health.cs
+ * 
+ * 역할 :
+ * - 체력 UI 업데이트
+ * 
+ */
 public class Health : MonoBehaviour
 {
-    [SerializeField] private HPBar hpBar;
-
     public int maxHp = 100;
     public int currentHp;
+
+    [SerializeField] private HPBar hpBar;
 
     private void Awake()
     {
@@ -18,6 +25,7 @@ public class Health : MonoBehaviour
         UpdateHPBar();
     }
 
+    // HP 업데이트 할 유저의 체력바 오브젝트 찾기
     private void AssignHPBar()
     {
         if (hpBar != null) return;
@@ -38,16 +46,12 @@ public class Health : MonoBehaviour
         }
     }
 
+    // 변경된 HP를 UI 표시
     public void UpdateHPBar()
     {
         if (hpBar == null) return;
 
         float rate = (float)currentHp / maxHp;
         hpBar.SetValue(rate);
-    }
-
-    private void Die()
-    {
-        // TODO: 죽었을 때 애니메이션 or 리스폰 처리 넣을 곳
     }
 }

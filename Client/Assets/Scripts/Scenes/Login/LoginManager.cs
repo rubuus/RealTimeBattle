@@ -3,8 +3,18 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/*
+ * LoginManager.cs
+ * 
+ * 역할 :
+ * - 로그인 UI 관리 및 API Request
+ * 
+ */
+
 public class LoginManager : MonoBehaviour
 {
+    public bool loadScenePossible = false;
+
     [SerializeField] private GameObject loginPanel;
     [SerializeField] private GameObject signUpPanel;
     [SerializeField] private TMP_InputField idField;
@@ -14,14 +24,13 @@ public class LoginManager : MonoBehaviour
     [SerializeField] private TMP_Text guideMessage;
     [SerializeField] private TMP_Text errorMessage;
 
-    public bool loadScenePossible = false;
-
     private void Start()
     {
         loginButton.onClick.AddListener(OnLoginClick);
         goSignUpButton.onClick.AddListener(ShowSignUp);
     }
 
+    // 로그인 이벤트
     private void OnLoginClick()
     {
         string id = idField.text;
@@ -49,6 +58,7 @@ public class LoginManager : MonoBehaviour
         }
     }
 
+    // UI에 Error 띄우기
     private void ShowError(string message)
     {
         errorMessage.text = message;
@@ -58,6 +68,7 @@ public class LoginManager : MonoBehaviour
         guideMessage.gameObject.SetActive(false);
     }
 
+    // 회원가입 UI 띄우기
     private void ShowSignUp()
     {
         idField.text = string.Empty;

@@ -1,7 +1,14 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+
+/*
+ * ResultManager.cs
+ * 
+ * 역할 :
+ * - Result Scene 관리
+ * 
+ */
 
 public class ResultManager : MonoBehaviour
 {
@@ -12,6 +19,7 @@ public class ResultManager : MonoBehaviour
         StartCoroutine(ProcessResultFlow());
     }
 
+    // UI 표시 후, 로비 씬 이동
     private IEnumerator ProcessResultFlow()
     {
         yield return null; // 1프레임 대기 (씬 로드 안정화)

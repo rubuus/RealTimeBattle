@@ -3,6 +3,15 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/* 
+ * PanelManager.cs
+ * 
+ * 역할 : 
+ * - Lobby Scene에서 UI Panel 관리
+ * - Panel 열기/닫기
+ * 
+*/
+
 public enum PanelType
 {
     Record,
@@ -30,11 +39,10 @@ public class PanelManager : MonoBehaviour
     public static PanelManager Instance { get; private set; }
 
     [SerializeField] private List<PanelItem> panelItems;
-
-    private Dictionary<PanelType, GameObject> panelDict = new();
-
     [SerializeField] private NicknameManager nicknameManager;
     [SerializeField] private Button deleteAccountButton;
+
+    private Dictionary<PanelType, GameObject> panelDict = new();
 
     private void Awake()
     {
@@ -62,7 +70,8 @@ public class PanelManager : MonoBehaviour
         deleteAccountButton.onClick.AddListener(DeleteAccount);
     }
 
-    public void ShowPanel(PanelType type)
+    // openButton 누를 시, 해당 Panel 활성화
+    private void ShowPanel(PanelType type)
     {
         if (panelDict.TryGetValue(type, out GameObject target))
         {
@@ -111,7 +120,8 @@ public class PanelManager : MonoBehaviour
         }
     }
 
-    public void ClosePanel(PanelType type)
+    // closeButton 누를 시, 해당 패널 비활성화
+    private void ClosePanel(PanelType type)
     {
         if (panelDict.TryGetValue(type, out GameObject target))
         {
@@ -121,9 +131,9 @@ public class PanelManager : MonoBehaviour
                 nicknameManager.nicknameField.text = string.Empty;
             }
 
+            // 매칭 Panel 꺼지면, 매칭 취소
             if (type == PanelType.Match)
             {
-                SocketClient.Instance.Disconnect();
                 MatchButton.Instance.isMatching = false;
             }
                 
@@ -135,6 +145,7 @@ public class PanelManager : MonoBehaviour
         }
     }
 
+    // 계정 삭제
     private void DeleteAccount()
     {
         StartCoroutine(AuthManager.Instance.DeleteAccount());

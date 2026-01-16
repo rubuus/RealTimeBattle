@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public enum C2S_PacketType : ushort
+public enum C2S_HeaderType : ushort
 {
     LOGIN = 0,
 	MATCH_START = 1,
@@ -12,7 +12,7 @@ public enum C2S_PacketType : ushort
 	PING = 6
 };
 
-public enum S2C_PacketType : ushort
+public enum S2C_HeaderType : ushort
 {
 	MATCH_FOUND = 0,
 	LOAD_BATTLE = 1,

@@ -2,6 +2,15 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/*
+ * SignUpManager.cs
+ * 
+ * 역할 :
+ * - 회원가입 UI 관리
+ * - 회원가입 API 요청 처리
+ * 
+ */
+
 public class SignUpManager : MonoBehaviour
 {
     [SerializeField] private GameObject loginPanel;
@@ -24,9 +33,11 @@ public class SignUpManager : MonoBehaviour
 
     void Start()
     {
+        // authManager object 찾기
         if (authManager == null)
-            authManager = FindObjectOfType<AuthManager>(); // 자동 fallback
+            authManager = FindFirstObjectByType<AuthManager>();
 
+        // 찾아도 없으면 return
         if (authManager == null)
         {
             Debug.LogError("AuthManager not found in scene!");
@@ -36,9 +47,10 @@ public class SignUpManager : MonoBehaviour
         signUpButton.onClick.AddListener(OnSignUpClick);
         nicknameButton.onClick.AddListener(OnNicknameClick);
         cancelButton.onClick.AddListener(ShowLogin);
-
     }
 
+    // SignUp 버튼 클릭 시, 아이디 중복 확인 후, Nickname 설정
+    // 비밀번호는 Hash + Salt로 변환되기 때문에 중복 체크 필요 X
     private void OnSignUpClick()
     {
         currentId = string.Empty;
@@ -76,6 +88,7 @@ public class SignUpManager : MonoBehaviour
         }
     }
 
+    // Nickname 설정까지 완료 되면, API 요청(계정 생성)
     private void OnNicknameClick()
     {
         string nickname = nicknameField.text;
@@ -105,6 +118,7 @@ public class SignUpManager : MonoBehaviour
         }
     }
 
+    // UI에 Error 띄우기
     private void ShowError(string message)
     {
         if (signUpPanel.gameObject.activeSelf)
@@ -122,12 +136,10 @@ public class SignUpManager : MonoBehaviour
             nicknameErrorMessage.gameObject.SetActive(true);
             nicknameGuideMessage.gameObject.SetActive(false);
         }
-        else
-        {
-            return;
-        }
+        else return;
     }
 
+    // 회원가입 성공 or 뒤로 가면, Login UI 활성화
     private void ShowLogin()
     {
         idField.text = string.Empty;

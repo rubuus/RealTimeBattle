@@ -4,5 +4,5 @@ using UnityEngine;
 [Serializable]
 public class LoginPacket : BasePacket
 {
-    public int userId;
+    public string jwt;
 }
