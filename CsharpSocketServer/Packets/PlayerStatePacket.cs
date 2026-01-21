@@ -1,8 +1,8 @@
 public class PlayerStatePacket : BasePacket
 {
-    public int userId { get; set; }
-    public float x { get; set; }
-    public float y { get; set; }
-    public string state { get; set; } = string.Empty;
-    public int dir { get; set; }
+    public int UserId { get; set; }
+    public float X { get; set; }
+    public float Y { get; set; }
+    public string State { get; set; } = string.Empty;
+    public short Dir { get; set; }
 }

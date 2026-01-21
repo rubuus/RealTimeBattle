@@ -100,8 +100,7 @@ public static class CppPacketRouter
     private static void HandleLoadBattle()
     {
         SocketClient.Instance.enemyDisconnected = false;
-        SceneLoader.Instance.LoadBattle();
-        _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.BATTLE_READY);
+        SceneLoader.Instance.StartCoroutine(SceneLoader.Instance.LoadBattle());
     }
 
     // 상태 업데이트

@@ -1,8 +1,8 @@
 public class PlayerInputPacket : BasePacket
 {
-    public int id { get; set; }
-    public float move { get; set; }
-    public bool jump { get; set; }
-    public bool dash { get; set; }
-    public bool punch { get; set; }
+    public int Id { get; set; }
+    public float Move { get; set; }
+    public bool Jump { get; set; }
+    public bool Dash { get; set; }
+    public bool Punch { get; set; }
 }

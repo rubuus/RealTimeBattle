@@ -32,7 +32,7 @@ public class MatchButton : MonoBehaviour
         if (SocketClient.Instance.useCppServer)
             _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.MATCH_START);
         else
-            _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "MATCH_START" });
+            _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "MATCH_START" });
 
         Debug.Log("MATCH_START sent");
     }

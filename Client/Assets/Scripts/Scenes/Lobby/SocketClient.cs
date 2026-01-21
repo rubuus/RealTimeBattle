@@ -53,11 +53,11 @@ public class SocketClient : MonoBehaviour
 
     async void Start()
     {
-        await CppConnect();
+        await CSharpConnect();
     }
 
     // C# 소켓 서버 연결
-    public async Task CsharpConnect()
+    public async Task CSharpConnect()
     {
         try
         {
@@ -78,10 +78,10 @@ public class SocketClient : MonoBehaviour
             _ = CSharpReceiveLoop();
 
             // API에서 응답받은 userId를 소켓 서버에 알려주는 패킷 전송
-            _ = CsharpSend(new LoginPacket
+            _ = CSharpSend(new LoginPacket
             {
-                type = "LOGIN",
-                jwt = AuthManager.Instance.AccessToken
+                Type = "LOGIN",
+                AccessToken = AuthManager.Instance.AccessToken
             });
         }
         catch (Exception ex)
@@ -122,11 +122,11 @@ public class SocketClient : MonoBehaviour
 
     // C# 전용 패킷 전송 함수
     // Packet(JSON) -> string -> byte
-    public async Task CsharpSend(object obj)
+    public async Task CSharpSend(object obj)
     {
         if (!connected) return;
 
-        string json = JsonConvert.SerializeObject(obj);
+        var json = JsonConvert.SerializeObject(obj, Formatting.None);
         byte[] data = Encoding.UTF8.GetBytes(json + "\n");
 
         await stream.WriteAsync(data, 0, data.Length);
@@ -190,7 +190,7 @@ public class SocketClient : MonoBehaviour
             {
                 int read = await stream.ReadAsync(buffer, 0, buffer.Length);
 
-                // TCP 스트림에서 패킷 헤더를 수신
+                // TCP 스트림에서 패킷 타입을 수신
                 // 수신 실패 시 서버 연결 종료로 판단
                 if (read <= 0)
                 {
@@ -221,7 +221,7 @@ public class SocketClient : MonoBehaviour
             int idx = recvBuffer.ToString().IndexOf('\n');
             if (idx < 0) break;
 
-            string packet = recvBuffer.ToString(0, idx).Trim();
+            string packet = recvBuffer.ToString(0, idx);
             recvBuffer.Remove(0, idx + 1);
 
             CSharpPacketRouter.Route(packet);
@@ -349,11 +349,7 @@ public class SocketClient : MonoBehaviour
         }
     }
 
-    // 객체 파괴 및 게임 종료 시, Disconnect
-    private void OnDestroy()
-    {
-        Disconnect();
-    }
+    // 게임 종료 시, Disconnect
 
     private void OnApplicationQuit()
     {

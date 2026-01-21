@@ -1,4 +1,4 @@
 public class BasePacket
 {
-    public string type { get; set; }
+    public string Type { get; set; } = null!;
 }

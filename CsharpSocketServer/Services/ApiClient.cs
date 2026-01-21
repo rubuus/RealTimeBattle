@@ -10,9 +10,9 @@ public static class ApiClient
     static ApiClient()
     {
         _client.BaseAddress = new Uri("http://localhost:5146/"); 
-        // 변수로 빼려면 appsettings.json이나 환경 변수로 빼도 됨
     }
 
+    // POST 요청 보내기
     public static async Task<bool> Post<T>(string url, T body)
     {
         var response = await _client.PostAsJsonAsync(url, body);

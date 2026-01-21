@@ -248,17 +248,26 @@ void Server::TickLoop()
                 snapshot.push_back(pair.second.get());
         }
 
-		// room 업데이트
-        for (auto* room : snapshot)
+		// room 업데이트 (최대 2틱까지만 틱 밀림 보장)
+        int maxCatchup = 2;
+        while (clock::now() >= nextTick && maxCatchup-- > 0)
         {
-            room->Update(dt);
+            for (auto* room : snapshot) 
+            {
+                room->Update(dt);
+
+                if (room->IsClosed())
+                    closedRoom.push(room->GetRoomId());
+            }
+                
+            nextTick += tickDur;
         }
 
-        nextTick += tickDur;
-
-        // 틱 밀림 방지
+        // 너무 밀렸다면 리셋
         if (clock::now() > nextTick + tickDur)
             nextTick = clock::now();
+
+        ProcessClosedRooms();
     }
 }
 
@@ -273,30 +282,37 @@ void Server::HeartbeatLoop()
         std::vector<ClientSession*> timeoutList;
         std::vector<ClientSession*> aliveList;
 
-		// 모든 클라이언트 세션을 검사하며 vector에 분류 (mutex로 동시 접근 보호)
+        // 스냅샷 생성
+        std::vector<ClientSession*> snapshot;
         {
             std::lock_guard<std::mutex> lock(clientsMutex);
 
+            // capacity 미리 할당 (동적 재할당 방지)
+            snapshot.reserve(clients.size());
+            
             for (auto& pair : clients)
-            {
-                auto* s = pair.second.get();
+               snapshot.push_back(pair.second.get());
 
-                if (s->IsDisconnected())
-                    continue;
-
-                // 세션 응답 주기 갱신
-                auto duration =
-                    std::chrono::duration_cast<std::chrono::seconds>(
-                        now - pair.second->GetLastRecvTime()).count();
-
-                // 5초 이상 응답 없을 시, time out
-                if (duration > 5)
-                    timeoutList.push_back(s);
-                else
-                    aliveList.push_back(s);
-            }
         }
 
+        for (auto& s : snapshot) 
+        {
+            // 모든 클라이언트 세션을 검사하며 vector에 분류
+            if (s->IsDisconnected())
+                continue;
+
+            // 세션 응답 주기 갱신
+            auto duration =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    now - s->GetLastRecvTime()).count();
+
+            // 5초 이상 응답 없을 시, time out
+            if (duration > 5)
+                timeoutList.push_back(s);
+            else
+                aliveList.push_back(s);
+        }
+        
 		// 타임아웃 세션 처리
         for (auto s : timeoutList)
         {
@@ -425,6 +441,23 @@ void Server::NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2) 
     p2->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
 }
 
+// 닫힌 Room Id만 복사해서 한번에 처리
+void Server::ProcessClosedRooms()
+{
+    std::queue<int> local;
+
+    {
+        std::lock_guard<std::mutex> lock(closedRoomMutex);
+        std::swap(local, closedRoom);
+    }
+
+    while (!local.empty())
+    {
+        CloseRoom(local.front());
+        local.pop();
+    }
+}
+
 void Server::CloseRoom(int id) {
     std::unique_ptr<Room> dying;
 
@@ -472,7 +505,7 @@ void Server::RemoveClient(int sid)
         dying = std::move(it->second);
         std::cout << "[SESSION REMOVE] sid=" << sid << "\n";
 
-        // 여기서 unique_ptr 소멸 (session delete)
+        // 빈 unique_ptr 소멸
         clients.erase(it);
     }
 

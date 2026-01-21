@@ -1,17 +1,17 @@
 ﻿#include <iostream>
-#include "Network.h"
+#include "Transport.h"
 #include "Server.h"
 #include "ClientSession.h"
 #include "RoomEvent.h"
 #include "PacketHeader.h"
 
-void Network::Dispatch(const RoomOutEvent& ev)
+void Transport::Dispatch(const RoomOutEvent& ev)
 {
 	auto* session = Server::Instance().FindSession(ev.sessionId);
 
 	// 이벤트 처리 시점에 세션이 이미 종료되었을 수 있으므로 null 체크
 	if (!session) return;
-		
+
 	switch (ev.type)
 	{
 		case RoomOutEventType::LoadBattle:
@@ -52,14 +52,14 @@ void Network::Dispatch(const RoomOutEvent& ev)
 }
 
 // 룸 생성 시, 해당 세션에 패킷 전송
-void Network::SendReadyRoom(const RoomOutEvent& ev)
+void Transport::SendReadyRoom(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	s->SendPacket(S2C_HeaderType::LOAD_BATTLE);
 }
 
 // 해당 세션에 스폰용으로 상태 패킷 한번 전송
-void Network::SendSpawn(const RoomOutEvent& ev)
+void Transport::SendSpawn(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateStatePayload>(ev.payload);
@@ -69,7 +69,7 @@ void Network::SendSpawn(const RoomOutEvent& ev)
 }
 
 // 해당 세션에 상태 패킷 전송
-void Network::SendState(const RoomOutEvent& ev)
+void Transport::SendState(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateStatePayload>(ev.payload);
@@ -79,7 +79,7 @@ void Network::SendState(const RoomOutEvent& ev)
 }
 
 // 해당 세션에 시간 패킷 전송
-void Network::SendTime(const RoomOutEvent& ev)
+void Transport::SendTime(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateTimePayload>(ev.payload);
@@ -88,7 +88,7 @@ void Network::SendTime(const RoomOutEvent& ev)
 }
 
 // 해당 세션에 데미지 패킷 전송
-void Network::SendDamage(const RoomOutEvent& ev)
+void Transport::SendDamage(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<UpdateHurtPayload>(ev.payload);
@@ -97,7 +97,7 @@ void Network::SendDamage(const RoomOutEvent& ev)
 }
 
 // 해당 세션에 결과 패킷 한번 전송
-void Network::SendResult(const RoomOutEvent& ev)
+void Transport::SendResult(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	auto& payload = std::get<GameResultPayload>(ev.payload);
@@ -118,14 +118,14 @@ void Network::SendResult(const RoomOutEvent& ev)
 }
 
 // 해당 세션에 상대 종료 패킷 전송
-void Network::SendEnemyExit(const RoomOutEvent& ev)
+void Transport::SendEnemyExit(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	s->SendPacket(S2C_HeaderType::ENEMY_EXIT);
 }
 
 // 해당 세션에 룸 닫힘 패킷 전송
-void Network::SendRoomClosed(const RoomOutEvent& ev)
+void Transport::SendRoomClosed(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
 	s->SendPacket(S2C_HeaderType::ROOM_CLOSED);

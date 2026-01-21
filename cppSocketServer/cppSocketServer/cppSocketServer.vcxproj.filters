@@ -48,7 +48,7 @@
     <ClCompile Include="PacketRouter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Network.cpp">
+    <ClCompile Include="Transport.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -98,7 +98,7 @@
     <ClInclude Include="PacketRouter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Network.h">
+    <ClInclude Include="Transport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RoomEvent.h">

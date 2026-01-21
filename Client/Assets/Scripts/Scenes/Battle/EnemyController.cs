@@ -23,7 +23,7 @@ public class EnemyController : MonoBehaviour
     private Vector2 smoothVel;
 
     [SerializeField]
-    private float networkSmoothTime = 0.01f;
+    private float networkSmoothTime = 0.03f;
     private float SNAP_DIST = 0.7f;
 
     private Rigidbody2D rigid;
@@ -92,9 +92,19 @@ public class EnemyController : MonoBehaviour
         // C# 서버 (string)
         else
         {
-            if (!string.IsNullOrEmpty(networkTargetState) &&
-                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            if (!string.IsNullOrEmpty(networkTargetState))
             {
+                PlayerState parsed = networkTargetState switch
+                {
+                    "Idle" => PlayerState.Idle,
+                    "Run" => PlayerState.Run,
+                    "Jump" => PlayerState.Jump,
+                    "GroundDash" => PlayerState.GroundDash,
+                    "AirDash" => PlayerState.AirDash,
+                    "Punch" => PlayerState.Punch,
+                    "Hurt" => PlayerState.Hurt
+                };
+
                 resolvedState = parsed;
                 return true;
             }

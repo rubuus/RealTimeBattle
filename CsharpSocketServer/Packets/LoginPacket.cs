@@ -1,4 +1,4 @@
 public class LoginPacket : BasePacket
 {
-    public int userId { get; set; }
+    public string AccessToken { get; set; } = null!;
 }

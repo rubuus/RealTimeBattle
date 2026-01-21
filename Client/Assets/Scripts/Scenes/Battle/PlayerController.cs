@@ -41,7 +41,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 smoothVel;
 
     [SerializeField]
-    private float networkSmoothTime = 0.01f;
+    private float networkSmoothTime = 0.03f;
     private float SNAP_DIST = 0.7f;
 
     private Rigidbody2D rigid;
@@ -135,9 +135,19 @@ public class PlayerController : MonoBehaviour
         // C# 서버 (string)
         else
         {
-            if (!string.IsNullOrEmpty(networkTargetState) &&
-                Enum.TryParse<PlayerState>(networkTargetState, out var parsed))
+            if (!string.IsNullOrEmpty(networkTargetState))
             {
+                PlayerState parsed = networkTargetState switch
+                {
+                    "Idle" => PlayerState.Idle,
+                    "Run" => PlayerState.Run,
+                    "Jump" => PlayerState.Jump,
+                    "GroundDash" => PlayerState.GroundDash,
+                    "AirDash" => PlayerState.AirDash,
+                    "Punch" => PlayerState.Punch,
+                    "Hurt" => PlayerState.Hurt
+                };
+
                 resolvedState = parsed;
                 return true;
             }
@@ -203,14 +213,14 @@ public class PlayerController : MonoBehaviour
     // C# 서버 입력 패킷 전송
     private void SendInput_CSharpDTO()
     {
-        _ = SocketClient.Instance.CsharpSend(new PlayerInputPacket()
+        _ = SocketClient.Instance.CSharpSend(new PlayerInputPacket()
         {
-            type = "INPUT",
-            id = SocketClient.Instance.myUserId,
-            move = moveInput,
-            jump = jumpPressed,
-            dash = dashPressed,
-            punch = punchPressed
+            Type = "INPUT",
+            Id = SocketClient.Instance.myUserId,
+            Move = moveInput,
+            Jump = jumpPressed,
+            Dash = dashPressed,
+            Punch = punchPressed
         });
     }
 

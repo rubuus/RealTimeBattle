@@ -2,7 +2,7 @@
 
 struct RoomOutEvent;
 
-class Network 
+class Transport
 {
 public:
 	void Dispatch(const RoomOutEvent& ev);

@@ -1,139 +1,123 @@
 using System.Net.Sockets;
-using System.Numerics;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 
-public class ClientSession(int id, TcpClient client, SocketServer server)
+public class ClientSession(int sid, TcpClient tcp)
 {
-    public int sessionId { get; set; } = id;
-    public int userId { get; set; }
-    public int roomId;
+    public bool IsAuthenticated { get; private set; } = false;
+    public int SessionId { get; } = sid;
+    public int UserId { get; set; }
 
-    public bool disconnected = false;
-    public bool battleReady = false;
-    public bool ackReceived = false;
+    public bool IsDisconnected { get; private set; } = false;
+    public bool PendingIo { get; private set; }
 
-    public Room? _room;
-    private TcpClient _client = client;
-    private NetworkStream _stream = client.GetStream();
-    private SocketServer _server = server;
-    private StringBuilder recvBuffer = new StringBuilder();
-    public DateTime lastPongTime = DateTime.Now;
+    public bool BattleReady { get; private set; }
+    public bool AckReceived { get; private set; }
+
+    public Room? Room { get; set; }
+    public NetworkStream Stream { get; } = tcp.GetStream();
+    private readonly object _sendLock = new();
+
+    public DateTime LastPingTime { get; set; } = DateTime.UtcNow;
+
+    private readonly byte[] _recvBuffer = new byte[4096];
+
+    public void SetAuth(bool b)
+    {
+        IsAuthenticated = b;
+    }
 
     public async Task ReceiveLoop()
     {
-        byte[] buffer = new byte[1024];
+        var textBuffer = new StringBuilder();
         
-        while (true)
-        {
-            if (_client.Client.Poll(0, SelectMode.SelectRead) && _client.Client.Available == 0)
-                break;
-
-            int read = await _stream.ReadAsync(buffer, 0, buffer.Length);
-            if (read <= 0) break;
-
-            string text = Encoding.UTF8.GetString(buffer, 0, read);
-            recvBuffer.Append(text);
-
-            while (true)
-            {
-                int idx = recvBuffer.ToString().IndexOf('\n');
-                if (idx < 0) break;
-
-                string packet = recvBuffer.ToString(0, idx).Trim();
-                recvBuffer.Remove(0, idx + 1);
-
-                HandleMessage(packet);
-            }
-        }
-
-        Disconnect();
-    }
-
-
-    private void HandleMessage(string msg)
-    {
-        if (disconnected)
-            return;
-
         try
         {
-            var basePacket = JsonSerializer.Deserialize<BasePacket>(msg);
-
-            switch (basePacket?.type)
+            while (!IsDisconnected)
             {
-                case "LOGIN":
-                    {
-                        var p = JsonSerializer.Deserialize<LoginPacket>(msg);
-                        userId = p.userId;
-                    }
+                int read = await Stream.ReadAsync(_recvBuffer, 0, _recvBuffer.Length);
+                if (read == 0)
+                {
+                    Console.WriteLine($"[Session {SessionId}] remote closed (FIN)");
                     break;
+                }
 
-                case "MATCH_START":
-                    _server.AddToMatchQueue(this);
-                    break;
-                
-                case "BATTLE_READY":
-                    _room.CheckMatch(this);
-                    break;
-                
-                case "BATTLE_START":
-                    battleReady = true;
-                    break;
+                textBuffer.Append(Encoding.UTF8.GetString(_recvBuffer, 0, read));
 
-                case "INPUT":
-                    if (battleReady)
-                    {
-                        var p = JsonSerializer.Deserialize<PlayerInputPacket>(msg);
-                        _room.OnInputPacket(this, p);
-                    }
-                    break;
-                
-                case "RESULT_ACK":
-                    {
-                        var room = _room;
-                        room?.OnAckReceived(this);
-                    }
-                    break;
-                
-                case "PONG":
-                    lastPongTime = DateTime.Now;
-                    break;
+                // 받은 패킷을 모두 소모
+                while (true)
+                {
+                    string current = textBuffer.ToString();
+                    int newlineIndex = current.IndexOf('\n');
+                    if (newlineIndex < 0)
+                        break;
 
-                default:
-                    break;
+                    string packet = textBuffer.ToString(0, newlineIndex).TrimEnd('\r');
+                    textBuffer.Remove(0, newlineIndex + 1);
+
+                    PacketRouter.Route(this, packet);
+                }
             }
         }
-        catch (Exception e)
+        catch (IOException e)
         {
             Console.WriteLine(e);
+        }
+        catch (ObjectDisposedException e)
+        {
+            Console.WriteLine(e);
+        }
+        finally
+        {
+            Disconnect("Session Disconnect");
         }
     }
 
     public void Send(object obj)
     {
-        if (!_client.Connected) return;
+        if (IsDisconnected) return;
+        if (obj == null) return;
 
-        string json = JsonSerializer.Serialize(obj);
-        byte[] data = Encoding.UTF8.GetBytes(json + "\n");
-        _stream.Write(data, 0, data.Length);
+        var json = JsonConvert.SerializeObject(obj, Formatting.None);
+        var data = Encoding.UTF8.GetBytes(json + "\n");
+
+        try
+        {
+            lock (_sendLock)
+            {
+                Stream.Write(data, 0, data.Length);
+            }
+        }
+        catch (Exception e)
+        {
+            Disconnect($"Send Exception : {e}");
+        }
     }
 
-    public void Disconnect()
+    public bool CanCleanUp()
     {
-        Console.WriteLine($"[DISCONNECT] {sessionId}");
-        if (disconnected) return;      // 🔥 두 번째 호출 방어
-        disconnected = true;
+        if (!PendingIo && !IsDisconnected) 
+            return true;
+        return false;
+    }
+
+    public void Disconnect(string reason)
+    {
+        Console.WriteLine($"[DISCONNECT] sid={SessionId} reason={reason}");
+        if (IsDisconnected) return;
+        IsDisconnected = true;
 
         // 1) 스트림 먼저 닫기 (ReceiveLoop 강제 종료)
-        try { _stream?.Close(); } catch { }
-        try { _client?.Close(); } catch { }
+        try { Stream?.Close(); } catch { }
+        try { tcp?.Close(); } catch { }
 
-        // 2) 룸 정리
-        if (_room != null)
-            _room.OnPlayerDisconnect(this);
-
-        // 3) 클라이언트 목록 제거
-        SocketServer.Instance.RemoveClient(this);
+        // 2) 룸 정리 이벤트 넘겨주기
+        if (Room != null)
+            Room.EnqueueEvent(new RoomEvent
+            {
+                EventType = RoomEventType.Disconnect,
+                SessionId = this.SessionId,
+                Payload = null
+            });
     }
 }

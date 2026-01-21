@@ -13,226 +13,195 @@ public enum PlayerState
     Hurt
 }
 
+public struct Dash
+{
+    public float Duration;
+    public float Speed;
+    public float Timer;
+    public float Cooldown;
+    public double CooldownTimer;
+};
+
+public struct Punch
+{
+    public float Duration;
+    public float Timer;
+    public float Cooldown;
+    public double CooldownTimer;
+};
+
 public class ServerPlayer
 {
-    public int id;
-    public string side;  
-    // 권위 상태
-    public Vector2 position;
-    public Vector2 velocity;
+    public int Id { get; }
+    public string Side { get; }
 
-    public int dir;
-    public PlayerState state = PlayerState.Idle;
+    public Vector2 Position { get; private set; }
+    public Vector2 Velocity { get; private set; }
 
-    // 입력 (한 틱 동안 유지)
-    public float moveInput;
-    public bool jumpPressed;
-    public bool dashPressed;
-    public bool punchPressed;
+    public short Direction { get; private set; }
+    public PlayerState State { get; private set; } = PlayerState.Idle;
 
-    // 파라미터
-    public float moveSpeed = 17f;
-    public float jumpPower = 18f;
-    public float gravity = -80f;
-    float prevY;
+    public bool IsStateDirty { get; private set; } = false;
+    public float MoveInput { get; private set; }
+    public bool JumpPressed { get; private set; }
+    public bool DashPressed { get; private set; }
+    public bool PunchPressed { get; private set; }
 
-    // 점프/대쉬/펀치/피격 관련
-    public bool onGround = false;
-    public int jumpCount = 2;
+    public float MoveSpeed { get; } = 17f;
+    public float JumpPower { get; } = 18f;
+    public float Gravity { get; } = -80f;
 
-    public struct Dash
+    private float FIXED_STEP;
+    
+    private float _prevX;
+    private float _prevY;
+
+    public bool OnGround { get; private set; }
+    public int JumpCount { get; private set; } = 2;
+
+    private Dash _dash;
+    private Punch _punch;
+
+    public bool PunchChecked { get; private set; } = false;
+    public float HurtDuration { get; } = 0.2f;
+    public float HurtTimer { get; private set; }
+
+    public bool IsInvincible { get; private set; }
+    public float InvincibleTimer { get; private set; }
+
+    public int CurrentHp { get; private set; } = 100;
+
+    private Platform _screenSize = new Platform { MinX = -9f, MaxX = 9f, Y = 5.0f };
+
+    private List<Platform> Platforms = new List<Platform>
     {
-        public float duration;
-        public float speed;
-        public float timer;
-        public float cooldown;
-        public float cooldownTimer;
-    }
-
-    public struct Punch
-    {
-        public float duration;
-        public float timer;
-        public float cooldown;
-        public float cooldownTimer;
-    }
-
-    public float hurtDuration = 0.2f;
-    public float hurtTimer = 0f;
-
-    public bool isInvincible = false;
-    public float invincibleTimer = 0f;
-
-    public int currentHP = 100;
-
-    public Dash dash;
-    public Punch punch;
-
-    List<Platform> platforms = new List<Platform>
-    {
-        new Platform { xMin = -9f, xMax = 9f, y = -2.5f },
-        new Platform { xMin = -6.7f, xMax = -4.3f, y = 2.5f },
-        new Platform { xMin = -4.2f,  xMax = -1.8f, y = 0f },
-        new Platform { xMin = -0.7f,  xMax = 2.2f, y = 1.5f },
-        new Platform { xMin = 2.8f,  xMax = 5.2f, y = 3.5f },
-        new Platform { xMin = 4.3f,  xMax = 6.7f, y = -0.5f },
+        new Platform { MinX = -9f, MaxX = 9f, Y = -2.5f },
+        new Platform { MinX = -6.7f, MaxX = -4.3f, Y = 2.5f },
+        new Platform { MinX = -4.2f,  MaxX = -1.8f, Y = 0f },
+        new Platform { MinX = -0.7f,  MaxX = 2.2f, Y = 1.5f },
+        new Platform { MinX = 2.8f,  MaxX = 5.2f, Y = 3.5f },
+        new Platform { MinX = 4.3f,  MaxX = 6.7f, Y = -0.5f },
     };
 
-    public ServerPlayer(int userId, string side, Vector2 spawnPosition)
+    public ServerPlayer(int id, string side, Vector2 spawnPos)
     {
-        id = userId;
-        this.side = side;
-        dir = (side == "LEFT") ? 1 : -1;
-        position = spawnPosition;
-        prevY = spawnPosition.Y;
-        onGround = true;
-        jumpCount = 2;
+        Id = id;
+        Side = side;
+        Direction = (Side == "LEFT") ?  (short)1 : (short)-1;
 
-        dash.duration = 0.1f;
-        dash.speed = 30f;
-        dash.cooldown = 0.5f;
+        Position = spawnPos;
+        Velocity = Vector2.Zero;
 
-        punch.duration = 0.2f;
-        punch.cooldown = 0.4f;
+        _prevX = Position.X;
+        _prevY = Position.Y;
+
+        _dash = new Dash
+        {
+            Duration = 0.2f,
+            Speed = 20.0f,
+            Cooldown = 1.0f
+        };
+
+        _punch = new Punch
+        {
+            Duration = 0.4f,
+            Cooldown = 0.8f
+        };
     }
 
-    // --- 입력 적용 (패킷 받을 때마다 호출) ---
     public void ApplyInput(PlayerInputPacket p)
     {
-        moveInput = p.move;
-        jumpPressed = p.jump;
-        dashPressed = p.dash;
-        punchPressed = p.punch;
+        float newMove = Math.Clamp(p.Move, -1.0f, 1.0f);
+        MoveInput = newMove;
+
+        if (p.Jump == true) JumpPressed = true;
+        if (p.Dash == true) DashPressed = true;
+        if (p.Punch == true) PunchPressed = true;
+    }
+
+    public void ClearStateDirty()
+    {
+        IsStateDirty = false;
+    }
+
+    public void SetDir(short d)
+    {
+        Direction = d;
+    }
+
+    public void SetPunchChecked(bool b)
+    {
+        PunchChecked = b;
     }
 
     // --- 틱마다 FSM + 물리 업데이트 ---
     public void Update(float dt)
     {
-        UpdateTimer(dt);
-        UpdateStateMachine(dt);
-        UpdatePosition(dt);
-        CheckOnGround();
-        UpdateDirection();
+        FIXED_STEP = dt;
+        PlayerState oldState = State; // 업데이트 전 상태 저장
+        short oldDir = Direction;
+
+        UpdateTimer();			// dash/punch 쿨타임 및 피격 무적 시간 갱신
+        UpdateStateMachine();	// 현재 상태 반영
+        UpdatePosition();		// 좌표 갱신
+        CheckOnGround();		// OnGround 체크
+        UpdateDirection();		// 방향 갱신
         
-        prevY = position.Y;
+        // Jitter 값보다 크거나 이전 상태/방향과 다르면 true (실제로 움직임)
+        if (Math.Abs(Position.X - _prevX) > 0.001f ||
+            Math.Abs(Position.Y - _prevY) > 0.001f ||
+            oldState != State ||
+            oldDir != Direction)
+        {
+            IsStateDirty = true;
+        }
+
+        // 지속시간/쿨타임 중 선입력 방지
+        JumpPressed = false;
+        DashPressed = false;
+        PunchPressed = false;
+
+        _prevX = Position.X;
+        _prevY = Position.Y;
     }
 
-    void UpdateBaseState()
+    private void UpdateBaseState()
     {
-        if (!onGround)
-            state = PlayerState.Jump;
-        else if (Math.Abs(moveInput) > 0.01f)
-            state = PlayerState.Run;
+        if (!OnGround)
+            State = PlayerState.Jump;
+        else if (Math.Abs(MoveInput) > 0.01f)
+            State = PlayerState.Run;
         else
-            state = PlayerState.Idle;
+            State = PlayerState.Idle;
     }
 
-    void UpdatePosition(float dt)
+    private void UpdateTimer()
     {
-        Platform sceneSize = new Platform {xMin = -9f, xMax = 9f, y = 5f};
+        if (_dash.CooldownTimer > 0f) _dash.CooldownTimer -= FIXED_STEP;
+        if (_punch.CooldownTimer > 0f) _punch.CooldownTimer -= FIXED_STEP;
 
-        if (!onGround && 
-        state != PlayerState.GroundDash &&
-        state != PlayerState.AirDash)
+        if (InvincibleTimer > 0f)
         {
-            velocity.Y += gravity * dt;
-        }
+            InvincibleTimer -= FIXED_STEP;
 
-        position += velocity * dt;
-
-        if (position.X > sceneSize.xMax)
-            position.X = sceneSize.xMax;
-        
-        if (position.X < sceneSize.xMin)
-            position.X = sceneSize.xMin;
-
-        if (position.Y > sceneSize.y)
-        {
-            position.Y = sceneSize.y;
-            velocity.Y = 0f;
+            if (InvincibleTimer <= 0f)
+                IsInvincible = false;
         }
     }
 
-    void UpdateDirection()
+    private void UpdateActionTriggers()
     {
-        if (state == PlayerState.Punch)
-            return;
-
-        if (moveInput > 0.01f) dir = 1;
-        else if (moveInput < -0.01f) dir = -1;
-    }
-
-    void UpdateTimer(float dt)
-    {
-        if (dash.cooldownTimer > 0f) dash.cooldownTimer -= dt;
-        if (punch.cooldownTimer > 0f) punch.cooldownTimer -= dt;
-
-        if (invincibleTimer > 0f)
+        if (State == PlayerState.Idle ||
+            State == PlayerState.Run ||
+            State == PlayerState.Jump)
         {
-            invincibleTimer -= dt;
-
-            if (invincibleTimer <= 0f)
-                isInvincible = false;
-        }
-    }
-
-    void UpdateStateMachine(float dt)
-    {
-        UpdateActionTriggers();
-
-        // 상태별 처리
-        switch (state)
-        {
-            case PlayerState.Hurt:
-                UpdateHurt(dt);
-                break;
-
-            case PlayerState.Punch:
-                UpdatePunch(dt);
-                break;
-
-            case PlayerState.GroundDash:
-            case PlayerState.AirDash:
-                UpdateDash(dt);
-                break;
-
-            default:
-                UpdateMove(dt);
-                break;
-        }
-    }
-
-    // --- 일반 상태 (Idle / Run / Jump) ---
-    void UpdateMove(float dt)
-    {
-        // 수평 이동
-        velocity.X = moveInput * moveSpeed;
-
-        // 점프
-        if (jumpPressed && jumpCount > 0)
-        {
-            
-            jumpPressed = false;
-            velocity.Y = jumpPower;
-            jumpCount--;
-        }
-
-        UpdateBaseState();
-    }
-
-    void UpdateActionTriggers()
-    {
-        if (state == PlayerState.Idle ||
-            state == PlayerState.Run ||
-            state == PlayerState.Jump)
-        {
-            if (dashPressed && dash.cooldownTimer <= 0f)
+            if (DashPressed && _dash.CooldownTimer <= 0f)
             {
                 StartDash();
                 return;
             }
 
-            if (punchPressed && punch.cooldownTimer <= 0f)
+            if (PunchPressed && _punch.CooldownTimer <= 0f)
             {
                 StartPunch();
                 return;
@@ -240,85 +209,72 @@ public class ServerPlayer
         }
     }
 
-    // --- 대쉬 ---
-    void StartDash()
+    private void UpdateStateMachine()
     {
-        dash.timer = dash.duration;
-        dash.cooldownTimer = dash.cooldown;
-        dashPressed = false;
+        UpdateActionTriggers();
+
+        // 상태별 처리
+        switch (State)
+        {
+            case PlayerState.Hurt:
+                UpdateHurt();
+                break;
+
+            case PlayerState.Punch:
+                UpdatePunch();
+                break;
+
+            case PlayerState.GroundDash:
+            case PlayerState.AirDash:
+                UpdateDash();
+                break;
+
+            default:
+                UpdateMove();
+                break;
+        }
+    }
+
+    private void UpdatePosition()
+    {
+        if (!OnGround && 
+        State != PlayerState.GroundDash &&
+        State != PlayerState.AirDash)
+        {
+            Velocity = new Vector2(
+                Velocity.X,
+                Velocity.Y + Gravity * FIXED_STEP
+            );
+        }
+
+        Position += Velocity * FIXED_STEP;
+
+        if (Position.X > _screenSize.MaxX)
+            Position = new Vector2(_screenSize.MaxX, Position.Y);
         
-        if (onGround)
-            state = PlayerState.GroundDash;
-        else
-            state = PlayerState.AirDash;
-            
-        velocity = new Vector2(dir * dash.speed, 0f);
+        if (Position.X < _screenSize.MinX)
+            Position = new Vector2(_screenSize.MinX, Position.Y);
+
+        if (Position.Y > _screenSize.Y)
+        {
+            Position = new Vector2(Position.X, _screenSize.Y);
+            Velocity = new Vector2(Velocity.X, 0f);
+        }
     }
 
-    void UpdateDash(float dt)
-    {
-        dash.timer -= dt;
-
-        if (dash.timer <= 0f)
-            UpdateBaseState();
-    }
-
-    // --- 펀치 ---
-    void StartPunch()
-    {
-        punch.timer = punch.duration;
-        punch.cooldownTimer = punch.cooldown;
-        state = PlayerState.Punch;
-        velocity.X = 0f;
-    }
-
-    void UpdatePunch(float dt)
-    {
-        punch.timer -= dt;
-
-        if (punch.timer <= 0f)
-            UpdateBaseState();
-    }
-
-    // --- 피격 ---
-    public void TakeDamage(int damage, float hurtVel)
-    {
-        if (isInvincible)
-            return;
-
-        currentHP -= damage;
-        if (currentHP < 0) currentHP = 0;
-
-        // 피격 시 경직 + 무적
-        hurtTimer = hurtDuration;
-        invincibleTimer = hurtDuration;
-        isInvincible = true;
-
-        state = PlayerState.Hurt;
-        velocity.X = hurtVel;
-    }
-
-    void UpdateHurt(float dt)
-    {
-        hurtTimer -= dt;
-
-        if (hurtTimer <= 0f)
-            UpdateBaseState();
-    }
-
-    void CheckOnGround()
+    private void CheckOnGround()
     {
         float groundY = 0f;
         bool grounded = false;
 
-        foreach (var p in platforms)
+        foreach (var p in Platforms)
         {
-            if (position.X >= p.xMin &&
-                position.X <= p.xMax &&
-                position.Y <= p.y &&
-                prevY >= p.y)   // 위에서 내려오는 경우에만 착지
+            if (Position.X >= p.MinX &&
+                Position.X <= p.MaxX &&
+                Position.Y <= p.Y &&
+                _prevY >= p.Y)   // 위에서 내려오는 경우에만 착지
             {
-                groundY = p.y;
+                groundY = p.Y;
                 grounded = true;
                 break;
             }
@@ -326,15 +282,109 @@ public class ServerPlayer
 
         if (grounded)
         {
-            position = new Vector2(position.X, groundY);
-            velocity = new Vector2(velocity.X, 0f);
-            onGround = true;
-            jumpCount = 2;
+            Position = new Vector2(Position.X, groundY);
+            Velocity = new Vector2(Velocity.X, 0f);
+            OnGround = true;
+            JumpCount = 2;
         }
         else
         {
-            onGround = false;
+            OnGround = false;
         }
+    }
+
+    private void UpdateDirection()
+    {
+        if (State == PlayerState.Punch)
+            return;
+
+        if (MoveInput > 0.01f) Direction = 1;
+        else if (MoveInput < -0.01f) Direction = -1;
+    }
+
+    // --- 일반 상태 (Idle / Run / Jump) ---
+    private void UpdateMove()
+    {
+        // 수평 이동
+        Velocity = new Vector2(MoveInput * MoveSpeed, Velocity.Y);
+
+        // 점프
+        if (JumpPressed && JumpCount > 0)
+        {
+            
+            JumpPressed = false;
+            Velocity = new Vector2(Velocity.X, JumpPower);
+            JumpCount--;
+        }
+
+        UpdateBaseState();
+    }
+
+    // --- 대쉬 ---
+    private void StartDash()
+    {
+        _dash.Timer = _dash.Duration;
+        _dash.CooldownTimer = _dash.Cooldown;
+        DashPressed = false;
+        
+        if (OnGround)
+            State = PlayerState.GroundDash;
+        else
+            State = PlayerState.AirDash;
+            
+        Velocity = new Vector2(Direction * _dash.Speed, 0f);
+    }
+
+    private void UpdateDash()
+    {
+        _dash.Timer -= FIXED_STEP;
+
+        if (_dash.Timer <= 0f)
+            UpdateBaseState();
+    }
+
+    // --- 펀치 ---
+    private void StartPunch()
+    {
+        _punch.Timer = _punch.Duration;
+        _punch.CooldownTimer = _punch.Cooldown;
+        PunchChecked = false;
+        State = PlayerState.Punch;
+        Velocity = new Vector2(0f, Velocity.Y);
+    }
+
+    private void UpdatePunch()
+    {
+        _punch.Timer -= FIXED_STEP;
+
+        if (_punch.Timer <= 0f)
+            UpdateBaseState();
+    }
+
+    // --- 피격 ---
+    public void TakeDamage(int damage, float hurtVel)
+    {
+        if (IsInvincible)
+            return;
+
+        CurrentHp -= damage;
+        if (CurrentHp < 0) CurrentHp = 0;
+
+        // 피격 시 경직 + 무적
+        HurtTimer = HurtDuration;
+        InvincibleTimer = HurtDuration;
+        IsInvincible = true;
+
+        State = PlayerState.Hurt;
+        Velocity = new Vector2(hurtVel, Velocity.Y);
+    }
+
+    private void UpdateHurt()
+    {
+        HurtTimer -= FIXED_STEP;
+
+        if (HurtTimer <= 0f)
+            UpdateBaseState();
     }
 
     // --- 클라로 보낼 상태 패킷 생성 ---
@@ -342,12 +392,12 @@ public class ServerPlayer
     {
         return new PlayerStatePacket
         {
-            type = "PLAYER_STATE",
-            userId = id,
-            x = position.X,
-            y = position.Y,
-            state = state.ToString(),
-            dir = dir
+            Type = "PLAYER_STATE",
+            UserId = Id,
+            X = Position.X,
+            Y = Position.Y,
+            State = State.ToString(),
+            Dir = Direction
         };
     }
 
@@ -355,9 +405,9 @@ public class ServerPlayer
     {
         return new DamagePacket
         {
-            type = "TAKE_DAMAGE",
-            hurtId = id,
-            currentHP = currentHP
+            Type = "TAKE_DAMAGE",
+            HurtId = Id,
+            CurrentHP = CurrentHp
         };
     }
 }

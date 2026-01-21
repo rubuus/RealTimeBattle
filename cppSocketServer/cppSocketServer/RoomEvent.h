@@ -53,7 +53,7 @@ struct GameEndPayload
     int winner;
 };
 
-// Room -> Network 출력 이벤트 payload
+// Room -> Transport 출력 이벤트 payload
 // 보내는 패킷은 variant로 감싸서 안전하게 type 체크
 using RoomOutPayload = std::variant<
     UpdateStatePayload,
@@ -68,7 +68,7 @@ struct RoomEvent
     RoomEventType type;
     int sessionId;
 
-    // Network -> Room 입력 이벤트
+    // Transport -> Room 입력 이벤트
     // POD 타입 + 즉시 소비 전제라 union 사용 가능
     union
     {

@@ -25,7 +25,6 @@ public class MatchManager : MonoBehaviour
     private void Start()
     {
         UIActive();
-        StartCoroutine(SceneLoader.Instance.LoadBattle());
     }
 
     // side 값에 따라 UI 표시
@@ -48,7 +47,7 @@ public class MatchManager : MonoBehaviour
         if (SocketClient.Instance.useCppServer)
             _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.BATTLE_READY);
         else
-            _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "BATTLE_READY" });
+            _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "BATTLE_READY" });
     }
 
     // 내 프로필 불러오기

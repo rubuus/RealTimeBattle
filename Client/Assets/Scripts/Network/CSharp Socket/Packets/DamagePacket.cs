@@ -3,6 +3,6 @@ using System;
 [Serializable]
 public class DamagePacket : BasePacket
 {
-    public int hurtId;
-    public int currentHP;
+    public int HurtId;
+    public int CurrentHp;
 }

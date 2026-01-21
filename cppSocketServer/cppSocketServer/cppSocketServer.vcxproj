@@ -129,7 +129,7 @@
   <ItemGroup>
     <ClCompile Include="ApiClient.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Network.cpp" />
+    <ClCompile Include="Transport.cpp" />
     <ClCompile Include="PacketRouter.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Server.cpp" />
@@ -141,7 +141,7 @@
     <ClInclude Include="ApiClient.h" />
     <ClInclude Include="DamagePacket.h" />
     <ClInclude Include="MatchFoundPacket.h" />
-    <ClInclude Include="Network.h" />
+    <ClInclude Include="Transport.h" />
     <ClInclude Include="PacketHeader.h" />
     <ClInclude Include="PacketRouter.h" />
     <ClInclude Include="Platform.h" />

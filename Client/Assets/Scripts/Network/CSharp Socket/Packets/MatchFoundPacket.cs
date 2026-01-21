@@ -4,10 +4,10 @@ using UnityEngine;
 [Serializable]
 public class MatchFoundPacket : BasePacket
 {
-    public int roomId;
-    public int myUserId;
-    public int mySessionId;
-    public int enemyUserId;
-    public int enemySessionId;
-    public string side;
+    public int RoomId;
+    public int MyUserId;
+    public int MySessionId;
+    public int EnemyUserId;
+    public int EnemySessionId;
+    public string Side;
 }

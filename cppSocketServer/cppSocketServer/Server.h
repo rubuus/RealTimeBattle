@@ -1,12 +1,11 @@
 #pragma once
-#include <queue>
 #include <list>
 #include <iostream>
 #include <unordered_map>
 #include <WinSock2.h>
 #include <MSWSock.h>
 #include "ThreadPool.h"
-#include "Network.h"
+#include "Transport.h"
 
 class ClientSession;
 class Room;
@@ -26,12 +25,13 @@ public:
 	void AddToMatchList(int sid);
 	void CreateRoom(ClientSession* p1, ClientSession* p2);
 	void NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2);
+	void ProcessClosedRooms();
 	void CloseRoom(int id);
 	void RemoveClient(int sid);
 
 	std::string GetJWTKey() { return secretKey; }
 
-	// Network에서 꺼내쓰는용
+	// Transport에서 꺼내쓰는용
 	ClientSession* FindSession(int sid) 
 	{ 
 		auto it = clients.find(sid);
@@ -54,7 +54,7 @@ private:
 	std::vector<std::thread> workers;
 	std::vector<std::thread> threads;
 
-	Network net;
+	Transport net;
 
 	std::atomic<int> nextClientId{ 1 };
 
@@ -63,6 +63,9 @@ private:
 
 	std::unordered_map<int, std::unique_ptr<Room>> rooms;
 	std::mutex roomsMutex;
+
+	std::queue<int> closedRoom;
+	std::mutex closedRoomMutex;
 
 	std::list<int> matchList;
 	std::mutex matchMutex;

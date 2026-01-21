@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class PlayerInputPacket : BasePacket
 {
-    public int id;
-    public float move;
-    public bool jump;
-    public bool dash;
-    public bool punch;
+    public int Id;
+    public float Move;
+    public bool Jump;
+    public bool Dash;
+    public bool Punch;
 }

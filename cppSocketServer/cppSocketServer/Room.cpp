@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #include "ClientSession.h"
 #include "Room.h"
-#include "Network.h"
+#include "Transport.h"
 #include "ServerPlayer.h"
 #include "ApiClient.h"
 #include "SaveRecordRequest.h"
@@ -12,6 +12,7 @@
 #include "RoomEvent.h"
 #include "ThreadPool.h"
 #include "PlayerStruct.h"
+#include "Server.h"
 
 Room::Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool)
     : roomId(id), p1(player1), p2(player2), threadPool(pool)
@@ -49,7 +50,6 @@ void Room::EnqueueEvent(const RoomEvent& ev)
 
     if (sz > 50)
     {
-        static auto lastLog = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
 
         if (now - lastLog > std::chrono::seconds(1))
@@ -67,19 +67,17 @@ void Room::EmitOutEvent(const RoomOutEvent& ev)
 {
     {
         std::lock_guard<std::mutex> lock(outEventMutex);
-        outEvents.push(ev);
+        outEventQueue.push(ev);
     }
     
-
     size_t sz;
     {
         std::lock_guard<std::mutex> lock(outEventMutex);
-        sz = outEvents.size();
+        sz = outEventQueue.size();
     }
 
-    if (sz > 50)
+    if (sz > 20)
     {
-        static auto lastLog = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
 
         if (now - lastLog > std::chrono::seconds(1))
@@ -95,23 +93,26 @@ void Room::EmitOutEvent(const RoomOutEvent& ev)
 // 이벤트 큐 처리 (룸 업데이트 스레드에서 호출)
 void Room::InputEvents()
 {
-    while (!eventQueue.empty())
     {
-        auto ev = eventQueue.front();
-        eventQueue.pop();
+        std::lock_guard<std::mutex> lock(eventMutex);
 
-        switch (ev.type)
+        while (!eventQueue.empty())
         {
+            auto ev = eventQueue.front();
+            eventQueue.pop();
+
+            switch (ev.type)
+            {
             case RoomEventType::BattleReady:
                 CheckMatch(ev);
-			    break;
+                break;
 
             case RoomEventType::BattleStart:
                 PlayerSpawn(ev);
                 break;
 
             case RoomEventType::PlayerInput:
-				OnInput(ev);
+                OnInput(ev);
                 break;
 
             case RoomEventType::ResultAck:
@@ -124,6 +125,7 @@ void Room::InputEvents()
 
             default:
                 break;
+            }
         }
     }
 }
@@ -131,11 +133,15 @@ void Room::InputEvents()
 // 이벤트 큐 처리 (룸 업데이트 스레드에서 호출)
 void Room::OutEvents()
 {
-    while (!outEvents.empty())
     {
-        auto ev = outEvents.front();
-        outEvents.pop();
-        net.Dispatch(ev);
+        std::lock_guard<std::mutex> lock(outEventMutex);
+
+        while (!outEventQueue.empty())
+        {
+            auto ev = outEventQueue.front();
+            outEventQueue.pop();
+            net.Dispatch(ev);
+        }
     }
 }
 
@@ -170,22 +176,14 @@ void Room::CheckMatch(const RoomEvent& re)
 {
     if (gameStarted) return;
 
-	auto p1sid = p1->GetSessionId();
-    auto p2sid = p2->GetSessionId();
+    ready.insert(re.sessionId);
 
-    if (re.sessionId == p1sid)
-        p1Ready = true;
+    if (ready.size() < 2) return;
 
-    if (re.sessionId == p2sid)
-        p2Ready = true;
+    gameStarted = true;
 
-    if (p1Ready && p2Ready)
-    {
-        gameStarted = true;
-
-        EmitOutEvent({ RoomOutEventType::LoadBattle, p1sid });
-        EmitOutEvent({ RoomOutEventType::LoadBattle, p2sid });
-    }
+    EmitOutEvent({ RoomOutEventType::LoadBattle, p1->GetSessionId() });
+    EmitOutEvent({ RoomOutEventType::LoadBattle, p2->GetSessionId() });
 }
 
 void Room::PlayerSpawn(const RoomEvent& re)

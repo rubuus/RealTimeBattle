@@ -1,42 +1,70 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
+/*
+SocketServer.cs
+
+역할 :
+- 서버 관련 쓰레드 모음
+
+*/
+
 public class SocketServer
 {
-    public static SocketServer Instance;
-    private TcpListener _listener;
+    public static SocketServer Instance { get; private set; } = null!;
 
-    private Dictionary<int, ClientSession> _clients = new();
-    private Queue<ClientSession> _matchQueue = new();
-    private Dictionary<int, Room> _rooms = new();
-    private int _roomIdCounter = 1;
+    public bool running { get; private set; } = true;
+public IEnumerable<int> DebugClientKeys()
+    {
+        return _clients.Keys;
+    }
+    private TcpListener _listener = null!;
     private int _port;
+    public string SecretKey { get; } = "V8rG#b3Yp0!tQs7Wk9@Zx2&Nm5eUj4Ha";
+
+    private readonly ConcurrentDictionary<int, ClientSession> _clients = new();
+
+    private readonly LinkedList<ClientSession> _matchList = new();
+    private readonly object _matchLock = new();
+
+    private readonly Dictionary<int, Room> _rooms = new();
+    private readonly object _roomLock = new();
+    private int _roomIdCounter = 1;
+
+    private readonly ConcurrentQueue<int> _closedRoom = new();
+
 
     public SocketServer(int port)
     {
+        if (Instance != null)
+            throw new InvalidOperationException("SocketServer already created");
+            
+        Instance = this;
         _port = port;
     }
 
-    public async Task StartAsync()
+    public async Task StartServer()
     {
         _listener = new TcpListener(IPAddress.Any, _port);
         _listener.Start();
         Console.WriteLine("Server Started");
 
-        // ★ TickLoop 시작 (서버 전체에서 딱 1개만)
+        // TickLoop 시작 (서버 전체에서 딱 1개만)
         _ = TickLoop();
         _ = HeartbeatLoop();
 
         int clientId = 1;
 
-        while (true)
+        while (running)
         {
             var tcpClient = await _listener.AcceptTcpClientAsync();
             tcpClient.NoDelay = true;
             tcpClient.Client.NoDelay = true;
-            var session = new ClientSession(clientId, tcpClient, this);
 
-            _clients.Add(clientId, session);
+            var session = new ClientSession(clientId, tcpClient);
+            _clients[clientId] = session;
             Console.WriteLine($"[SERVER] Client {clientId} Connected");
 
             _ = session.ReceiveLoop();
@@ -44,122 +72,232 @@ public class SocketServer
         }
     }
     
+    // 게임 로직 루프
+    private async Task TickLoop()
+    {
+        const int TICK_RATE = 60; // 60 FPS
+        const long TICK_MS = 1000 / TICK_RATE;
+        var sw = Stopwatch.StartNew();
+        long nextTick = sw.ElapsedMilliseconds;
+
+        while (running)
+        {
+            long now = sw.ElapsedMilliseconds;
+
+            if (now >= nextTick)
+            {
+                float dt = 1f / TICK_RATE;
+                List<Room> rooms;
+
+                lock (_roomLock)
+                {
+                    rooms = _rooms.Values.ToList();
+                }
+
+                foreach (var room in rooms)
+                {
+                    room.Update(dt);
+
+                    if (room.TryQueueClose())
+                        _closedRoom.Enqueue(room.RoomId);
+                }
+
+                ProcessRoomClosed();
+                nextTick = now + TICK_MS;
+            }
+            else
+            {
+                int delay = (int)(nextTick - now);
+                if (delay > 2)
+                    await Task.Delay(delay - 1);
+            }
+        }
+    }
+
+    // 1초 주기로 각각 세션에 연결 확인
     private async Task HeartbeatLoop()
     {
-        while (true)
+        while (running)
         {
-            foreach (var session in _clients.Values)
+            List<ClientSession> timeoutList = new();
+            List<ClientSession> aliveList = new();
+
+            foreach (var s in _clients.Values)
             {
-                try
-                {
-                    session.Send(new { type = "PING" });
-                }
-                catch { }
+                if (s == null || s.IsDisconnected)
+                    continue;
+
+                TimeSpan duration = DateTime.UtcNow - s.LastPingTime;
+
+                // 5초 이상 응답 없을 시, time out
+                if (duration.TotalSeconds > 5)
+                    timeoutList.Add(s);
+                else
+                    aliveList.Add(s);
+            }
+            
+            // 타임 아웃 된 세션은 연결 종료
+            foreach (var s in timeoutList)
+            {
+                s.Disconnect($"{s.SessionId} session is timeout");
+                RemoveClient(s);
+            }
+
+            // 살아있는 세션에 응답
+            foreach (var s in aliveList)
+            {
+                s.Send(new BasePacket { Type = "PONG" });
             }
 
             await Task.Delay(1000);
         }
     }
 
-    // -----------------------
     // 매칭 큐
-    // -----------------------
-    public void AddToMatchQueue(ClientSession s)
+    public void AddToMatchList(ClientSession s)
     {
-        if (_matchQueue.Contains(s))
+        ClientSession? p1, p2;
+
+        // 동시 접근 보호
+        lock (_matchLock)
+        {
+            if (_matchList.Contains(s))
+                return;
+
+            _matchList.AddLast(s);
+            Console.WriteLine($"[MATCH] User {s.SessionId} Enqueued");
+
+            if (_matchList.Count < 2) return;
+
+            p1 = _matchList.First!.Value; _matchList.RemoveFirst();
+            p2 = _matchList.First!.Value; _matchList.RemoveFirst();
+        }
+        
+        if (p1.IsDisconnected || p2.IsDisconnected)
+        {
+            lock (_matchLock)
+            {
+                if (!p1.IsDisconnected) _matchList.AddFirst(p1);
+                if (!p2.IsDisconnected) _matchList.AddFirst(p2);
+            }
+            return;
+        }
+
+        CreateRoom(p1, p2);
+    }
+
+    private void CreateRoom(ClientSession p1, ClientSession p2)
+    {
+        // 한 클라에서 매칭 2번으로 룸 생성 방지
+        if (p1 == p2 || p1.SessionId == p2.SessionId)
             return;
 
-        _matchQueue.Enqueue(s);
-        Console.WriteLine($"[MATCH] User {s.userId} Enqueued");
+        int roomId = _roomIdCounter++;
 
-        if (_matchQueue.Count >= 2)
+        Room r;
+
+        // 동시 접근 보호
+        lock (_roomLock)
         {
-            var p1 = _matchQueue.Dequeue();
-            var p2 = _matchQueue.Dequeue();
+            r = new Room(roomId, p1, p2);
+            _rooms.Add(roomId, r);
 
-            CreateRoom(p1, p2);
+            p1.Room = r;
+            p2.Room = r;
+        }
+
+        Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.UserId}, {p2.UserId})");
+
+        NotifyMatchFound(roomId, p1, p2);
+    }
+
+    private void NotifyMatchFound(int rid, ClientSession p1, ClientSession p2)
+    {
+        p1.Send(new MatchFoundPacket
+        {
+            Type = "MATCH_FOUND",
+            RoomId = rid,
+            MyUserId = p1.UserId,
+            MySessionId = p1.SessionId,
+            EnemyUserId = p2.UserId,
+            EnemySessionId = p2.SessionId,
+            Side = "LEFT",
+        });
+
+        p2.Send(new MatchFoundPacket
+        {
+            Type = "MATCH_FOUND",
+            RoomId = rid,
+            MyUserId = p2.UserId,
+            MySessionId = p2.SessionId,
+            EnemyUserId = p1.UserId,
+            EnemySessionId = p1.SessionId,
+            Side = "RIGHT",
+        });
+    }
+
+    public bool RoomAlive(ClientSession s)
+    {
+        lock (_roomLock)
+        {
+            if (!_rooms.TryGetValue(s.Room!.RoomId, out _))
+                return false;
+
+            return true;
         }
     }
 
-    public void CreateRoom(ClientSession p1, ClientSession p2)
+    public ClientSession? FindSession(int sid)
     {
-        int roomId = _roomIdCounter++;
-        var room = new Room(roomId, p1, p2);
-        _rooms.Add(roomId, room);
-
-        Console.WriteLine($"[ROOM] Room {roomId} Created ({p1.userId}, {p2.userId})");
-
-        p1.Send(new
-        {
-            type = "MATCH_FOUND",
-            roomId = roomId,
-            myId = p1.userId,
-            enemyId = p2.userId,
-            side = "LEFT",
-        });
-
-        p2.Send(new
-        {
-            type = "MATCH_FOUND",
-            roomId = roomId,
-            myId = p2.userId,
-            enemyId = p1.userId,
-            side = "RIGHT",
-        });
+        if (!_clients.TryGetValue(sid, out var session))
+            return null;
+        else return session;
     }
 
-    public void CloseRoom(int roomId)
+    private void ProcessRoomClosed()
     {
-        if (!_rooms.TryGetValue(roomId, out var room)) return;
+        while (_closedRoom.TryDequeue(out var roomId))
+            CloseRoom(roomId);
+    }
 
-        room.CloseRoom();
-        _rooms.Remove(roomId);
+    private void CloseRoom(int roomId)
+    {
+        Room dying;
+
+        // 소유권 이동 후, room 컨테이너에서 삭제
+        lock (_roomLock) 
+        {
+            if (!_rooms.TryGetValue(roomId, out _)) return;
+            dying = _rooms[roomId];
+            _rooms.Remove(roomId);
+        }
+        
+        // 락 밖에서 룸 정리
+        dying.CloseRoom();
         Console.WriteLine($"[ROOM] Room {roomId} Deleted");
     }
 
-    private async Task TickLoop()
+    private void RemoveClient(ClientSession s)
     {
-        const int TICK_RATE = 120; // 120 FPS
-        const int TICK_DELAY = 1000 / TICK_RATE;
-        float dt = 1f / TICK_RATE;
-
-        while (true)
+        Console.WriteLine($"[REMOVE] sid={s.SessionId} reason=RemoveClient");
+        // 매칭리스트에서 세션 제거
+        lock (_matchLock)
         {
-            foreach (var room in _rooms.Values)
-                room.Update(dt);
-
-            CheckHeartbeat();
-            await Task.Delay(TICK_DELAY);
+            _matchList.Remove(s);
         }
+
+        ClientSession? dying = null;
+
+        // 세션 정리할 준비가 되면 소유권 넘긴 후, clients 컨테이너에서 제거
+        if (!_clients.TryGetValue(s.SessionId, out dying))
+            return;
+
+        if (!dying.CanCleanUp())
+            return;
+
+        _clients.TryRemove(s.SessionId, out _);
+
+        dying.Disconnect("Remove Client");
+        Console.WriteLine($"[SERVER] Client {s.SessionId} removed completely.");
     }
-
-    private void CheckHeartbeat()
-    {
-        DateTime now = DateTime.Now;
-
-        foreach (var session in _clients.Values.ToList())
-        {
-            if (session.disconnected)
-                continue;
-
-            if ((now - session.lastPongTime).TotalSeconds > 5)
-            {
-                Console.WriteLine($"[HEARTBEAT] Client {session.sessionId} timeout");
-                session.Disconnect();   // 🔥 강제로 끊어버림
-            }
-        }
-    }
-
-    public void RemoveClient(ClientSession s)
-    {
-        // 1) 해당 세션을 매칭큐에서 제거
-        _matchQueue = new Queue<ClientSession>(_matchQueue.Where(p => p.sessionId != s.sessionId));
-
-        // 2) 딕셔너리에서 제거
-        if (_clients.ContainsKey(s.sessionId))
-            _clients.Remove(s.sessionId);
-
-        Console.WriteLine($"[SERVER] Client {s.sessionId} removed completely.");
-    }
-
 }

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Newtonsoft.Json;
 
 /*
  * CSharpPacketRouter.cs
@@ -14,57 +15,51 @@ public static class CSharpPacketRouter
 {
     public static void Route(string msg)
     {
-        var basePacket = JsonUtility.FromJson<BasePacket>(msg);
+        var basePacket = JsonConvert.DeserializeObject<BasePacket>(msg);
 
-        if (!Enum.TryParse<S2C_PacketType>(basePacket.type, out var type))
+        switch (basePacket.Type)
         {
-            Console.WriteLine("[WARN] Unknown packet: " + msg);
-            return;
-        }
-
-        switch (type)
-        {
-            case S2C_PacketType.MATCH_FOUND:
+            case "MATCH_FOUND":
                 HandleMatchFound(msg);
                 break;
 
-            case S2C_PacketType.LOAD_BATTLE:
+            case "LOAD_BATTLE":
                 HandleLoadBattle();
                 break;
 
-            case S2C_PacketType.PLAYER_STATE:
+            case "PLAYER_STATE":
                 HandleState(msg);
                 break;
 
-            case S2C_PacketType.TAKE_DAMAGE:
+            case "TAKE_DAMAGE":
                 HandleTakeDamage(msg);
                 break;
 
-            case S2C_PacketType.GAME_TIME:
+            case "GAME_TIME":
                 HandleTime(msg);
                 break;
 
-            case S2C_PacketType.GAME_WIN:
+            case "GAME_WIN":
                 HandleGameWin();
                 break;
 
-            case S2C_PacketType.GAME_LOSE:
+            case "GAME_LOSE":
                 HandleGameLose();
                 break;
 
-            case S2C_PacketType.GAME_DRAW:
+            case "GAME_DRAW":
                 HandleGameDraw();
                 break;
 
-            case S2C_PacketType.ENEMY_EXIT:
+            case "ENEMY_EXIT":
                 HandleEnemyExit();
                 break;
 
-            case S2C_PacketType.ROOM_CLOSED:
+            case "ROOM_CLOSED":
                 SceneManager.LoadScene("Result");
                 break;
 
-            case S2C_PacketType.PONG:
+            case "PONG":
                 OnPong();
                 break;
         }
@@ -73,14 +68,14 @@ public static class CSharpPacketRouter
     // 매칭 성사 시, 룸 관련 변수 초기화
     private static void HandleMatchFound(string msg)
     {
-        MatchFoundPacket p = JsonUtility.FromJson<MatchFoundPacket>(msg);
+        MatchFoundPacket p = JsonConvert.DeserializeObject<MatchFoundPacket>(msg);
 
-        SocketClient.Instance.roomId = p.roomId;
-        SocketClient.Instance.myUserId = p.myUserId;
-        SocketClient.Instance.mySessionId = p.mySessionId;
-        SocketClient.Instance.enemySessionId = p.enemySessionId;
-        SocketClient.Instance.enemyUserId = p.enemyUserId;
-        SocketClient.Instance.side = p.side;
+        SocketClient.Instance.roomId = p.RoomId;
+        SocketClient.Instance.myUserId = p.MyUserId;
+        SocketClient.Instance.mySessionId = p.MySessionId;
+        SocketClient.Instance.enemySessionId = p.EnemySessionId;
+        SocketClient.Instance.enemyUserId = p.EnemyUserId;
+        SocketClient.Instance.side = p.Side;
 
         MatchButton.Instance.isMatching = false;
 
@@ -91,7 +86,7 @@ public static class CSharpPacketRouter
     private static void HandleLoadBattle()
     {
         SocketClient.Instance.enemyDisconnected = false;
-        SceneLoader.Instance.LoadBattle();
+        SceneLoader.Instance.StartCoroutine(SceneLoader.Instance.LoadBattle());
     }
 
     // 상태 업데이트
@@ -104,39 +99,39 @@ public static class CSharpPacketRouter
             return;
         }
 
-        PlayerStatePacket p = JsonUtility.FromJson<PlayerStatePacket>(msg);
+        PlayerStatePacket p = JsonConvert.DeserializeObject<PlayerStatePacket>(msg);
 
-        if (p.userId == SocketClient.Instance.myUserId)
+        if (p.UserId == SocketClient.Instance.myUserId)
         {
             // 내 캐릭터 업데이트
             var pc = GameManager.Instance.myPlayer.GetComponent<PlayerController>();
-            pc.ApplyServerState(new Vector2(p.x, p.y), p.state, p.dir);
+            pc.ApplyServerState(new Vector2(p.X, p.Y), p.State, p.Dir);
         }
         else
         {
             // 상대 캐릭터 업데이트
             var pc = GameManager.Instance.enemyPlayer.GetComponent<EnemyController>();
-            pc.ApplyServerState(new Vector2(p.x, p.y), p.state, p.dir);
+            pc.ApplyServerState(new Vector2(p.X, p.Y), p.State, p.Dir);
         }
     }
 
     // Damage 발생 시, UI 업데이트
     private static void HandleTakeDamage(string msg)
     {
-        DamagePacket p = JsonUtility.FromJson<DamagePacket>(msg);
+        DamagePacket p = JsonConvert.DeserializeObject<DamagePacket>(msg);
 
-        GameObject target = (p.hurtId == SocketClient.Instance.myUserId) ?
+        GameObject target = (p.HurtId == SocketClient.Instance.myUserId) ?
             GameManager.Instance.myPlayer : GameManager.Instance.enemyPlayer;
 
-        SocketClient.Instance.UpdateHP(target, p.currentHP);
+        SocketClient.Instance.UpdateHP(target, p.CurrentHp);
     }
 
     // 현재 시간으로 UI 업데이트
     private static void HandleTime(string msg)
     {
-        TimeSyncPacket p = JsonUtility.FromJson<TimeSyncPacket>(msg);
+        TimeSyncPacket p = JsonConvert.DeserializeObject<TimeSyncPacket>(msg);
 
-        GameManager.Instance.timerText.text = p.time.ToString();
+        GameManager.Instance.timerText.text = p.Time.ToString();
     }
 
     // Result 씬에 결과 반영 먼저 한 후, 배틀 끝났음을 서버에 알림
@@ -146,8 +141,9 @@ public static class CSharpPacketRouter
         SocketClient.Instance.finalResult = "Win";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
-        _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "RESULT_ACK" });
     }
 
     // Result 씬에 결과 반영 먼저 한 후, 배틀 끝났음을 서버에 알림
@@ -157,8 +153,9 @@ public static class CSharpPacketRouter
         SocketClient.Instance.finalResult = "Lose";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
-        _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "RESULT_ACK" });
     }
 
     // Result 씬에 결과 반영 먼저 한 후, 배틀 끝났음을 서버에 알림
@@ -168,8 +165,9 @@ public static class CSharpPacketRouter
         SocketClient.Instance.finalResult = "Draw";
         SocketClient.Instance.enemyUserId = -1;
         SocketClient.Instance.enemySessionId = -1;
+        SocketClient.Instance.side = string.Empty;
 
-        _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "RESULT_ACK" });
+        _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "RESULT_ACK" });
     }
 
     // 상대 종료 상태 업데이트
@@ -183,6 +181,6 @@ public static class CSharpPacketRouter
     // 핑 보내기
     private static void OnPong()
     {
-        _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "PING" });
+        _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "PING" });
     }
 }

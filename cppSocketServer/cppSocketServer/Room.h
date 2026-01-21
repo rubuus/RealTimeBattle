@@ -6,7 +6,8 @@
 #include <mutex>
 #include "RoomEvent.h"
 #include "ServerPlayer.h"
-#include "Network.h"
+#include "Transport.h"
+#include <unordered_set>
 
 class ClientSession;
 class ServerPlayer;
@@ -36,9 +37,11 @@ class Room {
 public:
     Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool);
 
+    int GetRoomId() { return roomId; }
     void EnqueueEvent(const RoomEvent& ev);
     void Update(double dt);
     void CloseRoom();
+    bool IsClosed() const { return closed.load(); }
 
 private:
     void EmitOutEvent(const RoomOutEvent& ev);
@@ -73,9 +76,10 @@ private:
     ThreadPool& threadPool;
     std::queue<RoomEvent> eventQueue;
     std::mutex eventMutex;
-    std::queue<RoomOutEvent> outEvents;
+    std::queue<RoomOutEvent> outEventQueue;
     std::mutex outEventMutex;
-    Network net;
+    std::chrono::steady_clock::time_point lastLog;
+    Transport net;
 
     int roomId;
     ClientSession* p1;
@@ -87,8 +91,7 @@ private:
     Vector2 leftSpawn;
     Vector2 rightSpawn;
 
-    bool p1Ready = false;
-    bool p2Ready = false;
+    std::unordered_set<int> ready;
     bool gameStarted = false;
     bool battleStarted = false;
     bool gameEnded = false;

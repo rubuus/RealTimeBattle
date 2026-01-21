@@ -1,5 +1,5 @@
 public class DamagePacket : BasePacket
 {
-    public int hurtId { get; set; }
-    public int currentHP { get; set; }
+    public int HurtId { get; set; }
+    public int CurrentHP { get; set; }
 }

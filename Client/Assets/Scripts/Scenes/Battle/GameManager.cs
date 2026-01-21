@@ -29,7 +29,7 @@ public class GameManager : MonoBehaviour
         if (SocketClient.Instance.useCppServer)
             _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.BATTLE_START);
         else
-            _ = SocketClient.Instance.CsharpSend(new BasePacket { type = "BATTLE_START" });
+            _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "BATTLE_START" });
 
        SpawnPlayers();
     }
