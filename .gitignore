@@ -70,3 +70,13 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 [Aa]ssets/[Ss]treamingAssets/aa.meta
 [Aa]ssets/[Ss]treamingAssets/aa/*
+
+# C++ / Visual Studio build
+x64/
+**/x64/
+*.exe
+*.pdb
+*.ilk
+*.idb
+*.tlog
+.vs/
