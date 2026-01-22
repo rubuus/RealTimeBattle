@@ -28,6 +28,8 @@ void ClientSession::PostRecv()
         return;
     }
 
+    AddIo(); // IO 추가
+
     auto* ctx = new RecvContext();
     ctx->ovEx.type = IOType::Recv;
     ZeroMemory(&ctx->ovEx.ov, sizeof(OVERLAPPED));
@@ -39,6 +41,15 @@ void ClientSession::PostRecv()
     ctx->wsaBuf.len = RECV_BUFFER_SIZE - recvBytes;
 
     DWORD flag = 0;
+
+    // 소켓 스냅샷 후 체크
+    SOCKET s = socket;
+    if (s == INVALID_SOCKET || IsDisconnected())
+    {
+        // 큐에 남은 것 정리
+        Disconnect("send on closed socket");
+        return;
+    }
 
     // WSARecv는 WSABUF가 가리키는 메모리를 커널이 참조
     // IOCP에 완료 패킷 올라감
@@ -60,6 +71,7 @@ void ClientSession::PostRecv()
         if (WSAGetLastError() != WSA_IO_PENDING)
         {
             delete ctx;
+            ReleaseIo(); // IO 취소
             Disconnect("PostRecv error");
         }
     }
@@ -120,14 +132,15 @@ void ClientSession::SendPacket(S2C_HeaderType type)
 	SendPacketInternal(type, nullptr, 0);
 }
 
-// WSASend를 통해 비동기 송신 요청을 등록
-// 송신 완료는 IOCP 워커 스레드에서 처리
+// 송신 데이터 큐잉
 void ClientSession::SendPacketInternal(
     S2C_HeaderType type,
     const void* body,
     size_t bodySize)
 {
-    if (IsDisconnected())
+    // 스냅샷 적용
+    SOCKET s = socket;
+    if (s == INVALID_SOCKET || IsDisconnected())
         return;
 
     // 헤더 + 바디 = 패킷 총 사이즈
@@ -159,10 +172,51 @@ void ClientSession::SendPacketInternal(
     ctx->wsaBuf.buf = ctx->data.data();
     ctx->wsaBuf.len = (ULONG)ctx->data.size();
 
-    // WSASend는 WSABUF가 가리키는 메모리를 커널이 참조
-    // IOCP에 완료 패킷 올라감
+    bool needSend = false;
+
+    // 보낼 데이터 큐잉만 해주기
+    {
+        std::lock_guard<std::mutex> lock(sendMutex);
+        sendQueue.push(ctx);
+
+        if (!sending)
+        {
+            sending = true;
+            needSend = true;
+        }
+    }
+
+    if (needSend)
+        PostNextSend();
+}
+
+// 커널에 비동기 송신 요청
+void ClientSession::PostNextSend() 
+{
+    // 컨텍스트 힙 변수 설정
+    SendContext* ctx = nullptr;
+
+    {
+        std::lock_guard<std::mutex> lock(sendMutex);
+        if (sendQueue.empty())
+        {
+            sending = false;
+            return;
+        }
+        ctx = sendQueue.front();
+    }
+
+    // 소켓 스냅샷 후 체크
+    SOCKET s = socket;
+    if (s == INVALID_SOCKET || IsDisconnected())
+    {
+        // 큐에 남은 것 정리
+        Disconnect("send on closed socket");
+        return;
+    }
+
     int ret = WSASend(
-        socket,
+        s,
         &ctx->wsaBuf,
         1,
         nullptr,
@@ -171,23 +225,44 @@ void ClientSession::SendPacketInternal(
         nullptr
     );
 
-    // WSASend가 즉시 완료되지 않았을 경우
+    // 에러 났을 경우
     if (ret == SOCKET_ERROR)
     {
-        // WSA_IO_PENDING = 비동기 처리 중 (정상)
-        // 그 외 에러 = 요청 자체 실패 (delete로 memory leak 방지)
-        if (WSAGetLastError() != WSA_IO_PENDING)
+        int werr = WSAGetLastError();
+        if (werr != WSA_IO_PENDING)
         {
+            // 이 요청은 커널에 안 들어갔으니 여기서 직접 제거해야 함
+            {
+                std::lock_guard<std::mutex> lock(sendMutex);
+                if (!sendQueue.empty() && sendQueue.front() == ctx)
+                {
+                    sendQueue.pop();
+                }
+                
+                sending = false;
+            }
+
             delete ctx;
             Disconnect("WSASend error");
         }
     }
 }
 
-// 확장용 (지금은 명시만)
+// 커널 처리 완료 시에 큐에서 pop + 다음 패킷 송신
 void ClientSession::OnSend(DWORD bytes)
 {
+    bool needNext = false;
+    {
+        std::lock_guard<std::mutex> lock(sendMutex);
+        if (!sendQueue.empty())
+            sendQueue.pop();
 
+        needNext = !sendQueue.empty();
+        if (!needNext) sending = false;
+    }
+
+    if (needNext)
+        PostNextSend();
 }
 
 // 패킷 데이터 라우팅
@@ -203,15 +278,11 @@ void ClientSession::Disconnect(const char* why) {
 
     std::cout << "[ClientSession] Session " << sessionId << " disconnected. why=" << why << "\n";
 
-    PacketRouter::Instance().onlineUsers.erase(sessionId);
-
-    // 1. 통신 끊고 소켓 해제
-    if (socket != INVALID_SOCKET)
-    {
-        shutdown(socket, SD_BOTH);
-        closesocket(socket);
-        socket = INVALID_SOCKET;
-    }
+    // 1. 통신 끊고 소켓 해제 (스냅샷으로 race condition 방지)
+    SOCKET s = socket;
+    socket = INVALID_SOCKET;
+    shutdown(s, SD_BOTH);
+    closesocket(s);
 
     // 2. 룸 정리 이벤트 넘김
     if (room)
@@ -220,5 +291,15 @@ void ClientSession::Disconnect(const char* why) {
             RoomEventType::Disconnect,
             sessionId
             });
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(sendMutex);
+        while (!sendQueue.empty())
+        {
+            delete sendQueue.front();
+            sendQueue.pop();
+        }
+        sending = false;
     }
 }

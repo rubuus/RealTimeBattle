@@ -26,11 +26,13 @@ int main()
         std::thread acceptThread(&Server::AcceptLoop, &server);
         std::thread tickThread(&Server::TickLoop, &server);
         std::thread heartbeatThread(&Server::HeartbeatLoop, &server);
+        std::thread cleanupThread(&Server::CleanupLoop, &server);
 
         // Thread ´ë±â
         acceptThread.join();
         tickThread.join();
         heartbeatThread.join();
+        cleanupThread.join();
     }
     catch (const std::exception& e)
     {

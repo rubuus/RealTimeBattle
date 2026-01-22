@@ -1,4 +1,5 @@
-﻿  PacketRouter.cpp
+﻿  Transport.cpp
+  PacketRouter.cpp
 C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2635,85): warning C4244: 'argument': conversion from 'double' to '__time64_t', possible loss of data
   (compiling source file 'PacketRouter.cpp')
       C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2635,85):
@@ -22,6 +23,12 @@ C:\vcpkg\installed\x64-windows\include\jwt-cpp\jwt.h(2635,85): warning C4244: 'a
               json_traits=jwt::traits::nlohmann_json
           ]
   
+  Room.cpp
+  Server.cpp
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\CppSocketServer\cppSocketServer\Server.cpp(59,23): warning C4018: '<': signed/unsigned mismatch
+  ClientSession.cpp
+C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\CppSocketServer\cppSocketServer\ClientSession.cpp(111,22): warning C4267: '-=': conversion from 'size_t' to 'int32_t', possible loss of data
+  Generating Code...
   cppSocketServer.vcxproj -> C:\Users\rosa5\Desktop\GamePortfolio\RealTimeBattle\CppSocketServer\x64\Debug\CppSocketServer.exe
   'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
   배치 파일이 아닙니다.

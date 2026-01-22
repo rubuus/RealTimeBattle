@@ -8,7 +8,8 @@ enum class C2S_HeaderType : uint16_t{
 	BATTLE_START = 3,
 	INPUT = 4,
 	RESULT_ACK = 5,
-	PING = 6
+	PING = 6,
+	LOGIN_TEST = 7
 };
 
 enum class S2C_HeaderType : uint16_t {

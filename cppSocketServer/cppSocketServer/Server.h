@@ -6,6 +6,7 @@
 #include <MSWSock.h>
 #include "ThreadPool.h"
 #include "Transport.h"
+#include "ThreadSafeQueue.h"
 
 class ClientSession;
 class Room;
@@ -20,6 +21,7 @@ public:
 	void WorkerLoop();          // IOCP 워커
 	void TickLoop();			// 게임 로직 틱
 	void HeartbeatLoop();		// ping 검사
+	void CleanupLoop();
 	void StopServer();			// Server 종료
 
 	void AddToMatchList(int sid);
@@ -27,7 +29,7 @@ public:
 	void NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2);
 	void ProcessClosedRooms();
 	void CloseRoom(int id);
-	void RemoveClient(int sid);
+	bool RemoveClient(int sid);
 
 	std::string GetJWTKey() { return secretKey; }
 
@@ -53,6 +55,7 @@ private:
 	HANDLE iocpHandle = nullptr;
 	std::vector<std::thread> workers;
 	std::vector<std::thread> threads;
+	ThreadSafeQueue<int> cleanupQueue;
 
 	Transport net;
 

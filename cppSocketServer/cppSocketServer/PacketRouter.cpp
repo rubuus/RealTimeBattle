@@ -7,6 +7,7 @@
 #include "Server.h"
 #include "Room.h"
 #include "RoomEvent.h"
+#include "LoginTestBody.h"
 
 PacketRouter& PacketRouter::Instance()
 {
@@ -44,6 +45,10 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
 
         case C2S_HeaderType::PING:
 		    HandlePing(s);
+            break;
+
+        case C2S_HeaderType::LOGIN_TEST:
+            HandleLoginTest(s, pkt.body, pkt.bodySize);
             break;
 
         default:
@@ -170,3 +175,28 @@ void PacketRouter::HandlePing(ClientSession& s)
 {
     s.SetLastRecvTime();
 };
+
+// 봇 테스트 전용 (jwt 검증 X)
+void PacketRouter::HandleLoginTest(ClientSession& s, const char* body, uint16_t bodySize)
+{
+    // 바디 사이즈 검증
+    if (bodySize == 0 || bodySize > 2048)
+    {
+        s.Disconnect("invalid jwt size");
+        return;
+    }
+    auto* data = reinterpret_cast<const LoginTestBody*>(body);
+    int userId = data->userId;
+
+    std::mutex onlineMutex;
+    {
+        std::lock_guard<std::mutex> lock(onlineMutex);
+        if (onlineUsers.find(userId) != onlineUsers.end())
+        {
+            s.Disconnect("Duplicate Login");
+        }
+
+        onlineUsers.insert(userId);
+        s.SetUserId(userId);
+    }
+}

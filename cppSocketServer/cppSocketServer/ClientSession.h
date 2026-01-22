@@ -2,6 +2,8 @@
 #include <chrono>
 #include <atomic>
 #include <vector>
+#include <mutex>
+#include <queue>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include "PlayerInputPacket.h"
@@ -28,7 +30,6 @@ struct OverlappedEx {
 struct RecvContext {
     OverlappedEx ovEx{};
     WSABUF wsaBuf{};
-    std::vector<char> data;
 };
 
 struct SendContext {
@@ -47,6 +48,7 @@ public:
 
     void PostRecv();
     void OnRecv(DWORD bytes);
+    void PostNextSend();
     void OnSend(DWORD bytes);
 
     // 헤더만 있을 경우
@@ -78,7 +80,7 @@ public:
     bool GetReady() const { return battleReady; }
     void SetReady(bool b) { battleReady = b; }
     
-	bool IsDisconnected() const { return disconnected.load(); }
+	bool IsDisconnected() const { return disconnected.load(std::memory_order_acquire); }
 
     // IO 추가
     void AddIo()
@@ -101,6 +103,7 @@ public:
 
 	std::chrono::steady_clock::time_point GetLastRecvTime() const { return lastRecvTime; }
     void SetLastRecvTime() { lastRecvTime = std::chrono::steady_clock::now(); }
+    std::atomic<bool> cleanupQueued{ false };
 
 private:
     void SendPacketInternal(
@@ -112,6 +115,10 @@ private:
 	Room* room = nullptr; // 소속된 방
 
     bool isAuthenticated = false;
+
+    std::mutex sendMutex;
+    std::queue<SendContext*> sendQueue;
+    bool sending = false;
 
     char recvBuffer[RECV_BUFFER_SIZE];
     int32_t recvBytes;

@@ -140,7 +140,9 @@
   <ItemGroup>
     <ClInclude Include="ApiClient.h" />
     <ClInclude Include="DamagePacket.h" />
+    <ClInclude Include="LoginTestBody.h" />
     <ClInclude Include="MatchFoundPacket.h" />
+    <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="Transport.h" />
     <ClInclude Include="PacketHeader.h" />
     <ClInclude Include="PacketRouter.h" />

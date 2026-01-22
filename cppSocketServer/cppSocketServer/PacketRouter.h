@@ -23,6 +23,7 @@ public:
 	void HandleInput(ClientSession& s, const char* body, uint16_t bodySize);
 	void HandleResultAck(ClientSession& s);
 	void HandlePing(ClientSession& s);
+	void HandleLoginTest(ClientSession& s, const char* body, uint16_t bodySize);
 
 	std::unordered_set<int> onlineUsers;
 };

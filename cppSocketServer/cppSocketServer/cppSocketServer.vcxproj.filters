@@ -107,5 +107,11 @@
     <ClInclude Include="PlayerStruct.h">
       <Filter>Header Files\Game</Filter>
     </ClInclude>
+    <ClInclude Include="LoginTestBody.h">
+      <Filter>Header Files\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadSafeQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
