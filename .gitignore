@@ -80,3 +80,7 @@ x64/
 *.idb
 *.tlog
 .vs/
+
+# C#
+bin/
+obj/
