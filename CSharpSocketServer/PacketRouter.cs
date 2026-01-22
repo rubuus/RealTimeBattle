@@ -6,7 +6,9 @@ using System.Text;
 
 public class PacketRouter
 {
-    public static HashSet<int> DuplicateLogin = new();
+    public static HashSet<int> OnlineUsers = new();
+    private static object _onlineLock = new();
+    
     public static void Route(ClientSession s, string msg)
     {
         if (s.IsDisconnected)
@@ -82,14 +84,17 @@ public class PacketRouter
                 return;
             }
 
-            if (DuplicateLogin.Contains(userId))
+            lock (_onlineLock)
             {
-                s.Disconnect("Duplicated Login");
-                return;
-            }
+                if (OnlineUsers.Contains(userId))
+                {
+                    s.Disconnect("Duplicated Login");
+                    return;
+                }
 
-            DuplicateLogin.Add(userId);
-            s.UserId = userId;
+                OnlineUsers.Add(userId);
+                s.UserId = userId;
+            }
         }
         catch (SecurityTokenException e)
         {

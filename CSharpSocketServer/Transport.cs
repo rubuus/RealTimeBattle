@@ -9,11 +9,8 @@ public class Transport
         
         // 이벤트 처리 시점에 세션이 이미 종료되었을 수 있으므로 null 체크
         if (session == null)
-        {
-        Console.WriteLine($"[DISPATCH] session {ev.SessionId} NOT FOUND. keys={string.Join(",", SocketServer.Instance.DebugClientKeys())
-        }");
-        }
-        Console.WriteLine("[DISPATCH] ok " + ev.EventType);
+            return;
+            
         switch (ev.EventType)
         {
             case RoomOutEventType.LoadBattle:

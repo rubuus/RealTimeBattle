@@ -24,6 +24,6 @@ public:
 	void HandleResultAck(ClientSession& s);
 	void HandlePing(ClientSession& s);
 
-	std::unordered_set<int> duplicateLogin;
+	std::unordered_set<int> onlineUsers;
 };
 

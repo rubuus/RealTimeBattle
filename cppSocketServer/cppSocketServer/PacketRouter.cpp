@@ -79,14 +79,17 @@ void PacketRouter::HandleLogin(ClientSession& s, const char* body, uint16_t body
 
         int userId = std::stoi(decoded.get_payload_claim("sub").as_string());
 
-        if (duplicateLogin.find(userId) != duplicateLogin.end())
+        std::mutex onlineMutex;
         {
-            s.Disconnect("duplicate login");
-            return;
-        }
+            std::lock_guard<std::mutex> lock(onlineMutex);
+            if (onlineUsers.find(userId) != onlineUsers.end())
+            {
+                s.Disconnect("Duplicate Login");
+            }
 
-        duplicateLogin.insert(userId);
-        s.SetUserId(userId);
+            onlineUsers.insert(userId);
+            s.SetUserId(userId);
+        }
     }
     catch (const std::exception& e)
     {

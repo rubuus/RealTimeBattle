@@ -16,10 +16,7 @@ public class SocketServer
     public static SocketServer Instance { get; private set; } = null!;
 
     public bool running { get; private set; } = true;
-public IEnumerable<int> DebugClientKeys()
-    {
-        return _clients.Keys;
-    }
+
     private TcpListener _listener = null!;
     private int _port;
     public string SecretKey { get; } = "V8rG#b3Yp0!tQs7Wk9@Zx2&Nm5eUj4Ha";
