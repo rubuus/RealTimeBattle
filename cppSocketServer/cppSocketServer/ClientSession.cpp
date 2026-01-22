@@ -203,6 +203,8 @@ void ClientSession::Disconnect(const char* why) {
 
     std::cout << "[ClientSession] Session " << sessionId << " disconnected. why=" << why << "\n";
 
+    PacketRouter::Instance().duplicateLogin.erase(sessionId);
+
     // 1. 통신 끊고 소켓 해제
     if (socket != INVALID_SOCKET)
     {

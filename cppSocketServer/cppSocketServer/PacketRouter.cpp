@@ -77,30 +77,16 @@ void PacketRouter::HandleLogin(ClientSession& s, const char* body, uint16_t body
             .with_audience("GameClient")
             .verify(decoded);
 
-        auto claim = decoded.get_payload_claim("sub");
+        int userId = std::stoi(decoded.get_payload_claim("sub").as_string());
 
-        int userId = 0;
+        if (duplicateLogin.find(userId) != duplicateLogin.end())
+        {
+            s.Disconnect("duplicate login");
+            return;
+        }
 
-        // string으로 들어온 경우
-        try
-        {
-            userId = std::stoi(claim.as_string());
-        }
-        catch (const std::exception&)
-        {
-            // 만약 숫자로 들어온 경우
-            try
-            {
-                userId = static_cast<int>(claim.as_integer());
-            }
-            catch (...)
-            {
-                throw std::runtime_error("invalid sub claim");
-            }
-        }
-        
+        duplicateLogin.insert(userId);
         s.SetUserId(userId);
-        s.SetAuthenticated(true);
     }
     catch (const std::exception& e)
     {

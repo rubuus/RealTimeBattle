@@ -104,6 +104,9 @@ public class ClientSession(int sid, TcpClient tcp)
     public void Disconnect(string reason)
     {
         Console.WriteLine($"[DISCONNECT] sid={SessionId} reason={reason}");
+
+        PacketRouter.DuplicateLogin.Remove(UserId);
+
         if (IsDisconnected) return;
         IsDisconnected = true;
 

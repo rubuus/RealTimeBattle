@@ -195,7 +195,7 @@ public class SocketClient : MonoBehaviour
                 if (read <= 0)
                 {
                     Debug.Log("Disconnected from server.");
-                    connected = false;
+                    Application.Quit();
                     break;
                 }
 
@@ -242,7 +242,7 @@ public class SocketClient : MonoBehaviour
                 if (!await ReadExactAsync(headerBuf, PacketHeader.Size))
                 {
                     Debug.Log("Server disconnected (header).");
-                    connected = false;
+                    Application.Quit();
                     break;
                 }
 

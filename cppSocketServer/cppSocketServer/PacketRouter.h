@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_set>
 #include "ClientSession.h"
 
 class ClientSession;
@@ -22,5 +23,7 @@ public:
 	void HandleInput(ClientSession& s, const char* body, uint16_t bodySize);
 	void HandleResultAck(ClientSession& s);
 	void HandlePing(ClientSession& s);
+
+	std::unordered_set<int> duplicateLogin;
 };
 
