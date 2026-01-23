@@ -57,7 +57,14 @@ C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사�
   - C++ 서버 (CppConnect) 또는 C# (CSharpConnect) 서버 선택 가능
 - 서버 주소 / 포트 설정 후 실행
 
-### 4. Bot Test
+### 4. Database
+
+- MySQL (Pomelo Provider)
+- DB 연결 정보는 `appsettings.json`에서 설정 가능
+- 기본 설정은 로컬 개발 환경을 기준으로 되어 있습니다.
+- DB가 준비되지 않은 경우 일부 기능(로그인/전적 저장)은 제한될 수 있습니다.
+
+### 5. Bot Test (부하 테스트)
 
 - 실행 시 봇 수 인자 전달
 - 예:
