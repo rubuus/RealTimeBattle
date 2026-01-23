@@ -1,12 +1,37 @@
 # RealTimeBattle
 
 IOCP 기반 C++ 실시간 1:1 대전 서버  
-Unity 클라이언트 + C# API 서버와 연동되는 게임 서버 포트폴리오 프로젝트
+Unity 클라이언트와 ASP.NET Core API 서버(C#)가 연동되는  
+게임 서버 포트폴리오 프로젝트입니다.
 
-## System Architecture
+## Overview
+
+본 프로젝트에는 메인 서버 구현과는 별도로,  
+비교 및 학습 목적의 **C# TCP 기반 Socket Server** 구현이 포함되어 있습니다.
+
+해당 C# 서버는 기능 프로토타입을 우선 구현한 뒤,  
+이후 C++ IOCP 서버로 리팩토링하는 흐름으로 개발되었습니다.
+
+## Packet Processing (C# Server)
+
+C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사용합니다.
+
+- Packet Object → JSON → Byte (Send)
+- Byte → JSON → Packet Object (Recv)
+
+실시간 소켓 서버 환경에서 JSON 기반 직렬화/역직렬화는  
+성능 측면에서 비효율적이지만,
+
+- C# 서버와 C++ IOCP 서버 간 패킷 처리 방식 비교
+- 직렬화 비용 및 구조 차이에 대한 이해
+- C# 네트워크 서버 구현 학습
+
+을 목적으로 의도적으로 해당 방식을 채택했습니다.
+
+## System Architecture (IOCP)
 
 - Unity Client (C#)
-- C++ IOCP Game Server (번외 : C# TCP 기반 SOCKET Server)
+- C++ IOCP Game Server
 - ASP.NET Core API Server (JWT Token Verify)
 - MySQL (User Data, Battle Record)
 
