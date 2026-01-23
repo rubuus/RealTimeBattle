@@ -10,6 +10,34 @@ Unity 클라이언트 + C# API 서버와 연동되는 게임 서버 포트폴리
 - ASP.NET Core API Server (JWT Token Verify)
 - MySQL (User Data, Battle Record)
 
+## How to Run
+
+### 1. C++ IOCP Server
+
+- Visual Studio 2022
+- x64 / Release
+- 실행 전 포트 설정 필요 (기본 7777)
+
+### 2. ASP.NET Core API Server
+
+- .NET 9
+- 기본 실행 주소:
+  - http://localhost:5146
+  - https://localhost:7170
+- `dotnet run` 실행
+
+### 3. Unity Client
+
+- `SocketClient.cs`의 `Start()` 함수에서
+  - C++ 서버 (CppConnect) 또는 C# (CSharpConnect) 서버 선택 가능
+- 서버 주소 / 포트 설정 후 실행
+
+### 4. Bot Test
+
+- 실행 시 봇 수 인자 전달
+- 예:
+  {exe 경로} BotTest.exe 127.0.0.1 7777 {봇 개수 (기본 1000)}
+
 ## Game Scene Structure
 
 - Boot
