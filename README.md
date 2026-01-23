@@ -115,3 +115,9 @@ C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사�
 - 로컬에서 게임 결과 즉시 반영
 - 이후 Socket Server에서는 Room Close 비동기 처리
 - Socket Server에서 API Server로 전적 기록 Request
+
+## Notes
+
+- Unity Client는 내부 변수 네이밍을 camelCase로 통일했습니다.
+- C# API Server 및 Socket Server는 .NET 컨벤션을 따릅니다.
+- C++ IOCP Server는 C++ 서버 코드 관례에 맞춰 작성되었습니다.
