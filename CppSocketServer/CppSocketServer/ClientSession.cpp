@@ -288,12 +288,13 @@ void ClientSession::Disconnect(const char* why) {
     closesocket(s);
 
     // 2. 룸 정리 이벤트 넘김
-    if (room)
+    int rid = roomId.exchange(-1);
+    if (rid != -1)
     {
-        room->EnqueueEvent(RoomEvent{
-            RoomEventType::Disconnect,
-            sessionId
-            });
+        Server::Instance().EnqueueRoomEvent(
+            rid,
+            RoomEvent{ RoomEventType::Disconnect, sessionId }
+        );
     }
 
     {

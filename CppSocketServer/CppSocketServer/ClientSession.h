@@ -71,11 +71,11 @@ public:
     int GetUserId() const { return userId; }
 	void SetUserId(int id) { userId = id; }
 
-	int GetRoomId() const { return roomId; }
-    void SetRoomId(int id) { roomId = id; }
-
-	Room* GetRoom() const { return room; }
-	void SetRoom(Room* r) { room = r; }
+	int GetRoomId() const { return roomId.load(std::memory_order_acquire); }
+    void SetRoomId(int id)
+    {
+        roomId.store(id, std::memory_order_release);
+    }
     
     bool GetReady() const { return battleReady; }
     void SetReady(bool b) { battleReady = b; }
@@ -112,7 +112,6 @@ private:
         size_t bodySize);
 
     SOCKET socket = INVALID_SOCKET; // 楷搬 按眉
-	Room* room = nullptr; // 家加等 规
 
     bool isAuthenticated = false;
 
@@ -125,7 +124,7 @@ private:
 
     int32_t sessionId;
     int32_t userId;
-    int32_t roomId;
+    std::atomic<int> roomId{-1};
 
     std::atomic<bool> hasInput = false;
     PlayerInputPacket latestInput;

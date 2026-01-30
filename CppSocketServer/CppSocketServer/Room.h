@@ -35,13 +35,19 @@ struct Hurtbox
 
 class Room {
 public:
-    Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool);
+    Room(int id, int player1, int player2, ThreadPool& pool);
 
     int GetRoomId() { return roomId; }
     void EnqueueEvent(const RoomEvent& ev);
     void Update(double dt);
     void CloseRoom();
     bool IsClosed() const { return closed.load(); }
+
+	int GetP1UserId() const { return p1UserId; }
+	void SetP1UserId(int id) { p1UserId = id; }
+
+	int GetP2UserId() const { return p2UserId; }
+	void SetP2UserId(int id) { p2UserId = id; }
 
 private:
     void EmitOutEvent(const RoomOutEvent& ev);
@@ -63,6 +69,7 @@ private:
     bool Overlap(Hitbox& hit, Hurtbox& hurt);
     
 	// 게임 종료 처리
+    bool IsBotUser(int sid);
     void EndGame();
     void EmitGameResult();
     void BeginCloseAckPhase();
@@ -70,7 +77,7 @@ private:
     void OnPlayerDisconnect(const RoomEvent& re);
 
     // 전적 저장
-    void SaveRecordAsync(ClientSession* winner, ClientSession* loser);
+    void SaveRecordAsync(int winner, int loser);
 	
 private:
     ThreadPool& threadPool;
@@ -82,8 +89,10 @@ private:
     Transport net;
 
     int roomId;
-    ClientSession* p1;
-    ClientSession* p2;
+	int p1UserId;
+    int p2UserId;
+    int p1sid;
+    int p2sid;
     std::unique_ptr<ServerPlayer> sp1;
     std::unique_ptr<ServerPlayer> sp2;
     std::chrono::steady_clock::time_point lastUpdate;
@@ -94,7 +103,6 @@ private:
     std::unordered_set<int> ready;
     bool gameStarted = false;
     bool battleStarted = false;
-    bool gameEnded = false;
 
     double gameTime = 100.0f;
     double stateSendAcc = 0.0f;

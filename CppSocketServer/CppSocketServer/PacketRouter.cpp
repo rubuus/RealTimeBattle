@@ -121,27 +121,33 @@ void PacketRouter::HandelMatchCancel(ClientSession& s)
 // 준비 완료되면 해당 룸에 이벤트 전달
 void PacketRouter::HandleBattleReady(ClientSession& s)
 {
-    Room* room = s.GetRoom();
-    if (!room) return;
+    int roomId = s.GetRoomId();
+    if (roomId == -1) return;
 
     RoomEvent ev{};
     ev.type = RoomEventType::BattleReady;
     ev.sessionId = s.GetSessionId();
 
-    room->EnqueueEvent(ev);
+    if (Room* r = Server::Instance().FindRoom(roomId))
+    {
+        r->EnqueueEvent(ev); // 여기서만 잠깐 사용
+    }
 };
 
 // 배틀 씬 로드되면 해당 룸에 이벤트 전달
 void PacketRouter::HandleBattleStart(ClientSession& s)
 {
-    Room* room = s.GetRoom();
-    if (!room) return;
+    int roomId = s.GetRoomId();
+    if (roomId == -1) return;
 
     RoomEvent ev{};
     ev.type = RoomEventType::BattleStart;
     ev.sessionId = s.GetSessionId();
 
-    room->EnqueueEvent(ev);
+    if (Room* r = Server::Instance().FindRoom(roomId))
+    {
+        r->EnqueueEvent(ev); // 여기서만 잠깐 사용
+    }
 };
 
 // 입력 있을 시, 해당 룸에 이벤트 전달
@@ -151,8 +157,8 @@ void PacketRouter::HandleInput(ClientSession& s, const char* body, uint16_t body
     if (bodySize < sizeof(PlayerInputPacket))
         return;
 
-    Room* room = s.GetRoom();
-    if (!room) return;
+    int roomId = s.GetRoomId();
+    if (roomId == -1) return;
 
     // 패킷에 직접 접근하지 않고, 안전하게 memcpy 사용
     PlayerInputPacket input;
@@ -163,20 +169,26 @@ void PacketRouter::HandleInput(ClientSession& s, const char* body, uint16_t body
     ev.sessionId = s.GetSessionId();
 	ev.input = input;
 
-    room->EnqueueEvent(ev);
+    if (Room* r = Server::Instance().FindRoom(roomId))
+    {
+        r->EnqueueEvent(ev); // 여기서만 잠깐 사용
+    }
 };
 
 // 배틀이 끝났다면 해당 룸에 이벤트 전달
 void PacketRouter::HandleResultAck(ClientSession& s)
 {
-    Room* room = s.GetRoom();
-    if (!room) return;
+    int roomId = s.GetRoomId();
+    if (roomId == -1) return;
 
     RoomEvent ev{};
     ev.type = RoomEventType::ResultAck;
     ev.sessionId = s.GetSessionId();
 
-    room->EnqueueEvent(ev);
+    if (Room* r = Server::Instance().FindRoom(roomId))
+    {
+        r->EnqueueEvent(ev); // 여기서만 잠깐 사용
+    }
 };
 
 // 해당 세션 Heartbeat 시간 초기화

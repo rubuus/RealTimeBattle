@@ -2,6 +2,7 @@
 #include <thread>
 #include <iostream>
 #include <timeapi.h>
+#include <curl/curl.h>
 #pragma comment(lib, "winmm.lib")
 
 // 자동 소멸 : 윈도우 타이머 해상도 설정
@@ -16,6 +17,8 @@ int main()
     TimerResolutionGuard timer(1);
 
     constexpr int PORT = 7777;
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     try
     {
@@ -38,6 +41,8 @@ int main()
     {
         std::cerr << "Fatal error: " << e.what() << '\n';
     }
+
+    curl_global_cleanup();
 
     return 0;
 }

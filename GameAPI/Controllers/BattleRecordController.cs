@@ -21,6 +21,14 @@ namespace api.Controllers
         [HttpPost("save")]
         public async Task<IActionResult> Save([FromBody] SaveRecordRequest req)
         {
+            // 없으면 return
+            if (req.WinnerId <= 0 || req.LoserId <= 0)
+                return BadRequest();
+
+            // 만약 winner, loser가 같은 아이디면 return
+            if (!await _db.Users.AnyAsync(u => u.Id == req.LoserId))
+                return BadRequest();
+
             var record = BattleRecord.Create(req.WinnerId, req.LoserId);
             _db.BattleRecords.Add(record);
             

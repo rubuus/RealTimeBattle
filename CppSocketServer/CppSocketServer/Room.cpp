@@ -14,20 +14,20 @@
 #include "PlayerStruct.h"
 #include "Server.h"
 
-Room::Room(int id, ClientSession* player1, ClientSession* player2, ThreadPool& pool)
-    : roomId(id), p1(player1), p2(player2), threadPool(pool)
+Room::Room(int id, int player1,int player2, ThreadPool& pool)
+    : roomId(id), p1sid(player1), p2sid(player2), threadPool(pool)
 {
     Vector2 leftSpawn = { -7.0f, -2.5f };
     Vector2 rightSpawn = { 7.0f, -2.5f };
 
     sp1 = std::make_unique<ServerPlayer>(
-        p1->GetUserId(),
+        p1UserId,
         static_cast<int8_t>(Side::Left),
         leftSpawn
     );
 
     sp2 = std::make_unique<ServerPlayer>(
-        p2->GetUserId(),
+        p2UserId,
         static_cast<int8_t>(Side::Right),
         rightSpawn
     );
@@ -151,7 +151,8 @@ void Room::Update(double dt)
     OutEvents();
 
     if (!gameStarted) return;   // 매치 안됐으면 return
-    if (!p1 || !p2) return;     // 세션 1명이라도 없으면 return
+    if (!Server::Instance().FindSession(p1sid) ||
+        !Server::Instance().FindSession(p2sid)) return;     // 세션 1명이라도 없으면 return
     if (!battleStarted) return; // 배틀씬 아니면 return
 
     gameTime -= dt;
@@ -182,16 +183,13 @@ void Room::CheckMatch(const RoomEvent& re)
 
     gameStarted = true;
 
-    EmitOutEvent({ RoomOutEventType::LoadBattle, p1->GetSessionId() });
-    EmitOutEvent({ RoomOutEventType::LoadBattle, p2->GetSessionId() });
+    EmitOutEvent({ RoomOutEventType::LoadBattle, p1sid });
+    EmitOutEvent({ RoomOutEventType::LoadBattle, p2sid });
 }
 
 void Room::PlayerSpawn(const RoomEvent& re)
 {
     battleStarted = true;
-
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
 
     auto s1 = sp1->StatePacket();
     auto s2 = sp2->StatePacket();
@@ -203,9 +201,9 @@ void Room::PlayerSpawn(const RoomEvent& re)
 // Player로직에 Input 값 넘겨주기
 void Room::OnInput(const RoomEvent& re)
 {
-    if (re.sessionId == p1->GetSessionId())
+    if (re.sessionId == p1sid)
         sp1->ApplyInput(re.input);
-    else if (re.sessionId == p2->GetSessionId())
+    else if (re.sessionId == p2sid)
         sp2->ApplyInput(re.input);
 }
 
@@ -222,9 +220,6 @@ void Room::EmitStateUpdate()
     if (!sp1->IsStateDirty() && !sp2->IsStateDirty())
         return;
 
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
-
     auto s1 = sp1->StatePacket();
     auto s2 = sp2->StatePacket();
 
@@ -239,9 +234,6 @@ void Room::EmitTimeUpdate()
 {
     timeSendAcc -= 1.0f;
 
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
-
     auto t = static_cast<int32_t>(std::ceil(gameTime));
 
     EmitOutEvent({ RoomOutEventType::TimeUpdate, p1sid, UpdateTimePayload {t} });
@@ -249,9 +241,6 @@ void Room::EmitTimeUpdate()
 }
 
 void Room::EmitDamageUpdate() {
-
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
 
     if (CheckDamage(*sp1, *sp2)) 
     {
@@ -324,12 +313,15 @@ bool Room::Overlap(Hitbox& hit, Hurtbox& hurt)
     return (diffX <= limitX) && (diffY <= limitY);
 }
 
+bool Room::IsBotUser(int userId)
+{
+    return userId <= 0;
+}
+
 void Room::EndGame()
 {
-    if (gameEnded)
+    if (closed.exchange(true))
         return;
-
-    gameEnded = true;
 
     EmitGameResult();
     BeginCloseAckPhase();
@@ -337,9 +329,6 @@ void Room::EndGame()
 
 void Room::EmitGameResult()
 {
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
-
     int p1hp = sp1->GetCurrentHP();
     int p2hp = sp2->GetCurrentHP();
 
@@ -347,28 +336,25 @@ void Room::EmitGameResult()
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p1sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p1sid } });
-        SaveRecordAsync(p1, p2);
+        SaveRecordAsync(p1UserId, p2UserId);
     }
     else if (p1hp < p2hp)
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { p2sid } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { p2sid } });
-        SaveRecordAsync(p2, p1);
+        SaveRecordAsync(p2UserId, p1UserId);
     }
     else
     {
         EmitOutEvent({ RoomOutEventType::GameResult, p1sid, GameResultPayload { -1 } });
         EmitOutEvent({ RoomOutEventType::GameResult, p2sid, GameResultPayload { -1 } });
-        SaveRecordAsync(p1, p2);
+        SaveRecordAsync(p1UserId, p2UserId);
     }
 }
 
 // 게임 종료 후 ACK 패킷 대기 단계 시작
 void Room::BeginCloseAckPhase()
 {
-    int p1sid = p1->GetSessionId();
-    int p2sid = p2->GetSessionId();
-
     ackReceivedMap.clear();
     ackReceivedMap[p1sid] = false;
     ackReceivedMap[p2sid] = false;
@@ -404,48 +390,73 @@ void Room::OnPlayerDisconnect(const RoomEvent& re)
     if (closed.exchange(true))
         return;
 
-    ClientSession* winner = nullptr;
-    ClientSession* loser = nullptr;
+    int winnerUserId = -1;
+    int loserUserId = -1;
 
-    if (re.sessionId == p1->GetSessionId()) {
-        winner = p2;
-        loser = p1;
+    if (re.sessionId == p1sid) {
+        winnerUserId = p2UserId;
+        loserUserId = p1UserId;
+
+        EmitOutEvent({ RoomOutEventType::EnemyExit, p1sid });
+        EmitOutEvent({ RoomOutEventType::CloseRoom, p1sid });
+        SaveRecordAsync(winnerUserId, loserUserId);
     }
-    else if (re.sessionId == p2->GetSessionId()) {
-        winner = p1;
-        loser = p2;
+    else if (re.sessionId == p2sid) {
+        winnerUserId = p1UserId;
+        loserUserId = p2UserId;
+
+        EmitOutEvent({ RoomOutEventType::EnemyExit, p2sid });
+        EmitOutEvent({ RoomOutEventType::CloseRoom, p2sid });
+        SaveRecordAsync(winnerUserId, loserUserId);
     }
     else return;
-
-    EmitOutEvent({ RoomOutEventType::EnemyExit, winner->GetSessionId() });
-    EmitOutEvent({ RoomOutEventType::CloseRoom, winner->GetSessionId() });
-    SaveRecordAsync(winner, loser);
 }
 
 // ThreadPool을 이용해 비동기 전적 저장
-void Room::SaveRecordAsync(ClientSession* winner, ClientSession* loser)
+void Room::SaveRecordAsync(int winner, int loser)
 {
-    SaveRecordRequest req{ winner->GetUserId(), loser->GetUserId() };
+    if (IsBotUser(winner) || IsBotUser(loser))
+    {
+        std::cout << "[Battle] bot match, skip record\n";
+        return;
+    }
+
+    SaveRecordRequest req{ winner, loser };
 
     // Json 직렬화 + API 요청은 비용이 크기 때문에 Thread Pool 사용
     threadPool.Enqueue([req]() mutable {
-        nlohmann::json j = req;
-        std::string body = j.dump();
+        try
+        {
+            nlohmann::json j = req;
+            std::string body = j.dump();
 
-        bool success = ApiClient::Instance().Post("battle/save", body);
+            bool success = ApiClient::Instance().Post("battle/save", body);
 
-        if (success)
-            std::cout << "[Battle] 전적 저장 성공\n";
-        else
-            std::cout << "[Battle] 전적 저장 실패\n";
+            if (success)
+                std::cout << "[Battle] 전적 저장 성공\n";
+            else
+                std::cout << "[Battle] 전적 저장 실패\n";
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "[Battle] SaveRecord exception: " << e.what() << "\n";
+        }
+        catch (...)
+        {
+            std::cerr << "[Battle] SaveRecord unknown exception\n";
+        }
     });
 }
 
 void Room::CloseRoom()
 {
-    if (closed) return;
+    if (closed.exchange(true))
+        return;
 
-    if (p1) p1->SetRoom(nullptr);
-    if (p2) p2->SetRoom(nullptr);
+	ClientSession* s1 = Server::Instance().FindSession(p1sid);
+    ClientSession* s2 = Server::Instance().FindSession(p2sid);
+
+    if (s1) s1->SetRoomId(-1);
+    if (s2) s2->SetRoomId(-1);
 }
 

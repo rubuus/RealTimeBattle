@@ -7,9 +7,11 @@
 #include "ThreadPool.h"
 #include "Transport.h"
 #include "ThreadSafeQueue.h"
+#include "RoomEvent.h"
 
 class ClientSession;
 class Room;
+class RoomEvent;
 struct MatchFoundPacket;
 enum class Side : uint8_t;
 
@@ -28,6 +30,7 @@ public:
 	void CancelMatch(int sid);
 	void CreateRoom(ClientSession* p1, ClientSession* p2);
 	void NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2);
+	void EnqueueRoomEvent(int roomId, const RoomEvent& ev);
 	void ProcessClosedRooms();
 	void CloseRoom(int id);
 	bool RemoveClient(int sid);
@@ -41,6 +44,14 @@ public:
 		if (it == clients.end())
 			std::cout << "[FindSession FAIL] sid=" << sid << "\n";
 		return it != clients.end() ? it->second.get() : nullptr;
+	};
+
+	Room* FindRoom(int rid)
+	{
+		auto it = rooms.find(rid);
+		if (it == rooms.end())
+			std::cout << "[FindRoom FAIL] rid=" << rid << "\n";
+		return it != rooms.end() ? it->second.get() : nullptr;
 	};
 
 private:

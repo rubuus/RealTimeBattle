@@ -392,9 +392,6 @@ void Server::AddToMatchList(int sid)
     ClientSession* p1 = nullptr;
     ClientSession* p2 = nullptr;
 
-    bool aValid = false;
-    bool bValid = false;
-
     // 세션 존재 여부 확인
     {
         std::lock_guard<std::mutex> lock(clientsMutex);
@@ -404,21 +401,19 @@ void Server::AddToMatchList(int sid)
 
         if (it1 != clients.end()) {
             p1 = it1->second.get();
-            aValid = true;
         }
         if (it2 != clients.end()) {
             p2 = it2->second.get();
-            bValid = true;
         }
     }
 
     // 실패 시 되돌림 (살아있는 쪽만)
-    if (!aValid || !bValid)
+    if (a == -1 || b == -1)
     {
         std::lock_guard<std::mutex> lock(matchMutex);
 
-        if (aValid) matchList.push_front(a);
-        if (bValid) matchList.push_front(b);
+        if (a != -1) matchList.push_front(a);
+        if (b != -1) matchList.push_front(b);
 
         return;
     }
@@ -443,19 +438,28 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
     if (p1 == p2 || p1->GetSessionId() == p2->GetSessionId())
         return;
 
+    if (p1->IsDisconnected() || p2->IsDisconnected())
+        return;
+
     int roomId = _roomIdCounter++;
+
+    int p1sid = p1->GetSessionId();
+    int p2sid = p2->GetSessionId();
 
     Room* roomPtr = nullptr;
 
 	// rooms 컨테이너에 룸 생성 및 등록 (mutex로 동시 접근 보호)
     {
         std::lock_guard<std::mutex> lock(roomsMutex);
-        rooms[roomId] = std::make_unique<Room>(roomId, p1, p2, threadPool);
+        rooms[roomId] = std::make_unique<Room>(roomId, p1sid, p2sid, threadPool);
         roomPtr = rooms[roomId].get();
     }
 
-    p1->SetRoom(roomPtr);
-    p2->SetRoom(roomPtr);
+    p1->SetRoomId(roomPtr->GetRoomId());
+    p2->SetRoomId(roomPtr->GetRoomId());
+
+	roomPtr->SetP1UserId(p1->GetUserId());
+	roomPtr->SetP2UserId(p2->GetUserId());
 
     std::cout << "Room " << roomId << " created for Player " << p1->GetUserId() << " and Player " << p2->GetUserId() << "\n";
 
@@ -465,6 +469,17 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 void Server::NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2) {
     p1->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p1->GetUserId(), p1->GetSessionId(), p2->GetUserId(), p2->GetSessionId(), Side::Left));
     p2->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
+}
+
+void Server::EnqueueRoomEvent(int roomId, const RoomEvent& ev)
+{
+    std::lock_guard<std::mutex> lock(roomsMutex);
+
+    auto it = rooms.find(roomId);
+    if (it == rooms.end())
+        return;
+
+    it->second->EnqueueEvent(ev);
 }
 
 // 닫힌 Room Id만 복사해서 한번에 처리
@@ -484,24 +499,27 @@ void Server::ProcessClosedRooms()
 }
 
 void Server::CloseRoom(int id) {
-    std::unique_ptr<Room> dying;
+    Room* room = nullptr;
 
-	// rooms 컨테이너에서 룸 제거 (락 범위 최소화)
     {
         std::lock_guard<std::mutex> lock(roomsMutex);
 
         auto it = rooms.find(id);
+        if (it == rooms.end())
+            return;
 
-        if (it == rooms.end()) return;
-
-        dying = std::move(it->second);
-        rooms.erase(it);
+        room = it->second.get(); // 아직 살아 있음
     }
 
-    // 락 밖에서 정리
-    if (dying)
+    // 반드시 erase 전에 정리
+    room->CloseRoom();
+
     {
-        dying->CloseRoom();
+        std::lock_guard<std::mutex> lock(roomsMutex);
+
+        auto it = rooms.find(id);
+        if (it != rooms.end())
+            rooms.erase(it); // 이제 delete
     }
 }
 
