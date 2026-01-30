@@ -55,6 +55,7 @@ void Transport::Dispatch(const RoomOutEvent& ev)
 void Transport::SendReadyRoom(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	s->SendPacket(S2C_HeaderType::LOAD_BATTLE);
 }
 
@@ -62,6 +63,7 @@ void Transport::SendReadyRoom(const RoomOutEvent& ev)
 void Transport::SendSpawn(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	auto& payload = std::get<UpdateStatePayload>(ev.payload);
 
 	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p1);
@@ -72,6 +74,7 @@ void Transport::SendSpawn(const RoomOutEvent& ev)
 void Transport::SendState(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	auto& payload = std::get<UpdateStatePayload>(ev.payload);
 
 	s->SendPacket(S2C_HeaderType::PLAYER_STATE, payload.p1);
@@ -82,6 +85,7 @@ void Transport::SendState(const RoomOutEvent& ev)
 void Transport::SendTime(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	auto& payload = std::get<UpdateTimePayload>(ev.payload);
 
 	s->SendPacket(S2C_HeaderType::GAME_TIME, payload.time);
@@ -91,6 +95,7 @@ void Transport::SendTime(const RoomOutEvent& ev)
 void Transport::SendDamage(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	auto& payload = std::get<UpdateHurtPayload>(ev.payload);
 
 	s->SendPacket(S2C_HeaderType::TAKE_DAMAGE, payload.dmg);
@@ -100,6 +105,7 @@ void Transport::SendDamage(const RoomOutEvent& ev)
 void Transport::SendResult(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	auto& payload = std::get<GameResultPayload>(ev.payload);
 
 	std::cout << ev.sessionId << '\n';
@@ -121,6 +127,7 @@ void Transport::SendResult(const RoomOutEvent& ev)
 void Transport::SendEnemyExit(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	s->SendPacket(S2C_HeaderType::ENEMY_EXIT);
 }
 
@@ -128,5 +135,6 @@ void Transport::SendEnemyExit(const RoomOutEvent& ev)
 void Transport::SendRoomClosed(const RoomOutEvent& ev)
 {
 	auto* s = Server::Instance().FindSession(ev.sessionId);
+	if (!s) return;
 	s->SendPacket(S2C_HeaderType::ROOM_CLOSED);
 }

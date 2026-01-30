@@ -14,8 +14,8 @@
 #include "PlayerStruct.h"
 #include "Server.h"
 
-Room::Room(int id, int player1,int player2, ThreadPool& pool)
-    : roomId(id), p1sid(player1), p2sid(player2), threadPool(pool)
+Room::Room(int id, int p1uid, int p1sid, int p2uid, int p2sid, ThreadPool& pool)
+    : roomId(id), p1UserId(p1uid), p1sid(p1sid), p2UserId(p2uid), p2sid(p2sid), threadPool(pool)
 {
     Vector2 leftSpawn = { -7.0f, -2.5f };
     Vector2 rightSpawn = { 7.0f, -2.5f };
@@ -397,16 +397,16 @@ void Room::OnPlayerDisconnect(const RoomEvent& re)
         winnerUserId = p2UserId;
         loserUserId = p1UserId;
 
-        EmitOutEvent({ RoomOutEventType::EnemyExit, p1sid });
-        EmitOutEvent({ RoomOutEventType::CloseRoom, p1sid });
+        EmitOutEvent({ RoomOutEventType::EnemyExit, p2sid });
+        EmitOutEvent({ RoomOutEventType::CloseRoom, p2sid });
         SaveRecordAsync(winnerUserId, loserUserId);
     }
     else if (re.sessionId == p2sid) {
         winnerUserId = p1UserId;
         loserUserId = p2UserId;
 
-        EmitOutEvent({ RoomOutEventType::EnemyExit, p2sid });
-        EmitOutEvent({ RoomOutEventType::CloseRoom, p2sid });
+        EmitOutEvent({ RoomOutEventType::EnemyExit, p1sid });
+        EmitOutEvent({ RoomOutEventType::CloseRoom, p1sid });
         SaveRecordAsync(winnerUserId, loserUserId);
     }
     else return;
@@ -415,11 +415,11 @@ void Room::OnPlayerDisconnect(const RoomEvent& re)
 // ThreadPool을 이용해 비동기 전적 저장
 void Room::SaveRecordAsync(int winner, int loser)
 {
-    if (IsBotUser(winner) || IsBotUser(loser))
+    /*if (IsBotUser(winner) || IsBotUser(loser))
     {
         std::cout << "[Battle] bot match, skip record\n";
         return;
-    }
+    }*/
 
     SaveRecordRequest req{ winner, loser };
 

@@ -443,7 +443,10 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 
     int roomId = _roomIdCounter++;
 
+    int p1uid = p1->GetUserId();
     int p1sid = p1->GetSessionId();
+
+    int p2uid = p2->GetUserId();
     int p2sid = p2->GetSessionId();
 
     Room* roomPtr = nullptr;
@@ -451,15 +454,12 @@ void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 	// rooms 컨테이너에 룸 생성 및 등록 (mutex로 동시 접근 보호)
     {
         std::lock_guard<std::mutex> lock(roomsMutex);
-        rooms[roomId] = std::make_unique<Room>(roomId, p1sid, p2sid, threadPool);
+        rooms[roomId] = std::make_unique<Room>(roomId, p1uid, p1sid, p2uid, p2sid, threadPool);
         roomPtr = rooms[roomId].get();
     }
 
-    p1->SetRoomId(roomPtr->GetRoomId());
-    p2->SetRoomId(roomPtr->GetRoomId());
-
-	roomPtr->SetP1UserId(p1->GetUserId());
-	roomPtr->SetP2UserId(p2->GetUserId());
+    p1->SetRoomId(roomId);
+    p2->SetRoomId(roomId);
 
     std::cout << "Room " << roomId << " created for Player " << p1->GetUserId() << " and Player " << p2->GetUserId() << "\n";
 
@@ -471,6 +471,7 @@ void Server::NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2) 
     p2->SendPacket(S2C_HeaderType::MATCH_FOUND, MatchFoundPacket(roomId, p2->GetUserId(), p2->GetSessionId(), p1->GetUserId(), p1->GetSessionId(), Side::Right));
 }
 
+// 서버에서 컨트롤
 void Server::EnqueueRoomEvent(int roomId, const RoomEvent& ev)
 {
     std::lock_guard<std::mutex> lock(roomsMutex);
@@ -542,16 +543,18 @@ bool Server::RemoveClient(int sid)
             return true;
 
         ClientSession* s = it->second.get();
-        if (!s->CanCleanup())
-            return false;
 
-        dying = std::move(it->second);
-
-        int userId = dying->GetUserId();
+        int userId = s->GetUserId();
         if (userId != 0)
         {
             PacketRouter::Instance().onlineUsers.erase(userId);
         }
+
+        // cleanup 가능 여부 판단
+        if (!s->CanCleanup())
+            return false;
+
+        dying = std::move(it->second);
 
         std::cout << "[SESSION REMOVE] sid=" << sid << "\n";
 

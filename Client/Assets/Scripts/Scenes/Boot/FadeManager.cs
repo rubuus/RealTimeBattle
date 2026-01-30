@@ -97,6 +97,8 @@ public class FadeManager : MonoBehaviour
 
         while (time < duration)
         {
+            if (!fadeCanvasGroup) yield break;
+
             time += Time.deltaTime;
             float alpha = Mathf.Lerp(from, to, time / duration);
             fadeCanvasGroup.alpha = Mathf.Lerp(from, to, time / duration);

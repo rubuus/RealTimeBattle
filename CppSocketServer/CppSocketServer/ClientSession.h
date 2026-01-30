@@ -122,8 +122,8 @@ private:
     char recvBuffer[RECV_BUFFER_SIZE];
     int32_t recvBytes;
 
-    int32_t sessionId;
-    int32_t userId;
+    int sessionId;
+    int userId;
     std::atomic<int> roomId{-1};
 
     std::atomic<bool> hasInput = false;

@@ -35,19 +35,13 @@ struct Hurtbox
 
 class Room {
 public:
-    Room(int id, int player1, int player2, ThreadPool& pool);
+    Room(int id, int p1uid, int p1sid, int p2uid, int p2sid, ThreadPool& pool);
 
     int GetRoomId() { return roomId; }
     void EnqueueEvent(const RoomEvent& ev);
     void Update(double dt);
     void CloseRoom();
     bool IsClosed() const { return closed.load(); }
-
-	int GetP1UserId() const { return p1UserId; }
-	void SetP1UserId(int id) { p1UserId = id; }
-
-	int GetP2UserId() const { return p2UserId; }
-	void SetP2UserId(int id) { p2UserId = id; }
 
 private:
     void EmitOutEvent(const RoomOutEvent& ev);

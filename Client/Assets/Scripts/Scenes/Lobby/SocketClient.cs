@@ -195,7 +195,7 @@ public class SocketClient : MonoBehaviour
                 if (read <= 0)
                 {
                     Debug.Log("Disconnected from server.");
-                    Application.Quit();
+                    connected = false;
                     break;
                 }
 
@@ -242,7 +242,7 @@ public class SocketClient : MonoBehaviour
                 if (!await ReadExactAsync(headerBuf, PacketHeader.Size))
                 {
                     Debug.Log("Server disconnected (header).");
-                    Application.Quit();
+                    connected = false;
                     break;
                 }
 
@@ -254,6 +254,7 @@ public class SocketClient : MonoBehaviour
                 if (bodySize < 0 || bodySize > 4096)
                 {
                     Debug.LogError($"Invalid bodySize={bodySize}");
+                    connected = false;
                     break;
                 }
 
@@ -268,6 +269,7 @@ public class SocketClient : MonoBehaviour
                     if (!await ReadExactAsync(body, bodySize))
                     {
                         Debug.Log("Server disconnected (body).");
+                        connected = false;
                         break;
                     }
                 }

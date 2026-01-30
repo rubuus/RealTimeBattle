@@ -276,6 +276,9 @@ void ClientSession::Disconnect(const char* why) {
     if (disconnected.exchange(true))
         return;
 
+    // 유령 세션 삭제
+    PacketRouter::Instance().onlineUsers.erase(userId);
+
     // 매칭 대기열 제거
     Server::Instance().CancelMatch(sessionId);
 

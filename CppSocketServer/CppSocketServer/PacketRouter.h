@@ -27,5 +27,8 @@ public:
 	void HandleLoginTest(ClientSession& s, const char* body, uint16_t bodySize);
 
 	std::unordered_set<int> onlineUsers;
+
+private:
+	std::mutex onlineMutex;
 };
 

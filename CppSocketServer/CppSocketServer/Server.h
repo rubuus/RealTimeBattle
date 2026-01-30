@@ -39,7 +39,9 @@ public:
 
 	// Transport에서 꺼내쓰는용
 	ClientSession* FindSession(int sid) 
-	{ 
+	{
+		std::lock_guard<std::mutex> lock(clientsMutex);
+
 		auto it = clients.find(sid);
 		if (it == clients.end())
 			std::cout << "[FindSession FAIL] sid=" << sid << "\n";
@@ -48,10 +50,12 @@ public:
 
 	Room* FindRoom(int rid)
 	{
+		std::lock_guard<std::mutex> lock(roomsMutex);
+
 		auto it = rooms.find(rid);
 		if (it == rooms.end())
-			std::cout << "[FindRoom FAIL] rid=" << rid << "\n";
-		return it != rooms.end() ? it->second.get() : nullptr;
+			return nullptr;
+		return it->second.get();
 	};
 
 private:
