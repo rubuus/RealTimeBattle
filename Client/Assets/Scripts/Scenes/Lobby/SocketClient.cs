@@ -53,7 +53,7 @@ public class SocketClient : MonoBehaviour
 
     async void Start()
     {
-        await CSharpConnect();
+        await CppConnect();
     }
 
     // C# 소켓 서버 연결

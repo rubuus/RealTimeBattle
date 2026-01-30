@@ -27,6 +27,10 @@ void PacketRouter::Route(ClientSession& s, const ParsedPacket& pkt)
             HandleMatchStart(s);
             break;
 
+        case C2S_HeaderType::MATCH_CANCEL:
+            HandelMatchCancel(s);
+            break;
+
         case C2S_HeaderType::BATTLE_READY:
 		    HandleBattleReady(s);
             break;
@@ -107,6 +111,11 @@ void PacketRouter::HandleLogin(ClientSession& s, const char* body, uint16_t body
 void PacketRouter::HandleMatchStart(ClientSession& s)
 {
     Server::Instance().AddToMatchList(s.GetSessionId());
+};
+
+void PacketRouter::HandelMatchCancel(ClientSession& s)
+{
+    Server::Instance().CancelMatch(s.GetSessionId());
 };
 
 // 준비 완료되면 해당 룸에 이벤트 전달

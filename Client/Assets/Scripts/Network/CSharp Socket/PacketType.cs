@@ -4,11 +4,13 @@ public enum C2S_PacketType
 {
     LOGIN = 0,
     MATCH_START = 1,
-    BATTLE_READY = 2,
-    BATTLE_START = 3,
-    INPUT = 4,
-    RESULT_ACK = 5,
-    PING = 6
+    MATCH_CANCEL = 2,
+    BATTLE_READY = 3,
+    BATTLE_START = 4,
+    INPUT = 5,
+    RESULT_ACK = 6,
+    PING = 7,
+    LOGIN_TEST = 8
 };
 
 public enum S2C_PacketType

@@ -25,6 +25,7 @@ public:
 	void StopServer();			// Server Á¾·á
 
 	void AddToMatchList(int sid);
+	void CancelMatch(int sid);
 	void CreateRoom(ClientSession* p1, ClientSession* p2);
 	void NotifyMatchFound(int roomId, ClientSession* p1, ClientSession* p2);
 	void ProcessClosedRooms();

@@ -36,4 +36,22 @@ public class MatchButton : MonoBehaviour
 
         Debug.Log("MATCH_START sent");
     }
+
+    public void OnMatchCancel()
+    {
+        if (isMatching)
+        {
+            Debug.Log("Already matching, ignoring...");
+            return;
+        }
+
+        isMatching = false;
+
+        if (SocketClient.Instance.useCppServer)
+            _ = SocketClient.Instance.CppSendHeaderOnly(C2S_HeaderType.MATCH_CANCEL);
+        else
+            _ = SocketClient.Instance.CSharpSend(new BasePacket { Type = "MATCH_CANCEL" });
+
+        Debug.Log("MATCH_CANCEL sent");
+    }
 }

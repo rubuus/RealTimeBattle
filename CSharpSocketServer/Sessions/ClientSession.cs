@@ -105,6 +105,8 @@ public class ClientSession(int sid, TcpClient tcp)
     {
         Console.WriteLine($"[DISCONNECT] sid={SessionId} reason={reason}");
 
+        SocketServer.Instance.CancelMatch(this);
+
         PacketRouter.OnlineUsers.Remove(UserId);
 
         if (IsDisconnected) return;

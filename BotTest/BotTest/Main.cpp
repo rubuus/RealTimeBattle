@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
             // 각 봇은 고유한 ID를 가지고 Life Cycle 테스트 수행
             LifecycleBot bot(ip, port, 1000 + i);
             bot.Run();
+            std::cout << i << '\n';
         });
 
         // 서버 접속 스파이크 방지를 위한 간단한 딜레이
@@ -50,5 +51,6 @@ int main(int argc, char** argv) {
     // 모든 봇 쓰레드 종료 대기
     for (auto& t : ts) t.join();
 
+    std::cout << "Finish" << '\n';
     WSACleanup();
 }

@@ -208,6 +208,15 @@ public class SocketServer
         NotifyMatchFound(roomId, p1, p2);
     }
 
+    public void CancelMatch(ClientSession s)
+    {
+        lock (_matchLock)
+        {
+            if (_matchList.Contains(s))
+            _matchList.Remove(s);
+        }
+    }
+
     private void NotifyMatchFound(int rid, ClientSession p1, ClientSession p2)
     {
         p1.Send(new MatchFoundPacket

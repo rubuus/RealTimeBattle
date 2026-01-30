@@ -426,6 +426,16 @@ void Server::AddToMatchList(int sid)
     CreateRoom(p1, p2);
 }
 
+// 매칭 취소 시, 매칭 대기열에서 세션 제거
+void Server::CancelMatch(int sid)
+{
+    std::lock_guard<std::mutex> lock(matchMutex);
+
+    auto it = std::find(matchList.begin(), matchList.end(), sid);
+    if (it != matchList.end())
+        matchList.erase(it);
+}
+
 // 두 세션으로 새 룸 생성
 void Server::CreateRoom(ClientSession* p1, ClientSession* p2)
 {

@@ -276,6 +276,9 @@ void ClientSession::Disconnect(const char* why) {
     if (disconnected.exchange(true))
         return;
 
+    // 매칭 대기열 제거
+    Server::Instance().CancelMatch(sessionId);
+
     std::cout << "[ClientSession] Session " << sessionId << " disconnected. why=" << why << "\n";
 
     // 1. 통신 끊고 소켓 해제 (스냅샷으로 race condition 방지)

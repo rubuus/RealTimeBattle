@@ -18,6 +18,7 @@ public:
 
 	void HandleLogin(ClientSession& s, const char* body, uint16_t bodySize);
 	void HandleMatchStart(ClientSession& s);
+	void HandelMatchCancel(ClientSession& s);
 	void HandleBattleReady(ClientSession& s);
 	void HandleBattleStart(ClientSession& s);
 	void HandleInput(ClientSession& s, const char* body, uint16_t bodySize);

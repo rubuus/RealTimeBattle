@@ -32,6 +32,10 @@ public class PacketRouter
                 case "MATCH_START":
                     HandleMatchStart(s);
                     break;
+
+                case "MATCH_CANCEL":
+                    HandleMatchCancel(s);
+                    break;
                 
                 case "BATTLE_READY":
                     HandleBattleReady(s);
@@ -129,6 +133,11 @@ public class PacketRouter
     private static void HandleMatchStart(ClientSession s)
     {
         SocketServer.Instance.AddToMatchList(s);
+    }
+
+    private static void HandleMatchCancel(ClientSession s)
+    {
+        SocketServer.Instance.CancelMatch(s);
     }
 
     private static void HandleBattleReady(ClientSession s)
