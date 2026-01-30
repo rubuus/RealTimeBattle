@@ -125,7 +125,7 @@ namespace api.Controllers
             if (user == null)
                 return NotFound(new { Message = "User not found" });
 
-            // 현재 이미지와 같은 이미지 클릭 시, DB 접근 X
+            // 현재 이미지와 같은 이미지 클릭 시, DB 쓰기 X
             if (user.ProfileImage == req.ProfileImage)
                 return Ok();
 
@@ -181,9 +181,10 @@ namespace api.Controllers
         {
             userId = 0;
 
-            var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier)
+          ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub); 
 
-            return sub != null && int.TryParse(sub, out userId);
+            return id != null && int.TryParse(id, out userId);
         }
     }
 }

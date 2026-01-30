@@ -25,14 +25,15 @@ namespace api.Services
         // DB에 마지막까지 남아있는 토큰 재발급
         public async Task<AuthTokenResult> GenerateTokensAsync(User user)
         {
+            using var tx = await _db.Database.BeginTransactionAsync();
+
             string accessToken = _jwtService.GenerateAccessToken(user);
             string refreshToken = _refreshTokenService.GenerateRefreshToken();
 
-            var old = await _db.RefreshToken
-                .FirstOrDefaultAsync(r => r.UserId == user.Id);
-
-            if (old != null)
-                _db.RefreshToken.Remove(old);
+            // 동시성 문제 방지
+            await _db.RefreshToken
+            .Where(r => r.UserId == user.Id)
+            .ExecuteDeleteAsync();
 
             _db.RefreshToken.Add(new RefreshToken
             {
@@ -43,6 +44,7 @@ namespace api.Services
             });
 
             await _db.SaveChangesAsync();
+            await tx.CommitAsync();
 
             return new AuthTokenResult
             {
