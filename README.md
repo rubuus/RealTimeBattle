@@ -31,14 +31,14 @@ in terms of **packet processing, performance, and architecture design**.
 # Architecture
 ```mermaid
 graph TD
-    Unity[Unity Client (C#)]
-    Server[C++ IOCP Game Server]
-    API[ASP.NET Core API Server (JWT Verify)]
-    DB[MySQL Database]
+    Client[Unity Client]
+    GameServer[C++ IOCP Game Server]
+    APIServer[ASP.NET Core API]
+    DB[(MySQL)]
 
-    Unity --> Server
-    Server --> API
-    API --> DB
+    Client -->|Game Packet| GameServer
+    GameServer -->|JWT Verify| APIServer
+    APIServer --> DB
 ```
 
 Components:
