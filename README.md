@@ -29,12 +29,12 @@ in terms of **packet processing, performance, and architecture design**.
 ---
 
 # Architecture
-Unity Client (C#)
-↓
-C++ IOCP Game Server
-↓
-ASP.NET Core API Server (JWT Verify)
-↓
+Unity Client (C#) <br>
+↓<br>
+C++ IOCP Game Server<br>
+↓<br>
+ASP.NET Core API Server (JWT Verify)<br>
+↓<br>
 MySQL Database
 
 
@@ -188,8 +188,8 @@ Default port: 7777
 ## 2. ASP.NET Core API Server
 dotnet run
 
-Default addresses:
-http://localhost:5146
+Default addresses:<br>
+http://localhost:5146<br>
 https://localhost:7170
 
 
