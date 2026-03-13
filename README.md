@@ -1,32 +1,34 @@
 # RealTimeBattle
 
-IOCP 기반 C++ 실시간 1:1 대전 서버  
-Unity 클라이언트와 ASP.NET Core API 서버(C#)가 연동되는  
-게임 서버 포트폴리오 프로젝트입니다.
+IOCP-based C++ real-time 1:1 battle server  
+A game server portfolio project integrated with a  
+Unity client and an ASP.NET Core API server (C#).
 
 ## Overview
 
-본 프로젝트에는 메인 서버 구현과는 별도로,  
-비교 및 학습 목적의 **C# TCP 기반 Socket Server** 구현이 포함되어 있습니다.
+In addition to the main server implementation,  
+this project also includes a **C# TCP-based Socket Server**  
+implemented for comparison and learning purposes.
 
-해당 C# 서버는 기능 프로토타입을 우선 구현한 뒤,  
-이후 C++ IOCP 서버로 리팩토링하는 흐름으로 개발되었습니다.
+The C# server was developed by first implementing a  
+functional prototype, and later refactoring it into  
+a C++ IOCP server.
 
 ## Packet Processing (C# Server)
 
-C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사용합니다.
+In the C# server, the following packet processing method  
+is intentionally used.
 
 - Packet Object → JSON → Byte (Send)
 - Byte → JSON → Packet Object (Recv)
 
-실시간 소켓 서버 환경에서 JSON 기반 직렬화/역직렬화는  
-성능 측면에서 비효율적이지만,
+JSON-based serialization/deserialization in a real-time  
+socket server environment is inefficient in terms of performance,  
+however this approach was intentionally adopted for:
 
-- C# 서버와 C++ IOCP 서버 간 패킷 처리 방식 비교
-- 직렬화 비용 및 구조 차이에 대한 이해
-- C# 네트워크 서버 구현 학습
-
-을 목적으로 의도적으로 해당 방식을 채택했습니다.
+- Comparing packet processing methods between the C# server and the C++ IOCP server
+- Understanding serialization costs and structural differences
+- Learning implementation of a C# network server
 
 ## System Architecture (IOCP)
 
@@ -41,34 +43,36 @@ C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사�
 
 - Visual Studio 2022
 - x64 / Release
-- 실행 전 포트 설정 필요 (기본 7777)
+- Port configuration required before execution (default: 7777)
 
 ### 2. ASP.NET Core API Server
 
 - .NET 9
-- 기본 실행 주소:
+- Default execution addresses:
   - http://localhost:5146
   - https://localhost:7170
-- `dotnet run` 실행
+- Run with: dotnet run
 
 ### 3. Unity Client
 
-- `SocketClient.cs`의 `Start()` 함수에서
-  - C++ 서버 (CppConnect) 또는 C# (CSharpConnect) 서버 선택 가능
-- 서버 주소 / 포트 설정 후 실행
+In the `Start()` function of `SocketClient.cs`
+
+- Either the C++ server (`CppConnect`) or the C# server (`CSharpConnect`) can be selected
+
+Run after setting the server address and port.
 
 ### 4. Database
 
 - MySQL (Pomelo Provider)
-- DB 연결 정보는 `appsettings.json`에서 설정 가능
-- 기본 설정은 로컬 개발 환경을 기준으로 되어 있습니다.
-- DB가 준비되지 않은 경우 일부 기능(로그인/전적 저장)은 제한될 수 있습니다.
+- DB connection information can be configured in `appsettings.json`
+- Default configuration is based on a local development environment
+- If the DB is not prepared, some features (login / battle record storage) may be limited
 
-### 5. Bot Test (부하 테스트)
+### 5. Bot Test (Load Test)
 
-- 실행 시 봇 수 인자 전달
-- 예:
-  {exe 경로} BotTest.exe 127.0.0.1 7777 {봇 개수 (기본 1000)}
+Pass the bot count as an argument when executing.
+
+Example: {exe path} BotTest.exe 127.0.0.1 7777 {bot count (default 1000)}
 
 ## Game Scene Structure
 
@@ -83,41 +87,42 @@ C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사�
 
 ### 1. Client Boot
 
-- 게임 실행 시 공통 Singleton 객체 초기화
-- 설정 로드 후 Login Scene으로 전환
-- API / Audio / Scene / UserData 관리 객체 준비
+- Initialize common Singleton objects when the game starts
+- Load configuration and move to the Login Scene
+- Prepare management objects for API / Audio / Scene / UserData
 
 ### 2. Login Scene
 
-- 로그인 및 회원 가입 가능
-- 로그인 성공 시, JWT Token을 발행 및 Lobby Scene 이동
+- Login and registration available
+- After successful login, a JWT Token is issued and the Lobby Scene is entered
 
 ### 3. Lobby Scene
 
-- Record, Notice, Setting, User 등 다양한 Panel로 UI 구성
-- Socket Server 접속 시도
-- JWT Token 검증 후 게임 서버 세션 생성
+- UI composed of various panels such as Record, Notice, Setting, and User
+- Attempt connection to the Socket Server
+- After JWT Token verification, a game server session is created
 
 ### 4. Matching Scene
 
-- User / Enemy 데이터 로드 및 화면 업데이트
-- Socket Server 매칭 완료 신호 대기
-- 매칭 완료 시 Battle Scene 진입
+- Load User / Enemy data and update the screen
+- Wait for the matching completion signal from the Socket Server
+- Enter the Battle Scene when matching is completed
 
 ### 5. Battle Scene
 
-- Side 값 기준으로 스폰 위치 설정 후, Player 객체 생성
-- Socket Server 패킷 기준으로 게임 상태 동기화
-- 결과 패킷 수신 시 Result Scene 이동
+- Spawn positions are set based on the Side value, and Player objects are created
+- Game state is synchronized based on packets from the Socket Server
+- Move to the Result Scene when the result packet is received
 
 ### 6. Result Scene
 
-- 로컬에서 게임 결과 즉시 반영
-- 이후 Socket Server에서는 Room Close 비동기 처리
-- Socket Server에서 API Server로 전적 기록 Request
+- Game results are immediately reflected locally
+- Afterwards, the Socket Server processes Room Close asynchronously
+- The Socket Server sends a battle record request to the API Server
 
 ## Notes
 
-- Unity Client는 내부 변수 네이밍을 camelCase로 통일했습니다.
-- C# API Server 및 Socket Server는 .NET 컨벤션을 따릅니다.
-- C++ IOCP Server는 C++ 서버 코드 관례에 맞춰 작성되었습니다.
+- The Unity Client uses camelCase for internal variable naming
+- The C# API Server and Socket Server follow .NET conventions
+- The C++ IOCP Server follows common C++ server coding practices
+
