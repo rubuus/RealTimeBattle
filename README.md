@@ -30,11 +30,11 @@ in terms of **packet processing, performance, and architecture design**.
 
 # Architecture
 Unity Client (C#) <br>
-    ↓<br>
+        ↓<br>
 C++ IOCP Game Server<br>
-    ↓<br>
+        ↓<br>
 ASP.NET Core API Server (JWT Verify)<br>
-    ↓<br>
+        ↓<br>
 MySQL Database
 
 
