@@ -29,15 +29,11 @@ in terms of **packet processing, performance, and architecture design**.
 ---
 
 # Architecture
-```
-Unity Client (C#)
-      ↓
-C++ IOCP Game Server
-      ↓
-ASP.NET Core API Server (JWT Verify)
-      ↓
-MySQL Database
-```
+graph TD
+    Client[Unity Client] <-->|Socket/TCP| GS[C++ IOCP Game Server]
+    Client <-->|HTTP/REST| AS[ASP.NET Core API]
+    GS <-->|Internal API/DB| AS
+    AS <--> DB[(MySQL)]
 
 Components:
 
