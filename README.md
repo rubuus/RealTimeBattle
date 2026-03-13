@@ -192,8 +192,8 @@ Default port: 7777
 dotnet run
 
 Default addresses:<br>
-http://localhost:5146<br>
-https://localhost:7170
+- http://localhost:5146<br>
+- https://localhost:7170
 
 
 ---
@@ -224,12 +224,12 @@ may be limited.
 ---
 
 # Game Scene Structure
-Boot
-Login
-Lobby
-Matching
-Battle
-Result
+- Boot
+- Login
+- Lobby
+- Matching
+- Battle
+- Result
 
 
 ---
