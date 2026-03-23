@@ -1,77 +1,229 @@
 # RealTimeBattle
 
-IOCP 기반 C++ 실시간 1:1 대전 서버  
-Unity 클라이언트와 ASP.NET Core API 서버(C#)가 연동되는  
-게임 서버 포트폴리오 프로젝트입니다.
+IOCP-based **C++ real-time multiplayer battle server**
 
-## Overview
+This project is a **game server portfolio project** integrating:
 
-본 프로젝트에는 메인 서버 구현과는 별도로,  
-비교 및 학습 목적의 **C# TCP 기반 Socket Server** 구현이 포함되어 있습니다.
-
-해당 C# 서버는 기능 프로토타입을 우선 구현한 뒤,  
-이후 C++ IOCP 서버로 리팩토링하는 흐름으로 개발되었습니다.
-
-## Packet Processing (C# Server)
-
-C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사용합니다.
-
-- Packet Object → JSON → Byte (Send)
-- Byte → JSON → Packet Object (Recv)
-
-실시간 소켓 서버 환경에서 JSON 기반 직렬화/역직렬화는  
-성능 측면에서 비효율적이지만,
-
-- C# 서버와 C++ IOCP 서버 간 패킷 처리 방식 비교
-- 직렬화 비용 및 구조 차이에 대한 이해
-- C# 네트워크 서버 구현 학습
-
-을 목적으로 의도적으로 해당 방식을 채택했습니다.
-
-## System Architecture (IOCP)
-
-- Unity Client (C#)
+- Unity Client
 - C++ IOCP Game Server
-- ASP.NET Core API Server (JWT Token Verify)
-- MySQL (User Data, Battle Record)
+- ASP.NET Core API Server
+- MySQL Database
 
-## How to Run
+The project demonstrates **real-time networking, asynchronous I/O handling, and scalable server architecture**.
 
-### 1. C++ IOCP Server
+---
+
+# Overview
+
+The main goal of this project is to build a **high-performance real-time game server** using Windows IOCP.
+
+The project also includes a **C# TCP Socket Server prototype**, which was implemented first and later refactored into the **C++ IOCP server**.
+
+This allows comparison between:
+
+- C# TCP socket server
+- C++ IOCP server
+
+in terms of **packet processing, performance, and architecture design**.
+
+---
+
+# Architecture
+```mermaid
+graph TD
+    Client[Unity Client]
+    GameServer[C++ IOCP Game Server]
+    APIServer[ASP.NET Core API]
+    DB[(MySQL)]
+
+    Client -->|Game Packet| GameServer
+    GameServer -->|JWT Verify| APIServer
+    APIServer --> DB
+```
+
+Components:
+
+- **Unity Client**
+  - Game logic
+  - UI
+  - Network packet send/receive
+
+- **C++ IOCP Game Server**
+  - Session management
+  - Packet processing
+  - Room-based battle logic
+
+- **ASP.NET Core API Server**
+  - Authentication
+  - JWT token verification
+  - Battle record storage
+
+- **MySQL**
+  - User data
+  - Battle history
+
+---
+
+# Key Features
+
+### IOCP-based Networking
+
+- Windows **IO Completion Port**
+- Asynchronous I/O handling
+- High-performance socket processing
+
+---
+
+### Real-Time Game Loop
+
+- Fixed **tick-based simulation**
+- Deterministic state updates
+- Packet-based state synchronization
+
+---
+
+### Room-Based Architecture
+
+Each battle is processed inside a **dedicated room instance**.
+
+Benefits:
+
+- Isolated game state
+- Simplified synchronization
+- Scalable battle handling
+
+---
+
+### JWT Authentication
+
+Login flow:
+
+1. User login via API server
+2. JWT token issued
+3. Token verified by game server
+4. Game session created
+
+---
+
+### Bot Load Testing
+
+A **bot client tool** is implemented to simulate large-scale connections.
+
+Features:
+
+- Simulates multiple players
+- Stress tests the IOCP server
+- Measures response time and stability
+
+---
+
+# Load Test
+
+Bot load testing was performed to evaluate server performance.
+
+Example scenario:
+Bot Count: 1000
+Connection Interval: 50ms
+Average Response Time: < 1ms
+CPU Usage: under 5%
+
+
+This test verifies that the IOCP server can handle **large numbers of concurrent sessions efficiently**.
+
+---
+
+# Packet Processing (C# Server)
+
+The C# prototype server intentionally uses the following packet structure.
+
+Packet Object → JSON → Byte (Send)
+Byte → JSON → Packet Object (Recv)
+
+
+Although JSON serialization is inefficient for real-time servers, it was used to:
+
+- Compare packet processing methods
+- Understand serialization overhead
+- Prototype network features before migrating to C++
+
+---
+
+# Tech Stack
+
+### Server
+
+- C++
+- Windows IOCP
+- WinSock2
+
+### Backend
+
+- C#
+- ASP.NET Core
+- JWT Authentication
+
+### Database
+
+- MySQL
+- Pomelo EF Core Provider
+
+### Client
+
+- Unity
+- C#
+
+---
+
+# How to Run
+
+## 1. C++ IOCP Server
+
+Requirements:
 
 - Visual Studio 2022
 - x64 / Release
-- 실행 전 포트 설정 필요 (기본 7777)
 
-### 2. ASP.NET Core API Server
+Default port: 7777
 
-- .NET 9
-- 기본 실행 주소:
-  - http://localhost:5146
-  - https://localhost:7170
-- `dotnet run` 실행
 
-### 3. Unity Client
+---
 
-- `SocketClient.cs`의 `Start()` 함수에서
-  - C++ 서버 (CppConnect) 또는 C# (CSharpConnect) 서버 선택 가능
-- 서버 주소 / 포트 설정 후 실행
+## 2. ASP.NET Core API Server
+dotnet run
 
-### 4. Database
+Default addresses:<br>
+- http://localhost:5146<br>
+- https://localhost:7170
 
-- MySQL (Pomelo Provider)
-- DB 연결 정보는 `appsettings.json`에서 설정 가능
-- 기본 설정은 로컬 개발 환경을 기준으로 되어 있습니다.
-- DB가 준비되지 않은 경우 일부 기능(로그인/전적 저장)은 제한될 수 있습니다.
 
-### 5. Bot Test (부하 테스트)
+---
 
-- 실행 시 봇 수 인자 전달
-- 예:
-  {exe 경로} BotTest.exe 127.0.0.1 7777 {봇 개수 (기본 1000)}
+## 3. Unity Client
 
-## Game Scene Structure
+In `SocketClient.cs`
+CppConnect() or CSharpConnect()
 
+
+Select the desired server and run the client.
+
+---
+
+## 4. Database
+
+Configure database settings in: appsettings.json
+
+Default configuration assumes a **local development environment**.
+
+If the database is not prepared, some features such as:
+
+- login
+- battle record storage
+
+may be limited.
+
+---
+
+# Game Scene Structure
 - Boot
 - Login
 - Lobby
@@ -79,45 +231,60 @@ C# 서버에서는 의도적으로 다음과 같은 패킷 처리 방식을 사�
 - Battle
 - Result
 
-## Game Lifecycle
 
-### 1. Client Boot
+---
 
-- 게임 실행 시 공통 Singleton 객체 초기화
-- 설정 로드 후 Login Scene으로 전환
-- API / Audio / Scene / UserData 관리 객체 준비
+# Game Lifecycle
 
-### 2. Login Scene
+### Client Boot
 
-- 로그인 및 회원 가입 가능
-- 로그인 성공 시, JWT Token을 발행 및 Lobby Scene 이동
+- Initialize singleton managers
+- Load configuration
+- Move to Login Scene
 
-### 3. Lobby Scene
+---
 
-- Record, Notice, Setting, User 등 다양한 Panel로 UI 구성
-- Socket Server 접속 시도
-- JWT Token 검증 후 게임 서버 세션 생성
+### Login
 
-### 4. Matching Scene
+- User login / registration
+- JWT token issued
 
-- User / Enemy 데이터 로드 및 화면 업데이트
-- Socket Server 매칭 완료 신호 대기
-- 매칭 완료 시 Battle Scene 진입
+---
 
-### 5. Battle Scene
+### Lobby
 
-- Side 값 기준으로 스폰 위치 설정 후, Player 객체 생성
-- Socket Server 패킷 기준으로 게임 상태 동기화
-- 결과 패킷 수신 시 Result Scene 이동
+- Connect to socket server
+- Verify JWT token
+- Create game session
 
-### 6. Result Scene
+---
 
-- 로컬에서 게임 결과 즉시 반영
-- 이후 Socket Server에서는 Room Close 비동기 처리
-- Socket Server에서 API Server로 전적 기록 Request
+### Matching
 
-## Notes
+- Wait for matchmaking completion
+- Load player data
+- Enter battle scene
 
-- Unity Client는 내부 변수 네이밍을 camelCase로 통일했습니다.
-- C# API Server 및 Socket Server는 .NET 컨벤션을 따릅니다.
-- C++ IOCP Server는 C++ 서버 코드 관례에 맞춰 작성되었습니다.
+---
+
+### Battle
+
+- Spawn players
+- Synchronize game state using packets
+- Process battle results
+
+---
+
+### Result
+
+- Apply battle result locally
+- Send record request to API server
+- Close room asynchronously
+
+---
+
+# Notes
+
+- Unity client variables follow **camelCase**
+- C# backend follows **.NET conventions**
+- C++ server follows **common C++ server coding practices**
